@@ -72,7 +72,9 @@ class Database {
                     if (await raidCollection.findOne())
                         await raidCollection.deleteMany({});
 
-                    let raidData = require(`../src/constants/${raid.raidName}`);
+                    let raidData = require(`tauriprogress-constants/${
+                        raid.raidName
+                    }`);
 
                     for (let boss of raidData.encounters) {
                         for (let diff in raid.difficulties) {
@@ -188,7 +190,9 @@ class Database {
                 let maintence = await this.db.collection("maintence");
 
                 for (let raid of raids) {
-                    let raidData = require(`../src/constants/${raid.raidName}`);
+                    let raidData = require(`tauriprogress-constants/${
+                        raid.raidName
+                    }`);
 
                     for (let boss of raidData.encounters) {
                         for (let diff in raid.difficulties) {
@@ -400,7 +404,7 @@ class Database {
         difficulty = null
     }) {
         return new Promise(async (resolve, reject) => {
-            const raid = require(`../src/constants/${raidName}`);
+            const raid = require(`tauriprogress-constants/${raidName}`);
             if (bossName) raid.encounters = [{ encounter_name: bossName }];
             if (difficulty) raid.difficulties = [difficulty];
 

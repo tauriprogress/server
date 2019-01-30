@@ -120,7 +120,7 @@ function validRaidName(raidName) {
 }
 
 function validBossName(raidName, bossName) {
-    let { encounters } = require(`../src/constants/${raidName}`);
+    let { encounters } = require(`tauriprogress-constants/${raidName}`);
     for (let encounter of encounters) {
         if (encounter.encounter_name === bossName) {
             return true;
