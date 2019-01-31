@@ -8,7 +8,8 @@ const {
 const {
     raidName,
     totalBosses,
-    raids
+    raids,
+    lastBoss
 } = require("tauriprogress-constants/currentContent");
 const tauriApi = require("./tauriApi");
 
@@ -399,27 +400,36 @@ function mergeBossKillIntoGuildData(guildData, bossKill, difficulty) {
         };
     }
 
+    return newGuildData;
+}
+
+function calcGuildContentCompletition(guild) {
     let bossesDefeated = {};
     let currentBossesDefeated = 0;
-    for (let diff in newGuildData.progression[raidName]) {
+
+    for (let diff in guild.progression[raidName]) {
         if (!bossesDefeated[diff]) bossesDefeated[diff] = 0;
 
-        for (let boss in newGuildData.progression[raidName][diff]) {
+        for (let boss in guild.progression[raidName][diff]) {
             bossesDefeated[diff]++;
         }
 
         if (bossesDefeated[diff] > currentBossesDefeated)
             currentBossesDefeated = bossesDefeated[diff];
+
+        if (bossesDefeated[diff] === totalBosses) {
+            guild.progression.completed = !guild.progression.completed
+                ? guild.progression[raidName][diff][lastBoss].firstKill
+                : guild.progression.completed <
+                  guild.progression[raidName][diff][lastBoss].firstKill
+                ? guild.progression.completed
+                : guild.progression[raidName][diff][lastBoss].firstKill;
+        }
     }
 
-    newGuildData.progression.currentBossesDefeated = currentBossesDefeated;
-    newGuildData.progression.bossesDefeated = bossesDefeated;
+    guild.progression.currentBossesDefeated = currentBossesDefeated;
 
-    if (currentBossesDefeated === totalBosses) {
-        newGuildData.progression.completed = true;
-    }
-
-    return newGuildData;
+    return guild;
 }
 
 function updateRaidBoss(oldRaidBoss, newRaidBoss) {
@@ -526,5 +536,6 @@ module.exports = {
     mergeBossKillIntoGuildData,
     updateRaidBoss,
     whenWas,
-    applyPlayerPerformanceRanks
+    applyPlayerPerformanceRanks,
+    calcGuildContentCompletition
 };
