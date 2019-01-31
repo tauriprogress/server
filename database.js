@@ -14,7 +14,8 @@ const {
     createGuildData,
     updateRaidBoss,
     applyPlayerPerformanceRanks,
-    whenWas
+    whenWas,
+    calcGuildContentCompletition
 } = require("./helpers");
 
 class Database {
@@ -129,7 +130,9 @@ class Database {
                     await guildsCollection.deleteMany({});
 
                 for (let key in guilds) {
-                    await this.saveGuild(guilds[key]);
+                    await this.saveGuild(
+                        calcGuildContentCompletition(guilds[key])
+                    );
                 }
 
                 maintence.insertOne({
@@ -248,10 +251,14 @@ class Database {
                                 }
                                 if (guild)
                                     await this.saveGuild(
-                                        mergeBossKillIntoGuildData(
-                                            guild,
-                                            processedLogs.guildBossKills[key],
-                                            diff
+                                        calcGuildContentCompletition(
+                                            mergeBossKillIntoGuildData(
+                                                guild,
+                                                processedLogs.guildBossKills[
+                                                    key
+                                                ],
+                                                diff
+                                            )
                                         )
                                     );
                             }
