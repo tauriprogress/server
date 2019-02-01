@@ -123,7 +123,6 @@ const { whenWas } = require("./helpers");
 
     app.get("/lastupdated", async (req, res) => {
         try {
-            if (db.isUpdating) throw new Error(db.updateStatus);
             res.send({
                 success: true,
                 response: whenWas(await db.lastUpdated())
@@ -137,8 +136,9 @@ const { whenWas } = require("./helpers");
     });
 
     app.get("/update", async (req, res) => {
+        let lastUpdateTime;
         try {
-            const lastUpdateTime = whenWas(await db.lastUpdated());
+            lastUpdateTime = whenWas(await db.lastUpdated());
             if (lastUpdateTime < 30)
                 throw new Error(
                     `Database can be updated in ${30 - lastUpdateTime} minutes.`
@@ -153,7 +153,8 @@ const { whenWas } = require("./helpers");
         } catch (err) {
             res.send({
                 success: false,
-                errorstring: err.message
+                errorstring: err.message,
+                lastUpdated: lastUpdateTime
             });
         }
     });
