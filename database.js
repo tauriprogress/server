@@ -15,7 +15,8 @@ const {
     updateRaidBoss,
     applyPlayerPerformanceRanks,
     whenWas,
-    calcGuildContentCompletition
+    calcGuildContentCompletition,
+    createMemberId
 } = require("./helpers");
 
 class Database {
@@ -28,10 +29,9 @@ class Database {
     async connect() {
         try {
             console.log("Connecting to database");
-            let client = await MongoClient.connect(
-                mongoUrl,
-                { useNewUrlParser: true }
-            );
+            let client = await MongoClient.connect(mongoUrl, {
+                useNewUrlParser: true
+            });
             this.db = client.db("tauriprogress");
         } catch (err) {
             throw err;
@@ -427,6 +427,12 @@ class Database {
                         if (!data[specId][raidName][diff])
                             data[specId][raidName][diff] = {};
 
+                        const memberId = createMemberId(
+                            realm,
+                            playerName,
+                            specId
+                        );
+
                         let dbResponse = (await raidCollection
                             .find({
                                 bossName: new RegExp(
@@ -436,8 +442,8 @@ class Database {
                                 difficulty: new RegExp("^" + diff + "$", "i")
                             })
                             .project({
-                                [`dps.${realm} ${playerName} ${specId}`]: 1,
-                                [`hps.${realm} ${playerName} ${specId}`]: 1
+                                [`dps.${memberId}`]: 1,
+                                [`hps.${memberId}`]: 1
                             })
                             .toArray())[0];
 
