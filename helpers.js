@@ -112,17 +112,14 @@ function getDps({ dmg_done }, { fight_time }) {
     return dmg_done / (fight_time / 1000);
 }
 
-function memberDps(realm, member, kill, dps, difficulty) {
+function memberDps(realm, member, kill, dps) {
     return {
         name: member.name,
-        race: member.race,
         spec: specs[member.spec],
         class: specToClass[member.spec],
         realm: realm,
-        difficulty: difficulty,
         ilvl: member.ilvl,
         date: kill.killtime,
-        damage: member.dmg_done,
         dps: dps,
         logId: kill.log_id
     };
@@ -132,18 +129,14 @@ function getHps({ heal_done, absorb_done }, { fight_time }) {
     return (heal_done + absorb_done) / (fight_time / 1000);
 }
 
-function memberHps(realm, member, kill, hps, difficulty) {
+function memberHps(realm, member, kill, hps) {
     return {
         name: member.name,
-        race: member.race,
         spec: specs[member.spec],
         class: specToClass[member.spec],
         realm: realm,
-        difficulty: difficulty,
         ilvl: member.ilvl,
         date: kill.killtime,
-        healing: member.heal_done,
-        absorb: member.absorb_done,
         hps: hps,
         logId: kill.log_id
     };
@@ -204,8 +197,7 @@ function processRaidBossLogs({ logs, difficulty }) {
                     log.realm,
                     member,
                     log,
-                    playerDps,
-                    difficulty
+                    playerDps
                 );
 
                 if (raidBoss.bestDps.dps < playerDps) {
@@ -244,8 +236,7 @@ function processRaidBossLogs({ logs, difficulty }) {
                     log.realm,
                     member,
                     log,
-                    playerHps,
-                    difficulty
+                    playerHps
                 );
 
                 if (raidBoss.bestHps.hps < playerHps) {
@@ -272,7 +263,17 @@ function processRaidBossLogs({ logs, difficulty }) {
 
     raidBoss.latestKills = raidBoss.latestKills
         .concat(logs.sort((a, b) => b.killtime - a.killtime))
-        .slice(0, 50);
+        .slice(0, 50)
+        .map(log => ({
+            log_id: log.log_id,
+            guilddata: {
+                name: log.guilddata.name,
+                faction: log.guilddata.faction
+            },
+            fight_time: log.fight_time,
+            realm: log.realm,
+            killtime: log.killtime
+        }));
 
     raidBoss.firstKills = raidBoss.firstKills
         .concat(logs.sort((a, b) => a.killtime - b.killtime))
@@ -280,7 +281,17 @@ function processRaidBossLogs({ logs, difficulty }) {
 
     raidBoss.fastestKills = raidBoss.fastestKills
         .concat(logs.sort((a, b) => a.fight_time - b.fight_time))
-        .slice(0, 50);
+        .slice(0, 50)
+        .map(log => ({
+            log_id: log.log_id,
+            guilddata: {
+                name: log.guilddata.name,
+                faction: log.guilddata.faction
+            },
+            fight_time: log.fight_time,
+            realm: log.realm,
+            killtime: log.killtime
+        }));
 
     raidBoss.lastLogDate = raidBoss.latestKills[0].killtime;
 
