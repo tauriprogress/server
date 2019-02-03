@@ -85,7 +85,14 @@ function createGuildBossKill(kill) {
         firstKill: kill.killtime,
         killCount: 1,
         fastestKill: kill.fight_time,
-        fastestKills: [kill],
+        fastestKills: [
+            {
+                log_id: kill.log_id,
+                fight_time: kill.fight_time,
+                killtime: kill.killtime,
+                realm: kill.realm
+            }
+        ],
         dps: {},
         hps: {}
     };
@@ -102,7 +109,12 @@ function updateGuildBossKill(guild, kill) {
                 ? guild.fastestKill
                 : kill.fight_time,
         fastestKills: guild.fastestKills
-            .concat(kill)
+            .concat({
+                log_id: kill.log_id,
+                fight_time: kill.fight_time,
+                killtime: kill.killtime,
+                realm: kill.realm
+            })
             .sort((a, b) => a.fight_time - b.fight_time)
             .slice(0, 10)
     };
@@ -326,10 +338,31 @@ async function createGuildData(realm, guildName) {
     } while (!kills.success && kills === "request timed out");
     if (!kills.success) throw new Error(kills.errorstring);
 
-    kills = kills.response.logs.slice(0, 50);
+    kills = kills.response.logs.slice(0, 50).map(log => ({
+        log_id: log.log_id,
+        mapentry: log.mapentry,
+        encounter_data: log.encounter_data,
+        difficulty: log.difficulty,
+        fight_time: log.fight_time,
+        killtime: log.killtime
+    }));
+
+    let guildList = [];
+
+    for (let memberId in guild.guildList) {
+        guildList.push({
+            name: guild.guildList[memberId].name,
+            class: guild.guildList[memberId].class,
+            realm: guild.guildList[memberId].realm,
+            rank_name: guild.guildList[memberId].rank_name,
+            level: guild.guildList[memberId].level,
+            rank: guild.guildList[memberId].rank
+        });
+    }
 
     let newGuild = {
         ...guild,
+        guildList: guildList,
         progression: {
             latestKills: kills,
             currentBossesDefeated: 0,
