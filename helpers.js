@@ -3,7 +3,8 @@ const {
     realms,
     specs,
     specToClass,
-    valuesCorrectSince
+    valuesCorrectSince,
+    shortRealms
 } = require("tauriprogress-constants");
 const {
     raidName,
@@ -188,7 +189,12 @@ function processRaidBossLogs({ logs, difficulty }) {
         }
 
         for (let member of log.members) {
-            let memberId = `${log.realm} ${member.name} ${member.spec}`;
+            const memberId = createMemberId(
+                log.realm,
+                member.name,
+                member.spec
+            );
+
             if (specs[member.spec].isDps) {
                 const playerDps = invalidDurumu(bossId, log.killtime)
                     ? true
@@ -508,11 +514,11 @@ function applyPlayerPerformanceRanks(raidBoss) {
     hpsArr = hpsArr.sort((a, b) => b.hps - a.hps);
 
     for (let i = 0; i < dpsArr.length; i++) {
-        raidBoss.dps[dpsArr[i].key] = { ...dpsArr[i], rank: i + 1 };
+        raidBoss.dps[dpsArr[i].key].rank = i + 1;
     }
 
     for (let i = 0; i < hpsArr.length; i++) {
-        raidBoss.hps[hpsArr[i].key] = { ...hpsArr[i], rank: i + 1 };
+        raidBoss.hps[hpsArr[i].key].rank = i + 1;
     }
 
     return raidBoss;
@@ -529,6 +535,10 @@ function invalidDurumu(bossId, killtime) {
     return false;
 }
 
+function createMemberId(realm, name, spec) {
+    return `${shortRealms[realm]} ${name} ${spec}`;
+}
+
 module.exports = {
     getRaidBossLogs,
     processRaidBossLogs,
@@ -537,5 +547,6 @@ module.exports = {
     updateRaidBoss,
     whenWas,
     applyPlayerPerformanceRanks,
-    calcGuildContentCompletition
+    calcGuildContentCompletition,
+    createMemberId
 };
