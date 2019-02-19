@@ -177,5 +177,21 @@ const { whenWas } = require("./helpers");
         }
     });
 
+    app.post("/getitem", async (req, res) => {
+        try {
+            let item = (await tauriApi.getItem(req.body.id)).response;
+
+            res.send({
+                success: true,
+                response: item
+            });
+        } catch (err) {
+            res.send({
+                success: false,
+                errorstring: err.message
+            });
+        }
+    });
+
     app.listen(port, () => console.log(`Server running on port ${port}`));
 })();
