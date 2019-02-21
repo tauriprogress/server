@@ -599,20 +599,27 @@ class Database {
                     .toArray();
 
                 for (let guild of guilds) {
-                    let newGuild = await createGuildData(
-                        guild.realm,
-                        guild.guildName
-                    );
+                    try {
+                        let newGuild = await createGuildData(
+                            guild.realm,
+                            guild.guildName
+                        );
 
-                    newGuild = {
-                        ...newGuild,
-                        progression: {
-                            ...guild.progression,
-                            latestKills: newGuild.progression.latestKills
+                        if (newGuild) {
+                            newGuild = {
+                                ...newGuild,
+                                progression: {
+                                    ...guild.progression,
+                                    latestKills:
+                                        newGuild.progression.latestKills
+                                }
+                            };
+                            await this.saveGuild(newGuild);
                         }
-                    };
-
-                    await this.saveGuild(newGuild);
+                    } catch (err) {
+                        console.log(`Error with updating ${guild.guildName}:`);
+                        console.error(err);
+                    }
                 }
 
                 resolve("Done");
