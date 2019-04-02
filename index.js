@@ -21,6 +21,10 @@ const { whenWas } = require("./helpers");
         if (!(await db.isInitalized())) {
             await db.initalizeDatabase();
         }
+
+        if (whenWas(await db.lastUpdated()) / 60 > 24) {
+            db.updateDatabase();
+        }
     } catch (err) {
         console.error(err);
         db.disconnect().catch(err => console.error(err));
