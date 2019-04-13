@@ -152,10 +152,22 @@ function validDifficulty(raidName, difficulty) {
     return true;
 }
 
+function collectStats(db) {
+    return (req, res, next) => {
+        db.saveReqStats(
+            req.url,
+            req.headers["x-forwarded-for"] || req.connection.remoteAddress,
+            new Date()
+        );
+        next();
+    };
+}
+
 module.exports = {
     verifyGetGuild,
     verifyGetPlayer,
     verifyGetRaid,
     verifyGetboss,
-    verifyGetLog
+    verifyGetLog,
+    collectStats
 };
