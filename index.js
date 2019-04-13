@@ -10,7 +10,8 @@ const {
     verifyGetPlayer,
     verifyGetRaid,
     verifyGetboss,
-    verifyGetLog
+    verifyGetLog,
+    collectStats
 } = require("./middlewares");
 const tauriApi = require("./tauriApi");
 const { whenWas } = require("./helpers");
@@ -36,8 +37,8 @@ const { whenWas } = require("./helpers");
             optionsSuccessStatus: 200
         })
     );
-
     app.use(bodyParser.json());
+    app.use(collectStats(db));
 
     app.get("/getguildlist", async (req, res) => {
         try {
