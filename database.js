@@ -638,7 +638,8 @@ class Database {
         return new Promise(async (resolve, reject) => {
             try {
                 let stats = await this.db.collection("stats");
-                const today = `${date.getFullYear()}:${date.getMonth()}:${date.getDay()}`;
+                const today = `${date.getFullYear()}:${date.getMonth() +
+                    1}:${date.getDate()}`;
                 const time = date.toLocaleString();
                 const replaceReg = /\./gi;
 
