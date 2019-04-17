@@ -156,7 +156,8 @@ function collectStats(db) {
     return (req, res, next) => {
         db.saveReqStats(
             req.url,
-            req.headers["x-forwarded-for"] || req.connection.remoteAddress,
+            req.headers["x-forwarded-for"].split(",")[0] ||
+                req.connection.remoteAddress,
             new Date()
         );
         next();

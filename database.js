@@ -647,8 +647,9 @@ class Database {
                     {},
                     {
                         $set: {
-                            [`${today}.${/.*(?=,)/.exec(
-                                ip.replace(replaceReg, "-")
+                            [`${today}.${ip.replace(
+                                replaceReg,
+                                "-"
                             )}.${time}`]: url
                         }
                     }
