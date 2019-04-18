@@ -4,7 +4,8 @@ const {
     specs,
     specToClass,
     valuesCorrectSince,
-    shortRealms
+    shortRealms,
+    raceToFaction
 } = require("tauriprogress-constants");
 const {
     raidName,
@@ -133,7 +134,8 @@ function memberDps(realm, member, kill, dps) {
         ilvl: member.ilvl,
         date: kill.killtime,
         dps: dps,
-        logId: kill.log_id
+        logId: kill.log_id,
+        faction: raceToFaction[member.race]
     };
 }
 
@@ -150,7 +152,8 @@ function memberHps(realm, member, kill, hps) {
         ilvl: member.ilvl,
         date: kill.killtime,
         hps: hps,
-        logId: kill.log_id
+        logId: kill.log_id,
+        faction: raceToFaction[member.race]
     };
 }
 
