@@ -154,12 +154,9 @@ function validDifficulty(raidName, difficulty) {
 
 function collectStats(db) {
     return (req, res, next) => {
-        db.saveReqStats(
-            req.url,
-            req.headers["x-forwarded-for"].split(",")[0] ||
-                req.connection.remoteAddress,
-            new Date()
-        );
+        let ip = req.headers["x-forwarded-for"] || req.connection.remoteAddress;
+
+        db.saveReqStats(req.url, ip.split(",")[0], new Date());
         next();
     };
 }
