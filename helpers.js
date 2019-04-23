@@ -128,7 +128,7 @@ function getDps({ dmg_done }, { fight_time }) {
 function memberDps(realm, member, kill, dps) {
     return {
         name: member.name,
-        spec: specs[member.spec],
+        spec: member.spec,
         class: specToClass[member.spec],
         realm: realm,
         ilvl: member.ilvl,
@@ -146,7 +146,7 @@ function getHps({ heal_done, absorb_done }, { fight_time }) {
 function memberHps(realm, member, kill, hps) {
     return {
         name: member.name,
-        spec: specs[member.spec],
+        spec: member.spec,
         class: specToClass[member.spec],
         realm: realm,
         ilvl: member.ilvl,
