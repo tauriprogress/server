@@ -586,6 +586,10 @@ function createMemberId(realm, name, spec) {
     return `${shortRealms[realm]} ${name} ${spec}`;
 }
 
+function escapeRegex(s) {
+    return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+}
+
 module.exports = {
     getRaidBossLogs,
     processRaidBossLogs,
@@ -595,5 +599,6 @@ module.exports = {
     whenWas,
     applyPlayerPerformanceRanks,
     calcGuildContentCompletition,
-    createMemberId
+    createMemberId,
+    escapeRegex
 };

@@ -16,7 +16,8 @@ const {
     applyPlayerPerformanceRanks,
     whenWas,
     calcGuildContentCompletition,
-    createMemberId
+    createMemberId,
+    escapeRegex
 } = require("./helpers");
 
 class Database {
@@ -173,8 +174,11 @@ class Database {
                 let raidCollection = this.db.collection(raidName);
 
                 let raidBoss = await raidCollection.findOne({
-                    bossName: new RegExp("^" + bossName + "$", "i"),
-                    difficulty: new RegExp("^" + diff + "$", "i")
+                    bossName: new RegExp(
+                        "^" + escapeRegex(bossName) + "$",
+                        "i"
+                    ),
+                    difficulty: new RegExp("^" + escapeRegex(diff) + "$", "i")
                 });
 
                 if (raidBoss) lastLogDate = raidBoss.lastLogDate;
@@ -339,7 +343,10 @@ class Database {
         return new Promise(async (resolve, reject) => {
             try {
                 let guild = await this.db.collection("guilds").findOne({
-                    guildName: new RegExp("^" + guildName + "$", "i"),
+                    guildName: new RegExp(
+                        "^" + escapeRegex(guildName) + "$",
+                        "i"
+                    ),
                     realm: realm
                 });
 
@@ -389,7 +396,10 @@ class Database {
                 let raidCollection = this.db.collection(raidName);
                 let raidBoss = await raidCollection
                     .find({
-                        bossName: new RegExp("^" + bossName + "$", "i")
+                        bossName: new RegExp(
+                            "^" + escapeRegex(bossName) + "$",
+                            "i"
+                        )
                     })
                     .toArray();
                 if (!raidBoss) throw new Error("Boss not found");
@@ -441,10 +451,15 @@ class Database {
                         let dbResponse = (await raidCollection
                             .find({
                                 bossName: new RegExp(
-                                    "^" + boss.encounter_name + "$",
+                                    "^" +
+                                        escapeRegex(boss.encounter_name) +
+                                        "$",
                                     "i"
                                 ),
-                                difficulty: new RegExp("^" + diff + "$", "i")
+                                difficulty: new RegExp(
+                                    "^" + escapeRegex(diff) + "$",
+                                    "i"
+                                )
                             })
                             .project({
                                 [`dps.${memberId}`]: 1,
@@ -512,7 +527,10 @@ class Database {
         return new Promise(async (resolve, reject) => {
             try {
                 let oldGuild = await this.db.collection("guilds").findOne({
-                    guildName: new RegExp("^" + guild.guildName + "$", "i"),
+                    guildName: new RegExp(
+                        "^" + escapeRegex(guild.guildName) + "$",
+                        "i"
+                    ),
                     realm: guild.realm
                 });
 
@@ -522,7 +540,7 @@ class Database {
                     await this.db.collection("guilds").updateOne(
                         {
                             guildName: new RegExp(
-                                "^" + guild.guildName + "$",
+                                "^" + escapeRegex(guild.guildName) + "$",
                                 "i"
                             ),
                             realm: guild.realm
@@ -546,8 +564,14 @@ class Database {
                     );
                 let raidCollection = this.db.collection(raidName);
                 let oldRaidBoss = await raidCollection.findOne({
-                    bossName: new RegExp("^" + raidBoss.bossName + "$", "i"),
-                    difficulty: new RegExp("^" + raidBoss.difficulty + "$", "i")
+                    bossName: new RegExp(
+                        "^" + escapeRegex(raidBoss.bossName) + "$",
+                        "i"
+                    ),
+                    difficulty: new RegExp(
+                        "^" + escapeRegex(raidBoss.difficulty) + "$",
+                        "i"
+                    )
                 });
 
                 if (!oldRaidBoss) {
@@ -558,7 +582,7 @@ class Database {
                     await raidCollection.updateOne(
                         {
                             bossName: new RegExp(
-                                "^" + raidBoss.bossName + "$",
+                                "^" + escapeRegex(raidBoss.bossName) + "$",
                                 "i"
                             ),
                             difficulty: raidBoss.difficulty
