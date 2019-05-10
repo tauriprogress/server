@@ -587,7 +587,7 @@ function createMemberId(realm, name, spec) {
 }
 
 function escapeRegex(s) {
-    return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+    return String(s).replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
 }
 
 module.exports = {
