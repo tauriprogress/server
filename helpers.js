@@ -309,6 +309,7 @@ function processRaidBossLogs({ logs, difficulty }) {
         }));
 
     raidBoss.lastLogDate = raidBoss.latestKills[0].killtime;
+    raidBoss.lastUpdated = new Date().getTime() / 1000;
 
     return {
         raidBoss,
@@ -509,7 +510,8 @@ function updateRaidBoss(oldRaidBoss, newRaidBoss) {
             .sort((a, b) => a.fight_time - b.fight_time)
             .slice(0, 50),
         killCount: oldRaidBoss.killCount + newRaidBoss.killCount,
-        lastLogDate: newRaidBoss.lastLogDate
+        lastLogDate: newRaidBoss.lastLogDate,
+        lastUpdated: newRaidBoss.lastUpdated
     };
 
     for (let key in newRaidBoss.dps) {
@@ -590,6 +592,13 @@ function escapeRegex(s) {
     return String(s).replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
 }
 
+function getBossId(raidData, bossName) {
+    return raidData.encounters.reduce((acc, boss) => {
+        if (boss.encounter_name === bossName) acc = boss.encounter_id;
+        return acc;
+    }, null);
+}
+
 module.exports = {
     getRaidBossLogs,
     processRaidBossLogs,
@@ -600,5 +609,6 @@ module.exports = {
     applyPlayerPerformanceRanks,
     calcGuildContentCompletition,
     createMemberId,
-    escapeRegex
+    escapeRegex,
+    getBossId
 };

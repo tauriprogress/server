@@ -11,6 +11,7 @@ const {
     verifyGetRaid,
     verifyGetboss,
     verifyGetLog,
+    verifyUpdateRaidBoss,
     collectStats
 } = require("./middlewares");
 const tauriApi = require("./tauriApi");
@@ -194,6 +195,35 @@ const { whenWas } = require("./helpers");
             res.send({
                 success: false,
                 errorstring: err.message
+            });
+        }
+    });
+
+    app.post("/updateRaidBoss", verifyUpdateRaidBoss, async (req, res) => {
+        let lastUpdateTime;
+        try {
+            lastUpdateTime = whenWas(
+                await db.lastUpdateOfBoss(req.body.raidName, req.body.bossName)
+            );
+            if (lastUpdateTime < 5)
+                throw new Error(
+                    `Boss can be updated in ${5 - lastUpdateTime} minutes.`
+                );
+
+            if (db.isUpdating) throw new Error(db.updateStatus);
+
+            res.send({
+                success: true,
+                response: await db.updateRaidBoss(
+                    req.body.raidName,
+                    req.body.bossName
+                )
+            });
+        } catch (err) {
+            res.send({
+                success: false,
+                errorstring: err.message,
+                lastUpdated: lastUpdateTime
             });
         }
     });

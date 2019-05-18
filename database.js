@@ -17,7 +17,8 @@ const {
     whenWas,
     calcGuildContentCompletition,
     createMemberId,
-    escapeRegex
+    escapeRegex,
+    getBossId
 } = require("./helpers");
 
 class Database {
@@ -292,6 +293,10 @@ class Database {
 
                 resolve(whenWas(updateStarted));
             } catch (err) {
+                if (err.message !== "Database is already updating") {
+                    this.isUpdating = false;
+                    this.updateStatus = "";
+                }
                 reject(err);
             }
         });
@@ -679,6 +684,109 @@ class Database {
                     }
                 );
                 resolve("Done");
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+
+    async updateRaidBoss(raidName, bossName) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                if (this.isUpdating)
+                    throw new Error("Database is already updating");
+                this.isUpdating = true;
+                this.updateStatus = `Updating ${bossName}`;
+
+                let raidData = require(`tauriprogress-constants/${raidName}`);
+
+                for (let diff of raidData.difficulties) {
+                    diff = String(diff);
+                    let lastLogDate = await this.getLastLogDateOfBoss(
+                        raidName,
+                        bossName,
+                        diff
+                    );
+
+                    let logs = await getRaidBossLogs(
+                        getBossId(raidData, bossName),
+                        diff,
+                        lastLogDate
+                    );
+
+                    if (!logs.logs.length) continue;
+
+                    let processedLogs = processRaidBossLogs(logs);
+
+                    await this.saveRaidBoss({
+                        raidName: raidName,
+                        raidBoss: processedLogs.raidBoss
+                    });
+
+                    for (let key in processedLogs.guildBossKills) {
+                        let guild;
+                        try {
+                            guild = await this.getGuild(
+                                processedLogs.guildBossKills[key].realm,
+                                processedLogs.guildBossKills[key].guildName
+                            );
+                        } catch (err) {
+                            if (err.message === "Guild not found") {
+                                guild = await createGuildData(
+                                    processedLogs.guildBossKills[key].realm,
+                                    processedLogs.guildBossKills[key].guildName
+                                );
+                            }
+                        }
+                        if (guild)
+                            await this.saveGuild(
+                                calcGuildContentCompletition(
+                                    mergeBossKillIntoGuildData(
+                                        guild,
+                                        processedLogs.guildBossKills[key],
+                                        diff
+                                    )
+                                )
+                            );
+                    }
+                }
+
+                this.isUpdating = false;
+                this.updateStatus = "";
+
+                resolve({
+                    done: true
+                });
+            } catch (err) {
+                if (err.message !== "Database is already updating") {
+                    this.isUpdating = false;
+                    this.updateStatus = "";
+                }
+
+                reject(err);
+            }
+        });
+    }
+
+    async lastUpdateOfBoss(raidName, bossName) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                let raid = await this.db.collection(raidName);
+                let bosses = await raid
+                    .find({
+                        bossName: new RegExp(
+                            "^" + escapeRegex(bossName) + "$",
+                            "i"
+                        )
+                    })
+                    .toArray();
+
+                let lastUpdated = bosses.reduce((acc, boss) => {
+                    if (boss.lastUpdated > acc) acc = boss.lastUpdated;
+                    return acc;
+                }, 0);
+
+                resolve(lastUpdated);
             } catch (err) {
                 reject(err);
             }
