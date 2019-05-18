@@ -24,8 +24,8 @@ function verifyGetPlayer(req, res, next) {
         if (!req.body.playerName) throw new Error("Invalid player name.");
         req.body.playerName = req.body.playerName.trim().replace(/\s+/g, " ");
 
-        if (!req.body.raidName) throw new Error("Invalid raid name.");
-        req.body.raidName = req.body.raidName.trim().replace(/\s+/g, " ");
+        if (req.body.raidName)
+            req.body.raidName = req.body.raidName.trim().replace(/\s+/g, " ");
 
         if (!validRaidName(req.body.raidName))
             throw new Error("Invalid raid name.");
@@ -33,10 +33,7 @@ function verifyGetPlayer(req, res, next) {
         if (req.body.bossName)
             req.body.bossName = req.body.bossName.trim().replace(/\s+/g, " ");
 
-        if (
-            req.body.bossName &&
-            !validBossName(req.body.raidName, req.body.bossName)
-        )
+        if (!validBossName(req.body.raidName, req.body.bossName))
             throw new Error("Invalid boss name.");
 
         if (
@@ -58,8 +55,8 @@ function verifyGetPlayer(req, res, next) {
 
 function verifyGetRaid(req, res, next) {
     try {
-        if (!req.body.raidName) throw new Error("Invalid raid name.");
-        req.body.raidName = req.body.raidName.trim().replace(/\s+/g, " ");
+        if (req.body.raidName)
+            req.body.raidName = req.body.raidName.trim().replace(/\s+/g, " ");
 
         if (!validRaidName(req.body.raidName))
             throw new Error("Invalid raid name.");
@@ -75,8 +72,8 @@ function verifyGetRaid(req, res, next) {
 
 function verifyGetboss(req, res, next) {
     try {
-        if (!req.body.raidName) throw new Error("Invalid raid name.");
-        req.body.raidName = req.body.raidName.trim().replace(/\s+/g, " ");
+        if (req.body.raidName)
+            req.body.raidName = req.body.raidName.trim().replace(/\s+/g, " ");
 
         if (!validRaidName(req.body.raidName))
             throw new Error("Invalid raid name.");
@@ -101,6 +98,26 @@ function verifyGetLog(req, res, next) {
         if (!req.body.realm) req.body.realm = realms["tauri"];
         req.body.realm = req.body.realm.trim();
         if (!validRealm(req.body.realm)) throw new Error("Invalid realm name.");
+
+        next();
+    } catch (err) {
+        res.send({ success: false, errorstring: err.message });
+    }
+}
+
+function verifyUpdateRaidBoss(req, res, next) {
+    try {
+        if (req.body.raidName)
+            req.body.raidName = req.body.raidName.trim().replace(/\s+/g, " ");
+
+        if (!validRaidName(req.body.raidName))
+            throw new Error("Invalid raid name.");
+
+        if (req.body.bossName)
+            req.body.bossName = req.body.bossName.trim().replace(/\s+/g, " ");
+
+        if (!validBossName(req.body.raidName, req.body.bossName))
+            throw new Error("Invalid boss name.");
 
         next();
     } catch (err) {
@@ -167,5 +184,6 @@ module.exports = {
     verifyGetRaid,
     verifyGetboss,
     verifyGetLog,
+    verifyUpdateRaidBoss,
     collectStats
 };
