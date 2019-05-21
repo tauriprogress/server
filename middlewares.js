@@ -33,7 +33,10 @@ function verifyGetPlayer(req, res, next) {
         if (req.body.bossName)
             req.body.bossName = req.body.bossName.trim().replace(/\s+/g, " ");
 
-        if (!validBossName(req.body.raidName, req.body.bossName))
+        if (
+            req.body.bossName &&
+            !validBossName(req.body.raidName, req.body.bossName)
+        )
             throw new Error("Invalid boss name.");
 
         if (
