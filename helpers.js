@@ -602,6 +602,10 @@ function getBossId(raidData, bossName) {
     }, null);
 }
 
+function secsAgo(time) {
+    return Math.round(new Date().getTime() / 1000 - time);
+}
+
 module.exports = {
     getRaidBossLogs,
     processRaidBossLogs,
@@ -613,5 +617,6 @@ module.exports = {
     calcGuildContentCompletition,
     createMemberId,
     escapeRegex,
-    getBossId
+    getBossId,
+    secsAgo
 };
