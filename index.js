@@ -15,7 +15,7 @@ const {
     collectStats
 } = require("./middlewares");
 const tauriApi = require("./tauriApi");
-const { whenWas } = require("./helpers");
+const { whenWas, secsAgo } = require("./helpers");
 
 (async function() {
     try {
@@ -202,13 +202,13 @@ const { whenWas } = require("./helpers");
     app.post("/updateRaidBoss", verifyUpdateRaidBoss, async (req, res) => {
         let lastUpdateTime;
         try {
-            lastUpdateTime = whenWas(
-                await db.lastUpdateOfBoss(req.body.raidName, req.body.bossName)
+            lastUpdateTime = await db.lastUpdateOfBoss(
+                req.body.raidName,
+                req.body.bossName
             );
-            if (lastUpdateTime < 5)
-                throw new Error(
-                    `Boss can be updated in ${5 - lastUpdateTime} minutes.`
-                );
+
+            if (secsAgo(lastUpdateTime) < 300)
+                throw new Error(`Boss can't be updated yet.`);
 
             if (db.isUpdating) throw new Error(db.updateStatus);
 
@@ -223,7 +223,7 @@ const { whenWas } = require("./helpers");
             res.send({
                 success: false,
                 errorstring: err.message,
-                lastUpdated: lastUpdateTime
+                lastUpdated: secsAgo(lastUpdateTime)
             });
         }
     });
