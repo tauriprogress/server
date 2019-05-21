@@ -157,9 +157,9 @@ function memberHps(realm, member, kill, hps) {
     };
 }
 
-function processRaidBossLogs({ logs, difficulty }) {
+function processRaidBossLogs({ logs, difficulty }, bossName) {
     let raidBoss = {
-        bossName: "",
+        bossName: bossName,
         latestKills: [],
         firstKills: [],
         fastestKills: [],
@@ -172,12 +172,11 @@ function processRaidBossLogs({ logs, difficulty }) {
             hps: 0
         },
         killCount: 0,
-        lastLogDate: 0,
+        lastLogDate: null,
         difficulty
     };
     let guilds = {};
     let bossId;
-    if (logs[0]) raidBoss.bossName = logs[0].encounter_data.encounter_name;
     if (logs[0]) bossId = logs[0].encounter_data.encounter_id;
 
     for (let log of logs) {
@@ -308,7 +307,9 @@ function processRaidBossLogs({ logs, difficulty }) {
             killtime: log.killtime
         }));
 
-    raidBoss.lastLogDate = raidBoss.latestKills[0].killtime;
+    raidBoss.lastLogDate = raidBoss.latestKills[0]
+        ? raidBoss.latestKills[0].killtime
+        : null;
     raidBoss.lastUpdated = new Date().getTime() / 1000;
 
     return {
@@ -510,7 +511,9 @@ function updateRaidBoss(oldRaidBoss, newRaidBoss) {
             .sort((a, b) => a.fight_time - b.fight_time)
             .slice(0, 50),
         killCount: oldRaidBoss.killCount + newRaidBoss.killCount,
-        lastLogDate: newRaidBoss.lastLogDate,
+        lastLogDate: newRaidBoss.lastLogDate
+            ? newRaidBoss.lastLogDate
+            : oldRaidBoss.lastLogDate,
         lastUpdated: newRaidBoss.lastUpdated
     };
 
