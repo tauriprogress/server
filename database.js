@@ -98,9 +98,10 @@ class Database {
                                 0
                             );
 
-                            if (!logs.logs.length) continue;
-
-                            let processedLogs = processRaidBossLogs(logs);
+                            let processedLogs = processRaidBossLogs(
+                                logs,
+                                boss.encounter_name
+                            );
 
                             await this.saveRaidBoss({
                                 raidName: raid.raidName,
@@ -208,70 +209,16 @@ class Database {
                     }`);
 
                     for (let boss of raidData.encounters) {
-                        for (let diff in raid.difficulties) {
-                            console.log(
-                                "db: Updating " +
-                                    boss.encounter_name +
-                                    " diff: " +
-                                    diff
-                            );
-                            this.updateStatus = `Updating ${
-                                boss.encounter_name
-                            }`;
+                        console.log("db: Updating " + boss.encounter_name);
+                        this.updateStatus = `Updating ${boss.encounter_name}`;
 
-                            let lastLogDate = await this.getLastLogDateOfBoss(
-                                raid.raidName,
-                                boss.encounter_name,
-                                diff
-                            );
+                        let result = await this.updateRaidBoss(
+                            raid.raidName,
+                            boss.encounter_name
+                        );
 
-                            let logs = await getRaidBossLogs(
-                                boss.encounter_id,
-                                diff,
-                                lastLogDate
-                            );
-
-                            if (!logs.logs.length) continue;
-
-                            let processedLogs = processRaidBossLogs(logs);
-
-                            await this.saveRaidBoss({
-                                raidName: raid.raidName,
-                                raidBoss: processedLogs.raidBoss
-                            });
-
-                            for (let key in processedLogs.guildBossKills) {
-                                let guild;
-                                console.log(`Saving ${key}`);
-                                try {
-                                    guild = await this.getGuild(
-                                        processedLogs.guildBossKills[key].realm,
-                                        processedLogs.guildBossKills[key]
-                                            .guildName
-                                    );
-                                } catch (err) {
-                                    if (err.message === "Guild not found") {
-                                        guild = await createGuildData(
-                                            processedLogs.guildBossKills[key]
-                                                .realm,
-                                            processedLogs.guildBossKills[key]
-                                                .guildName
-                                        );
-                                    }
-                                }
-                                if (guild)
-                                    await this.saveGuild(
-                                        calcGuildContentCompletition(
-                                            mergeBossKillIntoGuildData(
-                                                guild,
-                                                processedLogs.guildBossKills[
-                                                    key
-                                                ],
-                                                diff
-                                            )
-                                        )
-                                    );
-                            }
+                        if (!result.done) {
+                            throw new Error(result);
                         }
                     }
                 }
@@ -690,7 +637,7 @@ class Database {
         });
     }
 
-    async updateRaidBoss(raidName, bossName) {
+    async updateOneRaidBoss(raidName, bossName) {
         return new Promise(async (resolve, reject) => {
             try {
                 if (this.isUpdating)
@@ -698,6 +645,29 @@ class Database {
                 this.isUpdating = true;
                 this.updateStatus = `Updating ${bossName}`;
 
+                const result = await this.updateRaidBoss(raidName, bossName);
+
+                if (result.done) {
+                    this.isUpdating = false;
+                    this.updateStatus = "";
+                    resolve(result);
+                } else {
+                    throw new Error(result);
+                }
+            } catch (err) {
+                if (err.message !== "Database is already updating") {
+                    this.isUpdating = false;
+                    this.updateStatus = "";
+                }
+
+                reject(err);
+            }
+        });
+    }
+
+    async updateRaidBoss(raidName, bossName) {
+        return new Promise(async (resolve, reject) => {
+            try {
                 let raidData = require(`tauriprogress-constants/${raidName}`);
 
                 for (let diff of raidData.difficulties) {
@@ -714,9 +684,7 @@ class Database {
                         lastLogDate
                     );
 
-                    if (!logs.logs.length) continue;
-
-                    let processedLogs = processRaidBossLogs(logs);
+                    let processedLogs = processRaidBossLogs(logs, bossName);
 
                     await this.saveRaidBoss({
                         raidName: raidName,
@@ -750,9 +718,6 @@ class Database {
                             );
                     }
                 }
-
-                this.isUpdating = false;
-                this.updateStatus = "";
 
                 resolve({
                     done: true

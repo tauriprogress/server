@@ -214,7 +214,7 @@ const { whenWas } = require("./helpers");
 
             res.send({
                 success: true,
-                response: await db.updateRaidBoss(
+                response: await db.updateOneRaidBoss(
                     req.body.raidName,
                     req.body.bossName
                 )
