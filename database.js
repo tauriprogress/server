@@ -679,7 +679,7 @@ class Database {
                     );
 
                     let logs = await getRaidBossLogs(
-                        getBossId(raidData, bossName),
+                        getBossId(raidData, bossName, diff),
                         diff,
                         lastLogDate
                     );
