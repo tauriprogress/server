@@ -595,9 +595,14 @@ function escapeRegex(s) {
     return String(s).replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
 }
 
-function getBossId(raidData, bossName) {
+function getBossId(raidData, bossName, diff = 0) {
     return raidData.encounters.reduce((acc, boss) => {
-        if (boss.encounter_name === bossName) acc = boss.encounter_id;
+        if (
+            boss.encounter_name === bossName &&
+            (boss.encounter_difficulty === 0 ||
+                boss.encounter_difficulty === Number(diff))
+        )
+            acc = boss.encounter_id;
         return acc;
     }, null);
 }
