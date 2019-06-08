@@ -5,7 +5,8 @@ const {
 } = require("tauriprogress-constants/currentContent.json");
 const dbUser = process.env.MONGODB_USER;
 const dbPassword = process.env.MONGODB_PASSWORD;
-const mongoUrl = `mongodb://${dbUser}:${dbPassword}@ds129315.mlab.com:29315/tauriprogress`;
+const dbAddress = process.env.MONGODB_ADDRESS;
+const mongoUrl = `mongodb://${dbUser}:${dbPassword}@${dbAddress}`;
 const MongoClient = require("mongodb").MongoClient;
 const {
     getRaidBossLogs,
