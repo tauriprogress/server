@@ -11,7 +11,7 @@ const MongoClient = require("mongodb").MongoClient;
 const {
     getRaidBossLogs,
     processRaidBossLogs,
-    mergeBossKillIntoGuildData,
+    mergeBossKillsOfGuildIntoGuildData,
     createGuildData,
     updateRaidBoss,
     applyPlayerPerformanceRanks,
@@ -21,7 +21,6 @@ const {
     escapeRegex,
     getBossId
 } = require("./helpers");
-
 class Database {
     constructor() {
         this.db = {};
@@ -117,13 +116,17 @@ class Database {
                                             .guildName
                                     );
 
-                                    guilds[key] = mergeBossKillIntoGuildData(
+                                    guilds[
+                                        key
+                                    ] = mergeBossKillsOfGuildIntoGuildData(
                                         guild,
                                         processedLogs.guildBossKills[key],
                                         diff
                                     );
                                 } else {
-                                    guilds[key] = mergeBossKillIntoGuildData(
+                                    guilds[
+                                        key
+                                    ] = mergeBossKillsOfGuildIntoGuildData(
                                         guilds[key],
                                         processedLogs.guildBossKills[key],
                                         diff
@@ -710,7 +713,7 @@ class Database {
                         if (guild)
                             await this.saveGuild(
                                 calcGuildContentCompletition(
-                                    mergeBossKillIntoGuildData(
+                                    mergeBossKillsOfGuildIntoGuildData(
                                         guild,
                                         processedLogs.guildBossKills[key],
                                         diff
