@@ -19,7 +19,9 @@ const {
     calcGuildContentCompletition,
     createMemberId,
     escapeRegex,
-    getBossId
+    getBossId,
+    addNestedObjectValue,
+    getNestedObjectValue
 } = require("./helpers");
 class Database {
     constructor() {
@@ -330,8 +332,33 @@ class Database {
                     .toArray();
 
                 for (let boss of bosses) {
-                    boss.firstKills = boss.firstKills[0];
-                    boss.fastestKills = boss.fastestKills[0];
+                    for (let realm in boss.firstKills) {
+                        for (let faction in boss.firstKills[realm]) {
+                            let objectKeys = [realm, faction];
+                            boss.firstKills = addNestedObjectValue(
+                                boss.firstKills,
+                                objectKeys,
+                                getNestedObjectValue(
+                                    boss.firstKills,
+                                    objectKeys
+                                ).slice(0, 1)
+                            );
+                        }
+                    }
+
+                    for (let realm in boss.fastestKills) {
+                        for (let faction in boss.fastestKills[realm]) {
+                            let objectKeys = [realm, faction];
+                            boss.fastestKills = addNestedObjectValue(
+                                boss.fastestKills,
+                                objectKeys,
+                                getNestedObjectValue(
+                                    boss.fastestKills,
+                                    objectKeys
+                                ).slice(0, 1)
+                            );
+                        }
+                    }
 
                     if (!raidData[boss.difficulty])
                         raidData[boss.difficulty] = {};
@@ -357,6 +384,10 @@ class Database {
                             "i"
                         )
                     })
+                    .project({
+                        ["bestDps"]: 0,
+                        ["bestHps"]: 0
+                    })
                     .toArray();
                 if (!raidBoss) throw new Error("Boss not found");
 
@@ -364,6 +395,22 @@ class Database {
 
                 for (let boss of raidBoss) {
                     raidBosses[boss.difficulty] = boss;
+                    let fastestKills = [];
+                    for (let realm in boss.fastestKills) {
+                        for (let faction in boss.fastestKills[realm]) {
+                            let objectKeys = [realm, faction];
+                            fastestKills = fastestKills.concat(
+                                getNestedObjectValue(
+                                    boss.fastestKills,
+                                    objectKeys
+                                )
+                            );
+                        }
+                    }
+
+                    boss.fastestKills = fastestKills
+                        .sort((a, b) => a.fight_time - b.fight_time)
+                        .slice(0, 50);
                 }
 
                 resolve(raidBosses);
