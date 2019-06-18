@@ -128,6 +128,32 @@ function verifyUpdateRaidBoss(req, res, next) {
     }
 }
 
+function verifyPlayerBossKills(req, res, next) {
+    try {
+        if (req.body.realm)
+            req.body.realm = req.body.realm.trim().replace(/\s+/g, " ");
+
+        if (!validRealm(req.body.realm)) throw new Error("Invalid raid name.");
+
+        if (!req.body.playerName) throw new Error("Invalid player name.");
+        req.body.playerName = req.body.playerName.trim().replace(/\s+/g, " ");
+
+        if (req.body.logId) {
+            if (typeof req.body.logId !== "number")
+                throw new Error("The log ID must be a number.");
+        }
+
+        if (req.body.limit) {
+            if (typeof req.body.limit !== "number")
+                throw new Error("The limit must be a number.");
+        }
+
+        next();
+    } catch (err) {
+        res.send({ success: false, errorstring: err.message });
+    }
+}
+
 function validRaidName(raidName) {
     let validRaidName = false;
     for (let raid of raids) {
@@ -188,5 +214,6 @@ module.exports = {
     verifyGetboss,
     verifyGetLog,
     verifyUpdateRaidBoss,
-    collectStats
+    collectStats,
+    verifyPlayerBossKills
 };
