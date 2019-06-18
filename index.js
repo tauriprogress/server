@@ -12,6 +12,7 @@ const {
     verifyGetboss,
     verifyGetLog,
     verifyUpdateRaidBoss,
+    verifyPlayerBossKills,
     collectStats
 } = require("./middlewares");
 const tauriApi = require("./tauriApi");
@@ -34,7 +35,7 @@ const { whenWas, secsAgo } = require("./helpers");
     }
     app.use(
         cors({
-            origin: "https://tauriprogress.github.io",
+            origin: "http://localhost:3000",
             optionsSuccessStatus: 200
         })
     );
@@ -217,6 +218,26 @@ const { whenWas, secsAgo } = require("./helpers");
                 response: await db.updateOneRaidBoss(
                     req.body.raidName,
                     req.body.bossName
+                )
+            });
+        } catch (err) {
+            res.send({
+                success: false,
+                errorstring: err.message,
+                lastUpdated: secsAgo(lastUpdateTime)
+            });
+        }
+    });
+
+    app.post("/playerBossKills", verifyPlayerBossKills, async (req, res) => {
+        try {
+            res.send({
+                success: true,
+                response: await tauriApi.getRaidPlayer(
+                    req.body.realm,
+                    req.body.playerName,
+                    req.body.logId,
+                    req.body.limit
                 )
             });
         } catch (err) {

@@ -128,7 +128,7 @@ class TauriApi {
         });
     }
 
-    getRaidPlayer(realm, characterName) {
+    getRaidPlayer(realm, characterName, logId, limit) {
         // returns latest boss kills of the player
         return this.request({
             method: "POST",
@@ -138,7 +138,9 @@ class TauriApi {
                     url: "raid-player",
                     params: {
                         r: realm,
-                        cn: characterName
+                        cn: characterName,
+                        from: logId ? logId : 0,
+                        limit: limit ? limit : 0
                     }
                 })
             )
