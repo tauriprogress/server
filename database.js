@@ -3,6 +3,7 @@ const {
     lastBoss,
     raids
 } = require("tauriprogress-constants/currentContent.json");
+const { realms, classToSpec } = require("tauriprogress-constants");
 const dbUser = process.env.MONGODB_USER;
 const dbPassword = process.env.MONGODB_PASSWORD;
 const dbAddress = process.env.MONGODB_ADDRESS;
@@ -23,6 +24,7 @@ const {
     addNestedObjectValue,
     getNestedObjectValue
 } = require("./helpers");
+
 class Database {
     constructor() {
         this.db = {};
@@ -466,23 +468,110 @@ class Database {
                             })
                             .project({
                                 [`dps.${memberId}`]: 1,
-                                [`hps.${memberId}`]: 1
+                                [`hps.${memberId}`]: 1,
+                                bestDps: 1,
+                                bestHps: 1
                             })
                             .toArray())[0];
 
-                        let dpsKey = Object.keys(dbResponse.dps)[0];
+                        let playerStats = {
+                            dps: {},
+                            hps: {}
+                        };
+
+                        const dpsKey = Object.keys(dbResponse.dps)[0];
                         if (dpsKey) {
-                            dbResponse.dps = dbResponse.dps[dpsKey];
+                            playerStats.dps = dbResponse.dps[dpsKey];
+
+                            let currentBestDps = 0;
+
+                            for (const realmId in realms) {
+                                const realm = realms[realmId];
+                                for (const faction of [0, 1]) {
+                                    for (const characterClass in classToSpec) {
+                                        for (const spec of classToSpec[
+                                            characterClass
+                                        ]) {
+                                            const objectKeys = [
+                                                realm,
+                                                faction,
+                                                characterClass,
+                                                spec,
+                                                "dps"
+                                            ];
+
+                                            let bestDps = getNestedObjectValue(
+                                                dbResponse.bestDps,
+                                                objectKeys
+                                            );
+
+                                            if (
+                                                bestDps &&
+                                                bestDps > currentBestDps
+                                            ) {
+                                                currentBestDps = bestDps;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            playerStats.dps.topPercentage = currentBestDps
+                                ? Math.round(
+                                      (playerStats.dps.dps / currentBestDps) *
+                                          1000
+                                  ) / 10
+                                : undefined;
                         }
 
-                        let hpsKey = Object.keys(dbResponse.hps)[0];
+                        const hpsKey = Object.keys(dbResponse.hps)[0];
                         if (hpsKey) {
-                            dbResponse.hps = dbResponse.hps[hpsKey];
+                            playerStats.hps = dbResponse.hps[hpsKey];
+
+                            let currentBestHps = 0;
+
+                            for (const realmId in realms) {
+                                const realm = realms[realmId];
+                                for (const faction of [0, 1]) {
+                                    for (const characterClass in classToSpec) {
+                                        for (const spec of classToSpec[
+                                            characterClass
+                                        ]) {
+                                            const objectKeys = [
+                                                realm,
+                                                faction,
+                                                characterClass,
+                                                spec,
+                                                "hps"
+                                            ];
+
+                                            let bestHps = getNestedObjectValue(
+                                                dbResponse.bestHps,
+                                                objectKeys
+                                            );
+
+                                            if (
+                                                bestHps &&
+                                                bestHps > currentBestHps
+                                            ) {
+                                                currentBestHps = bestHps;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            playerStats.dps.topPercentage = currentBestHps
+                                ? Math.round(
+                                      (playerStats.hps.hps / currentBestHps) *
+                                          1000
+                                  ) / 10
+                                : undefined;
                         }
 
                         data[specId][raidName][diff][
                             boss.encounter_name
-                        ] = dbResponse;
+                        ] = playerStats;
                     }
                 }
             }
