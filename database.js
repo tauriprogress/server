@@ -561,7 +561,7 @@ class Database {
                                 }
                             }
 
-                            playerStats.dps.topPercentage = currentBestHps
+                            playerStats.hps.topPercentage = currentBestHps
                                 ? Math.round(
                                       (playerStats.hps.hps / currentBestHps) *
                                           1000

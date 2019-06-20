@@ -35,7 +35,7 @@ const { whenWas, secsAgo } = require("./helpers");
     }
     app.use(
         cors({
-            origin: "http://localhost:3000",
+            origin: "https://tauriprogress.github.io",
             optionsSuccessStatus: 200
         })
     );
