@@ -233,12 +233,12 @@ const { whenWas, secsAgo } = require("./helpers");
         try {
             res.send({
                 success: true,
-                response: await tauriApi.getRaidPlayer(
+                response: (await tauriApi.getRaidPlayer(
                     req.body.realm,
                     req.body.playerName,
                     req.body.logId,
                     req.body.limit
-                )
+                )).response
             });
         } catch (err) {
             res.send({
