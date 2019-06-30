@@ -3,7 +3,7 @@ const {
     lastBoss,
     raids
 } = require("tauriprogress-constants/currentContent.json");
-const { realms, specs } = require("tauriprogress-constants");
+const { specs } = require("tauriprogress-constants");
 const dbUser = process.env.MONGODB_USER;
 const dbPassword = process.env.MONGODB_PASSWORD;
 const dbAddress = process.env.MONGODB_ADDRESS;
@@ -424,136 +424,141 @@ class Database {
         });
     }
 
-    async getPlayerPerformance({
-        playerName,
-        playerClass,
-        playerSpecs,
-        realm,
-        raidName
-    }) {
+    async getPlayerPerformance({ playerName, playerSpecs, realm, raidName }) {
         return new Promise(async (resolve, reject) => {
             try {
-                const raid = require(`tauriprogress-constants/${raidName}`);
                 let playerPerformance = {};
 
                 let raidCollection = await this.db.collection(raidName);
 
-                for (let boss of raid.encounters) {
-                    for (let diff of raid.difficulties) {
-                        let time1 = new Date().getTime();
-                        let bestPerformances = (await raidCollection
-                            .find({
-                                bossName: new RegExp(
-                                    "^" +
-                                        escapeRegex(boss.encounter_name) +
-                                        "$",
-                                    "i"
-                                ),
-                                difficulty: new RegExp(
-                                    "^" + escapeRegex(diff) + "$",
-                                    "i"
-                                )
-                            })
-                            .project({
-                                bestDps: 1,
-                                bestHps: 1
-                            })
-                            .toArray())[0];
+                let projection = {
+                    bossName: 1,
+                    difficulty: 1,
+                    bestDps: 1,
+                    bestHps: 1
+                };
 
-                        for (let specId of playerSpecs) {
-                            const playerId = createMemberId(
-                                realm,
-                                playerName,
-                                specId
-                            );
-                            let projection = {};
-                            let bestDpsOfSpec = null;
-                            let bestHpsOfSpec = null;
+                for (let specId of playerSpecs) {
+                    const playerId = createMemberId(realm, playerName, specId);
 
-                            if (specs[specId].isDps) {
-                                bestDpsOfSpec = getBestPerformance(
-                                    bestPerformances.bestDps,
-                                    "dps",
-                                    specId
-                                );
-                                projection[`dps.${playerId}`] = 1;
-                            }
+                    if (specs[specId].isDps) {
+                        projection[`dps.${playerId}`] = 1;
+                    }
 
-                            if (specs[specId].isHealer) {
-                                bestHpsOfSpec = getBestPerformance(
-                                    bestPerformances.bestHps,
-                                    "hps",
-                                    specId
-                                );
+                    if (specs[specId].isHealer) {
+                        projection[`hps.${playerId}`] = 1;
+                    }
+                }
 
-                                projection[`hps.${playerId}`] = 1;
-                            }
+                let bosses = await raidCollection
+                    .find()
+                    .project(projection)
+                    .toArray();
 
-                            let playerData = (await raidCollection
-                                .find({
-                                    bossName: new RegExp(
-                                        "^" +
-                                            escapeRegex(boss.encounter_name) +
-                                            "$",
-                                        "i"
+                for (let boss of bosses) {
+                    let objectKeys = [raidName, boss.difficulty, boss.bossName];
+
+                    let noSpecData = {
+                        dps: { dps: false },
+                        hps: { hps: false }
+                    };
+
+                    for (let specId of playerSpecs) {
+                        let playerId = createMemberId(
+                            realm,
+                            playerName,
+                            specId
+                        );
+
+                        let playerDpsData = boss.dps[playerId];
+
+                        if (playerDpsData) {
+                            playerPerformance = addNestedObjectValue(
+                                playerPerformance,
+                                [...objectKeys, specId, "dps"],
+                                {
+                                    ...playerDpsData,
+                                    topPercent: calcTopPercentOfPerformance(
+                                        playerDpsData.dps,
+                                        getBestPerformance(
+                                            boss.bestDps,
+                                            "dps",
+                                            specId
+                                        )
                                     ),
-                                    difficulty: new RegExp(
-                                        "^" + escapeRegex(diff) + "$",
-                                        "i"
-                                    )
-                                })
-                                .project(projection)
-                                .toArray())[0];
-                            let objectKeys = [
-                                raidName,
-                                diff,
-                                boss.encounter_name,
-                                specId
-                            ];
+                                    rank: playerDpsData.specRank
+                                }
+                            );
 
-                            if (playerData.dps[playerId]) {
-                                playerPerformance = addNestedObjectValue(
-                                    playerPerformance,
-                                    [...objectKeys, "dps"],
-                                    {
-                                        ...playerData.dps[playerId],
-                                        specTopPercentage: calcTopPercentOfPerformance(
-                                            playerData.dps[playerId].dps,
-                                            bestDpsOfSpec
-                                        )
-                                    }
-                                );
-                            } else {
-                                playerPerformance = addNestedObjectValue(
-                                    playerPerformance,
-                                    [...objectKeys, "dps"],
-                                    { dps: false }
-                                );
+                            if (noSpecData.dps.dps < playerDpsData.dps) {
+                                noSpecData.dps = playerDpsData;
                             }
-
-                            if (playerData.hps[playerId]) {
-                                playerPerformance = addNestedObjectValue(
-                                    playerPerformance,
-                                    [...objectKeys, "hps"],
-                                    {
-                                        ...playerData.hps[playerId],
-                                        specTopPercentage: calcTopPercentOfPerformance(
-                                            playerData.hps[playerId].hps,
-                                            bestHpsOfSpec
-                                        )
-                                    }
-                                );
-                            } else {
-                                playerPerformance = addNestedObjectValue(
-                                    playerPerformance,
-                                    [...objectKeys, "hps"],
-                                    { hps: false }
-                                );
-                            }
+                        } else {
+                            playerPerformance = addNestedObjectValue(
+                                playerPerformance,
+                                [...objectKeys, specId, "dps"],
+                                { dps: false }
+                            );
                         }
-                        let time2 = new Date().getTime();
 
-                        console.log(time2 - time1);
+                        let playerHpsData = boss.hps[playerId];
+
+                        if (playerHpsData) {
+                            playerPerformance = addNestedObjectValue(
+                                playerPerformance,
+                                [...objectKeys, specId, "hps"],
+                                {
+                                    ...playerHpsData,
+                                    topPercent: calcTopPercentOfPerformance(
+                                        playerHpsData.hps,
+                                        getBestPerformance(
+                                            boss.bestHps,
+                                            "hps",
+                                            specId
+                                        )
+                                    ),
+                                    rank: playerHpsData.specRank
+                                }
+                            );
+
+                            if (noSpecData.hps.hps < playerHpsData.hps) {
+                                noSpecData.hps = playerHpsData;
+                            }
+                        } else {
+                            playerPerformance = addNestedObjectValue(
+                                playerPerformance,
+                                [...objectKeys, specId, "hps"],
+                                { hps: false }
+                            );
+                        }
+
+                        playerPerformance = addNestedObjectValue(
+                            playerPerformance,
+                            [...objectKeys, "noSpec", "dps"],
+                            {
+                                ...noSpecData.dps,
+                                topPercent:
+                                    noSpecData.dps.dps &&
+                                    calcTopPercentOfPerformance(
+                                        noSpecData.dps.dps,
+                                        getBestPerformance(boss.bestDps, "dps")
+                                    )
+                            }
+                        );
+
+                        playerPerformance = addNestedObjectValue(
+                            playerPerformance,
+                            [...objectKeys, "noSpec", "hps"],
+                            {
+                                ...noSpecData.hps,
+                                topPercent:
+                                    noSpecData.hps.hps &&
+                                    calcTopPercentOfPerformance(
+                                        noSpecData.hps.hps,
+                                        getBestPerformance(boss.bestHps, "hps")
+                                    )
+                            }
+                        );
                     }
                 }
 
