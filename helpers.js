@@ -5,7 +5,8 @@ const {
     specToClass,
     valuesCorrectSince,
     shortRealms,
-    raceToFaction
+    raceToFaction,
+    classToSpec
 } = require("tauriprogress-constants");
 const {
     raidName,
@@ -750,19 +751,19 @@ function applyPlayerPerformanceRanks(raidBoss) {
     hpsArr = hpsArr.sort((a, b) => b.hps - a.hps);
 
     for (let i = 0; i < dpsArr.length; i++) {
-        dpsSpecs[dpsArr[i].key] = dpsSpecs[dpsArr[i].key]
-            ? dpsSpecs[dpsArr[i].key] + 1
+        dpsSpecs[dpsArr[i].spec] = dpsSpecs[dpsArr[i].spec]
+            ? dpsSpecs[dpsArr[i].spec] + 1
             : 1;
         raidBoss.dps[dpsArr[i].key].rank = i + 1;
-        raidBoss.dps[dpsArr[i].key].specRank = dpsSpecs[dpsArr[i].key];
+        raidBoss.dps[dpsArr[i].key].specRank = dpsSpecs[dpsArr[i].spec];
     }
 
     for (let i = 0; i < hpsArr.length; i++) {
-        hpsSpecs[hpsArr[i].key] = hpsSpecs[hpsArr[i].key]
-            ? hpsSpecs[hpsArr[i].key] + 1
+        hpsSpecs[hpsArr[i].spec] = hpsSpecs[hpsArr[i].spec]
+            ? hpsSpecs[hpsArr[i].spec] + 1
             : 1;
         raidBoss.hps[hpsArr[i].key].rank = i + 1;
-        raidBoss.hps[hpsArr[i].key].specRank = hpsSpecs[hpsArr[i].key];
+        raidBoss.hps[hpsArr[i].key].specRank = hpsSpecs[hpsArr[i].spec];
     }
 
     return raidBoss;
@@ -829,6 +830,54 @@ function getNestedObjectValue(obj, keys) {
     }
 }
 
+function getBestPerformance(bestPerformances, type, spec) {
+    let bestPerformance = 0;
+
+    let perfSpecs = {};
+
+    if (spec) {
+        perfSpecs[specToClass[spec]] = [spec];
+    } else {
+        for (let characterClass in classToSpec) {
+            perfSpecs[characterClass] = classToSpec[characterClass];
+        }
+    }
+
+    for (const realmId in realms) {
+        const realm = realms[realmId];
+        for (let faction of [0, 1]) {
+            for (let characterClass in perfSpecs) {
+                for (let currentSpec of perfSpecs[characterClass]) {
+                    const objectKeys = [
+                        realm,
+                        faction,
+                        characterClass,
+                        currentSpec,
+                        type
+                    ];
+
+                    let currentBestPerformance = getNestedObjectValue(
+                        bestPerformances,
+                        objectKeys
+                    );
+
+                    if (
+                        currentBestPerformance &&
+                        currentBestPerformance > bestPerformance
+                    ) {
+                        bestPerformance = currentBestPerformance;
+                    }
+                }
+            }
+        }
+    }
+    return bestPerformance;
+}
+
+function calcTopPercentOfPerformance(currentPerformance, bestPerformance) {
+    return Math.round((currentPerformance / bestPerformance) * 1000) / 10;
+}
+
 module.exports = {
     getRaidBossLogs,
     processRaidBossLogs,
@@ -843,5 +892,7 @@ module.exports = {
     getBossId,
     secsAgo,
     addNestedObjectValue,
-    getNestedObjectValue
+    getNestedObjectValue,
+    getBestPerformance,
+    calcTopPercentOfPerformance
 };

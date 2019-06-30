@@ -78,12 +78,10 @@ const { whenWas, secsAgo } = require("./helpers");
             );
             if (!player.success) throw new Error(player.errorstring);
             let performance = await db.getPlayerPerformance({
-                realm: req.body.realm,
                 playerName: player.response.name,
-                specs: classToSpec[player.response.class],
-                raidName: req.body.raidName,
-                bossName: req.body.bossName,
-                difficulty: req.body.difficulty
+                playerSpecs: classToSpec[player.response.class],
+                realm: req.body.realm,
+                raidName: req.body.raidName
             });
             res.send({
                 success: true,
