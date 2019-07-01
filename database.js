@@ -470,7 +470,9 @@ class Database {
                             specId
                         );
 
-                        let playerDpsData = boss.dps[playerId];
+                        let playerDpsData = boss.dps
+                            ? boss.dps[playerId]
+                            : null;
 
                         if (playerDpsData) {
                             playerPerformance = addNestedObjectValue(
@@ -501,7 +503,9 @@ class Database {
                             );
                         }
 
-                        let playerHpsData = boss.hps[playerId];
+                        let playerHpsData = boss.hps
+                            ? boss.hps[playerId]
+                            : null;
 
                         if (playerHpsData) {
                             playerPerformance = addNestedObjectValue(
