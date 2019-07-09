@@ -24,7 +24,8 @@ const {
     addNestedObjectValue,
     getNestedObjectValue,
     getBestPerformance,
-    calcTopPercentOfPerformance
+    calcTopPercentOfPerformance,
+    capitalize
 } = require("./helpers");
 
 class Database {
@@ -427,7 +428,14 @@ class Database {
     async getPlayerPerformance({ playerName, playerSpecs, realm, raidName }) {
         return new Promise(async (resolve, reject) => {
             try {
+                const {
+                    totalBosses
+                } = require(`tauriprogress-constants/${raidName}`);
+
                 let playerPerformance = {};
+
+                let totalBestPerformance = {};
+                let totalPlayerPerformance = {};
 
                 let raidCollection = await this.db.collection(raidName);
 
@@ -470,99 +478,144 @@ class Database {
                             specId
                         );
 
-                        let playerDpsData = boss.dps
-                            ? boss.dps[playerId]
-                            : null;
+                        for (let variant of ["dps", "hps"]) {
+                            let playerData = boss[variant]
+                                ? boss[variant][playerId]
+                                : null;
 
-                        if (playerDpsData) {
-                            playerPerformance = addNestedObjectValue(
-                                playerPerformance,
-                                [...objectKeys, specId, "dps"],
-                                {
-                                    ...playerDpsData,
-                                    topPercent: calcTopPercentOfPerformance(
-                                        playerDpsData.dps,
-                                        getBestPerformance(
-                                            boss.bestDps,
-                                            "dps",
-                                            specId
-                                        )
-                                    ),
-                                    rank: playerDpsData.specRank
+                            if (playerData) {
+                                playerPerformance = addNestedObjectValue(
+                                    playerPerformance,
+                                    [...objectKeys, specId, variant],
+                                    {
+                                        ...playerData,
+                                        topPercent: calcTopPercentOfPerformance(
+                                            playerData[variant],
+                                            getBestPerformance(
+                                                boss[
+                                                    `best${capitalize(variant)}`
+                                                ],
+                                                variant,
+                                                specId
+                                            )
+                                        ),
+                                        rank: playerData.specRank
+                                    }
+                                );
+
+                                totalPlayerPerformance = addNestedObjectValue(
+                                    totalPlayerPerformance,
+                                    [boss.difficulty, variant, specId],
+                                    getNestedObjectValue(
+                                        totalPlayerPerformance,
+                                        [boss.difficulty, variant, specId]
+                                    ) + playerData[variant]
+                                );
+
+                                if (
+                                    noSpecData[variant][variant] <
+                                    playerData[variant]
+                                ) {
+                                    noSpecData[variant] = playerData;
                                 }
-                            );
-
-                            if (noSpecData.dps.dps < playerDpsData.dps) {
-                                noSpecData.dps = playerDpsData;
+                            } else {
+                                playerPerformance = addNestedObjectValue(
+                                    playerPerformance,
+                                    [...objectKeys, specId, [variant]],
+                                    { [variant]: false }
+                                );
                             }
-                        } else {
-                            playerPerformance = addNestedObjectValue(
-                                playerPerformance,
-                                [...objectKeys, specId, "dps"],
-                                { dps: false }
+
+                            totalBestPerformance = addNestedObjectValue(
+                                totalBestPerformance,
+                                [boss.difficulty, variant, specId],
+                                getNestedObjectValue(totalBestPerformance, [
+                                    boss.difficulty,
+                                    variant,
+                                    specId
+                                ]) +
+                                    getBestPerformance(
+                                        boss[`best${capitalize(variant)}`],
+                                        variant,
+                                        specId
+                                    )
                             );
                         }
+                    }
 
-                        let playerHpsData = boss.hps
-                            ? boss.hps[playerId]
-                            : null;
-
-                        if (playerHpsData) {
-                            playerPerformance = addNestedObjectValue(
-                                playerPerformance,
-                                [...objectKeys, specId, "hps"],
-                                {
-                                    ...playerHpsData,
-                                    topPercent: calcTopPercentOfPerformance(
-                                        playerHpsData.hps,
-                                        getBestPerformance(
-                                            boss.bestHps,
-                                            "hps",
-                                            specId
-                                        )
-                                    ),
-                                    rank: playerHpsData.specRank
-                                }
-                            );
-
-                            if (noSpecData.hps.hps < playerHpsData.hps) {
-                                noSpecData.hps = playerHpsData;
-                            }
-                        } else {
-                            playerPerformance = addNestedObjectValue(
-                                playerPerformance,
-                                [...objectKeys, specId, "hps"],
-                                { hps: false }
-                            );
-                        }
-
+                    for (let variant of ["dps", "hps"]) {
                         playerPerformance = addNestedObjectValue(
                             playerPerformance,
-                            [...objectKeys, "noSpec", "dps"],
+                            [...objectKeys, "noSpec", variant],
                             {
-                                ...noSpecData.dps,
+                                ...noSpecData[variant],
                                 topPercent:
-                                    noSpecData.dps.dps &&
+                                    noSpecData[variant][variant] &&
                                     calcTopPercentOfPerformance(
-                                        noSpecData.dps.dps,
-                                        getBestPerformance(boss.bestDps, "dps")
+                                        noSpecData[variant][variant],
+                                        getBestPerformance(
+                                            boss[`best${capitalize(variant)}`],
+                                            variant
+                                        )
                                     )
                             }
                         );
 
-                        playerPerformance = addNestedObjectValue(
-                            playerPerformance,
-                            [...objectKeys, "noSpec", "hps"],
-                            {
-                                ...noSpecData.hps,
-                                topPercent:
-                                    noSpecData.hps.hps &&
-                                    calcTopPercentOfPerformance(
-                                        noSpecData.hps.hps,
-                                        getBestPerformance(boss.bestHps, "hps")
-                                    )
-                            }
+                        totalPlayerPerformance = addNestedObjectValue(
+                            totalPlayerPerformance,
+                            [boss.difficulty, variant, "noSpec"],
+                            getNestedObjectValue(totalPlayerPerformance, [
+                                boss.difficulty,
+                                variant,
+                                "noSpec"
+                            ]) +
+                                (noSpecData[variant][variant]
+                                    ? noSpecData[variant][variant]
+                                    : 0)
                         );
+
+                        totalBestPerformance = addNestedObjectValue(
+                            totalBestPerformance,
+                            [boss.difficulty, variant, "noSpec"],
+                            getNestedObjectValue(totalBestPerformance, [
+                                boss.difficulty,
+                                variant,
+                                "noSpec"
+                            ]) +
+                                getBestPerformance(
+                                    boss[`best${capitalize(variant)}`],
+                                    variant
+                                )
+                        );
+                    }
+                }
+
+                for (let diff in playerPerformance[raidName]) {
+                    for (let variant of ["dps", "hps"]) {
+                        for (let specId in totalPlayerPerformance[diff][
+                            variant
+                        ]) {
+                            let playerTotal = getNestedObjectValue(
+                                totalPlayerPerformance,
+                                [diff, variant, specId]
+                            );
+                            let bestTotal = getNestedObjectValue(
+                                totalBestPerformance,
+                                [diff, variant, specId]
+                            );
+
+                            playerPerformance = addNestedObjectValue(
+                                playerPerformance,
+                                [raidName, diff, "total", specId, variant],
+                                {
+                                    [variant]: playerTotal / totalBosses,
+                                    topPercent: calcTopPercentOfPerformance(
+                                        playerTotal,
+                                        bestTotal
+                                    )
+                                }
+                            );
+                        }
                     }
                 }
 
