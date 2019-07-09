@@ -878,6 +878,10 @@ function calcTopPercentOfPerformance(currentPerformance, bestPerformance) {
     return Math.round((currentPerformance / bestPerformance) * 1000) / 10;
 }
 
+function capitalize(str) {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
 module.exports = {
     getRaidBossLogs,
     processRaidBossLogs,
@@ -894,5 +898,6 @@ module.exports = {
     addNestedObjectValue,
     getNestedObjectValue,
     getBestPerformance,
-    calcTopPercentOfPerformance
+    calcTopPercentOfPerformance,
+    capitalize
 };
