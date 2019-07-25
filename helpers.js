@@ -46,7 +46,7 @@ async function getRaidBossLogs(bossId, difficulty, lastLogDate = 0) {
             }
 
             for (let log of bossLogs) {
-                if (lastLogDate < log.killtime) {
+                if (lastLogDate < log.killtime && log.fight_time > 10000) {
                     let bossData;
                     do {
                         try {
