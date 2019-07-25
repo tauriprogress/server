@@ -618,10 +618,9 @@ function updateRaidBoss(oldRaidBoss, newRaidBoss) {
         for (let faction in newRaidBoss.firstKills[realm]) {
             let objectKeys = [realm, faction];
 
-            let oldLogs = getNestedObjectValue(
-                oldRaidBoss.firstKills,
-                objectKeys
-            );
+            let oldLogs =
+                getNestedObjectValue(oldRaidBoss.firstKills, objectKeys) || [];
+
             let newLogs = getNestedObjectValue(
                 newRaidBoss.firstKills,
                 objectKeys
@@ -644,10 +643,9 @@ function updateRaidBoss(oldRaidBoss, newRaidBoss) {
         for (let faction in newRaidBoss.fastestKills[realm]) {
             let objectKeys = [realm, faction];
 
-            let oldLogs = getNestedObjectValue(
-                oldRaidBoss.fastestKills,
-                objectKeys
-            );
+            let oldLogs =
+                getNestedObjectValue(oldRaidBoss.fastestKills, objectKeys) ||
+                [];
             let newLogs = getNestedObjectValue(
                 newRaidBoss.fastestKills,
                 objectKeys
