@@ -13,6 +13,7 @@ const {
     verifyGetLog,
     verifyUpdateRaidBoss,
     verifyPlayerBossKills,
+    verifyGetPlayerPerformance,
     collectStats
 } = require("./middlewares");
 const tauriApi = require("./tauriApi");
@@ -77,15 +78,10 @@ const { whenWas, secsAgo } = require("./helpers");
                 req.body.playerName
             );
             if (!player.success) throw new Error(player.errorstring);
-            let performance = await db.getPlayerPerformance({
-                playerName: player.response.name,
-                playerSpecs: classToSpec[player.response.class],
-                realm: req.body.realm,
-                raidName: req.body.raidName
-            });
+
             res.send({
                 success: true,
-                response: { ...player.response, progression: performance }
+                response: { ...player.response }
             });
         } catch (err) {
             res.send({
@@ -94,6 +90,30 @@ const { whenWas, secsAgo } = require("./helpers");
             });
         }
     });
+
+    app.post(
+        "/getplayerperformance",
+        verifyGetPlayerPerformance,
+        async (req, res) => {
+            try {
+                let performance = await db.getPlayerPerformance({
+                    playerName: req.body.playerName,
+                    playerSpecs: classToSpec[req.body.characterClass],
+                    realm: req.body.realm,
+                    raidName: req.body.raidName
+                });
+                res.send({
+                    success: true,
+                    response: { ...performance }
+                });
+            } catch (err) {
+                res.send({
+                    success: false,
+                    errorstring: err.message
+                });
+            }
+        }
+    );
 
     app.post("/getraid", verifyGetRaid, async (req, res) => {
         try {

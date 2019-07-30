@@ -1,5 +1,6 @@
 const { raids } = require("tauriprogress-constants/currentContent");
-const { realms } = require("tauriprogress-constants");
+const { realms, characterClasses } = require("tauriprogress-constants");
+const { capitalize } = require("./helpers");
 
 function verifyGetGuild(req, res, next) {
     try {
@@ -22,10 +23,33 @@ function verifyGetGuild(req, res, next) {
 function verifyGetPlayer(req, res, next) {
     try {
         if (!req.body.playerName) throw new Error("Invalid player name.");
-        req.body.playerName = req.body.playerName.trim().replace(/\s+/g, " ");
+        req.body.playerName = capitalize(
+            req.body.playerName.trim().replace(/\s+/g, " ")
+        );
+
+        if (!req.body.realm) {
+            req.body.realm = realms["tauri"];
+        }
+        req.body.realm = req.body.realm.trim();
+        if (!validRealm(req.body.realm)) throw new Error("Invalid realm name.");
+        next();
+    } catch (err) {
+        res.send({ success: false, errorstring: err.message });
+    }
+}
+
+function verifyGetPlayerPerformance(req, res, next) {
+    try {
+        if (!req.body.playerName) throw new Error("Invalid player name.");
+        req.body.playerName = capitalize(
+            req.body.playerName.trim().replace(/\s+/g, " ")
+        );
 
         if (req.body.raidName)
             req.body.raidName = req.body.raidName.trim().replace(/\s+/g, " ");
+
+        if (!req.body.characterClass || !validClass(req.body.characterClass))
+            throw new Error("Invalid player class");
 
         if (!validRaidName(req.body.raidName))
             throw new Error("Invalid raid name.");
@@ -198,6 +222,13 @@ function validDifficulty(raidName, difficulty) {
     return true;
 }
 
+function validClass(characterClass) {
+    for (let validClass in characterClasses) {
+        if (validClass == characterClass) return true;
+    }
+    return false;
+}
+
 function collectStats(db) {
     return (req, res, next) => {
         let ip = req.headers["x-forwarded-for"] || req.connection.remoteAddress;
@@ -215,5 +246,6 @@ module.exports = {
     verifyGetLog,
     verifyUpdateRaidBoss,
     collectStats,
-    verifyPlayerBossKills
+    verifyPlayerBossKills,
+    verifyGetPlayerPerformance
 };
