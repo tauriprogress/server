@@ -563,9 +563,10 @@ function mergeBossKillsOfGuildIntoGuildData(guildData, bossKill, difficulty) {
     return newGuildData;
 }
 
-function calcGuildContentCompletition(guild) {
+function calcGuildContentCompletion(guild) {
     let bossesDefeated = {};
     let currentBossesDefeated = 0;
+    let completed = false;
 
     for (let diff in guild.progression[raidName]) {
         if (!bossesDefeated[diff]) bossesDefeated[diff] = 0;
@@ -578,14 +579,16 @@ function calcGuildContentCompletition(guild) {
             currentBossesDefeated = bossesDefeated[diff];
 
         if (bossesDefeated[diff] === totalBosses) {
-            guild.progression.completed = !guild.progression.completed
+            completed = !completed
                 ? guild.progression[raidName][diff][lastBoss].firstKill
-                : guild.progression.completed <
+                : completed <
                   guild.progression[raidName][diff][lastBoss].firstKill
-                ? guild.progression.completed
+                ? completed
                 : guild.progression[raidName][diff][lastBoss].firstKill;
         }
     }
+
+    guild.progression.completed = completed;
 
     guild.progression.currentBossesDefeated = currentBossesDefeated;
 
@@ -888,7 +891,7 @@ module.exports = {
     updateRaidBoss,
     whenWas,
     applyPlayerPerformanceRanks,
-    calcGuildContentCompletition,
+    calcGuildContentCompletion,
     createMemberId,
     escapeRegex,
     getBossId,

@@ -17,7 +17,7 @@ const {
     updateRaidBoss,
     applyPlayerPerformanceRanks,
     whenWas,
-    calcGuildContentCompletition,
+    calcGuildContentCompletion,
     createMemberId,
     escapeRegex,
     getBossId,
@@ -149,9 +149,7 @@ class Database {
                     await guildsCollection.deleteMany({});
 
                 for (let key in guilds) {
-                    await this.saveGuild(
-                        calcGuildContentCompletition(guilds[key])
-                    );
+                    await this.saveGuild(guilds[key]);
                 }
 
                 maintence.insertOne({
@@ -629,6 +627,8 @@ class Database {
     async saveGuild(guild) {
         return new Promise(async (resolve, reject) => {
             try {
+                guild = calcGuildContentCompletion(guild);
+
                 let oldGuild = await this.db.collection("guilds").findOne({
                     guildName: new RegExp(
                         "^" + escapeRegex(guild.guildName) + "$",
@@ -738,17 +738,36 @@ class Database {
                         );
 
                         if (newGuild) {
-                            newGuild = {
-                                ...newGuild,
-                                progression: {
-                                    ...guild.progression,
-                                    latestKills:
-                                        newGuild.progression.latestKills
+                            if (guild.exists) {
+                                for (let raid of raids) {
+                                    if (!guild.progression[raid.raidName]) {
+                                        guild.progression[raid.raidName] = {};
+                                        for (let diff in raid.difficulties) {
+                                            guild.progression[raid.raidName][
+                                                diff
+                                            ] = {};
+                                        }
+                                    }
                                 }
-                            };
+
+                                newGuild = {
+                                    ...newGuild,
+                                    progression: {
+                                        ...guild.progression,
+                                        latestKills:
+                                            newGuild.progression.latestKills
+                                    },
+                                    exists: true
+                                };
+                            }
+
                             await this.saveGuild(newGuild);
                         }
                     } catch (err) {
+                        if (err.message === "guild not found") {
+                            this.saveGuild({ ...guild, exists: false });
+                        }
+
                         console.log(`Error with updating ${guild.guildName}:`);
                         console.error(err);
                     }
@@ -859,12 +878,10 @@ class Database {
                         }
                         if (guild)
                             await this.saveGuild(
-                                calcGuildContentCompletition(
-                                    mergeBossKillsOfGuildIntoGuildData(
-                                        guild,
-                                        processedLogs.guildBossKills[key],
-                                        diff
-                                    )
+                                mergeBossKillsOfGuildIntoGuildData(
+                                    guild,
+                                    processedLogs.guildBossKills[key],
+                                    diff
                                 )
                             );
                     }
