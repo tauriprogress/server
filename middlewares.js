@@ -1,6 +1,6 @@
 const { raids } = require("tauriprogress-constants/currentContent");
 const { realms, characterClasses } = require("tauriprogress-constants");
-const { capitalize } = require("./helpers");
+const { capitalize, validRaidName } = require("./helpers");
 
 function verifyGetGuild(req, res, next) {
     try {
@@ -176,17 +176,6 @@ function verifyPlayerBossKills(req, res, next) {
     } catch (err) {
         res.send({ success: false, errorstring: err.message });
     }
-}
-
-function validRaidName(raidName) {
-    let validRaidName = false;
-    for (let raid of raids) {
-        if (raid.raidName === raidName) {
-            validRaidName = true;
-            break;
-        }
-    }
-    return validRaidName;
 }
 
 function validBossName(raidName, bossName) {

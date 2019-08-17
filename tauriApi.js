@@ -112,7 +112,7 @@ class TauriApi {
         });
     }
 
-    getRaidLast(realm) {
+    getRaidLast(realm, lastLogId = 0) {
         // returns the last boss kills on server, big response
         return this.request({
             method: "POST",
@@ -121,7 +121,8 @@ class TauriApi {
                     secret: this.apisecret,
                     url: "raid-last",
                     params: {
-                        r: realm
+                        r: realm,
+                        from: lastLogId
                     }
                 })
             )
