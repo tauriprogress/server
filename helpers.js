@@ -16,20 +16,27 @@ const {
 } = require("tauriprogress-constants/currentContent");
 const tauriApi = require("./tauriApi");
 
-async function getRaidBossLogs(bossId, difficulty, lastLogDate = 0) {
+let raidNames = {};
+let difficulties = {};
+for (let raid of raids) {
+    raidNames[raid.raidName] = true;
+    difficulties[raid.raidName] = raid.difficulties;
+}
+
+async function getCategorizedLogs(lastLogIds) {
     return new Promise(async (resolve, reject) => {
         try {
-            let bossLogs = [];
-            let logs = [];
-            let data;
+            let unfilteredLogs = [];
+            let logs = {};
+            let newLastLogIds = {};
 
             for (let key in realms) {
+                let lastLogId = lastLogIds[realms[key]];
                 do {
                     try {
-                        data = await tauriApi.getRaidRank(
+                        data = await tauriApi.getRaidLast(
                             realms[key],
-                            bossId,
-                            difficulty
+                            lastLogId
                         );
                     } catch (err) {
                         data = err.message;
@@ -37,41 +44,72 @@ async function getRaidBossLogs(bossId, difficulty, lastLogDate = 0) {
                 } while (!data.success && data === "request timed out");
                 if (!data.success) throw new Error(data.errorstring);
 
-                bossLogs = bossLogs.concat(
+                unfilteredLogs = unfilteredLogs.concat(
                     data.response.logs.map(log => ({
                         ...log,
                         realm: realms[key]
                     }))
                 );
             }
-
-            for (let log of bossLogs) {
-                if (lastLogDate < log.killtime && log.fight_time > 10000) {
-                    let bossData;
+            
+            for (let log of unfilteredLogs.sort((a, b) => a.killtime < b.killtime ? -1 : 1)) {
+                if (
+                    validRaidName(log.mapentry.name) &&
+                    validDifficulty(log.mapentry.name, log.difficulty) &&
+                    !invalidDurumu(
+                        log.encounter_data.encounter_id,
+                        log.killtime
+                    ) &&
+                    log.fight_time > 10000
+                ) {
+                    let logData;
                     do {
                         try {
-                            bossData = await tauriApi.getRaidLog(
+                            logData = await tauriApi.getRaidLog(
                                 log.realm,
                                 log.log_id
                             );
                         } catch (err) {
-                            bossData = err.message;
+                            logData = err.message;
                         }
                     } while (
-                        !bossData.success &&
-                        bossData === "request timed out"
+                        !logData.success &&
+                        logData === "request timed out"
                     );
-                    if (!bossData.success)
-                        throw new Error(bossData.errorstring);
+                    if (!logData.success) throw new Error(logData.errorstring);
 
-                    logs.push({ ...bossData.response, realm: log.realm });
+                    let categorization = [
+                        log.mapentry.name,
+                        log.encounter_data.encounter_name,
+                        log.difficulty
+                    ];
+                    let categorizedLogs = getNestedObjectValue(
+                        logs,
+                        categorization
+                    );
+                    let currentLog = { ...logData.response, realm: log.realm };
+
+                    logs = addNestedObjectValue(
+                        logs,
+                        categorization,
+                        categorizedLogs
+                            ? [...categorizedLogs, currentLog]
+                            : [currentLog]
+                    );
+
+                    newLastLogIds = addNestedObjectValue(
+                        newLastLogIds,
+                        [log.realm],
+                        log.log_id
+                    );
                 }
             }
 
             resolve({
                 logs,
-                difficulty
+                lastLogIds: newLastLogIds
             });
+
         } catch (err) {
             reject(err);
         }
@@ -883,8 +921,16 @@ function capitalize(str) {
     return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
+function validRaidName(raidName) {
+    return raidNames[raidName] ? true : false;
+}
+
+function validDifficulty(raidName, difficulty) {
+    return difficulties[raidName][difficulty] ? true : false;
+}
+
 module.exports = {
-    getRaidBossLogs,
+    getCategorizedLogs,
     processRaidBossLogs,
     createGuildData,
     mergeBossKillsOfGuildIntoGuildData,
@@ -900,5 +946,7 @@ module.exports = {
     getNestedObjectValue,
     getBestPerformance,
     calcTopPercentOfPerformance,
-    capitalize
+    capitalize,
+    validRaidName,
+    validDifficulty
 };
