@@ -23,7 +23,7 @@ for (let raid of raids) {
     difficulties[raid.raidName] = raid.difficulties;
 }
 
-async function getCategorizedLogs(lastLogIds) {
+async function getCategorizedLogs(lastLogIds = {}) {
     return new Promise(async (resolve, reject) => {
         try {
             let unfilteredLogs = [];
@@ -51,8 +51,10 @@ async function getCategorizedLogs(lastLogIds) {
                     }))
                 );
             }
-            
-            for (let log of unfilteredLogs.sort((a, b) => a.killtime < b.killtime ? -1 : 1)) {
+
+            for (let log of unfilteredLogs.sort((a, b) =>
+                a.killtime < b.killtime ? -1 : 1
+            )) {
                 if (
                     validRaidName(log.mapentry.name) &&
                     validDifficulty(log.mapentry.name, log.difficulty) &&
@@ -109,7 +111,6 @@ async function getCategorizedLogs(lastLogIds) {
                 logs,
                 lastLogIds: newLastLogIds
             });
-
         } catch (err) {
             reject(err);
         }
@@ -196,7 +197,7 @@ function memberHps(realm, member, kill, hps) {
     };
 }
 
-function processRaidBossLogs({ logs, difficulty }, bossName) {
+function processRaidBossLogs(logs, bossName, difficulty) {
     let raidBoss = {
         bossName: bossName,
         latestKills: [],
