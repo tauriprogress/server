@@ -10,7 +10,7 @@ const dbAddress = process.env.MONGODB_ADDRESS;
 const mongoUrl = `mongodb://${dbUser}:${dbPassword}@${dbAddress}`;
 const MongoClient = require("mongodb").MongoClient;
 const {
-    getRaidBossLogs,
+    getCategorizedLogs,
     processRaidBossLogs,
     mergeBossKillsOfGuildIntoGuildData,
     createGuildData,
@@ -78,40 +78,41 @@ class Database {
                 if (await stats.findOne()) await stats.deleteMany({});
                 stats.insertOne({});
 
-                console.log("db: Creating raids");
+                console.log("db: Requesting all logs");
+                let {
+                    logs: categorizedLogs,
+                    lastLogIds
+                } = await getCategorizedLogs();
+
                 let raidCollection;
                 let guilds = {};
-                for (let raid of raids) {
-                    console.log(`db: Creating ${raid.raidName} collection`);
-                    raidCollection = await this.db.collection(raid.raidName);
+
+                console.log("db: Creating raids");
+                for (let raidName in categorizedLogs) {
+                    console.log(`db: Creating ${raidName} collection`);
+                    raidCollection = await this.db.collection(raidName);
                     if (await raidCollection.findOne())
                         await raidCollection.deleteMany({});
 
-                    let raidData = require(`tauriprogress-constants/${
-                        raid.raidName
-                    }`);
-
-                    for (let boss of raidData.encounters) {
-                        for (let diff in raid.difficulties) {
+                    for (let bossName in categorizedLogs[raidName]) {
+                        for (let difficulty in categorizedLogs[raidName][
+                            bossName
+                        ]) {
                             console.log(
                                 "db: Processing " +
-                                    boss.encounter_name +
-                                    " diff: " +
-                                    diff
-                            );
-                            let logs = await getRaidBossLogs(
-                                boss.encounter_id,
-                                diff,
-                                0
+                                    bossName +
+                                    " difficulty: " +
+                                    difficulty
                             );
 
                             let processedLogs = processRaidBossLogs(
-                                logs,
-                                boss.encounter_name
+                                categorizedLogs[raidName][bossName][difficulty],
+                                bossName,
+                                difficulty
                             );
 
                             await this.saveRaidBoss({
-                                raidName: raid.raidName,
+                                raidName: raidName,
                                 raidBoss: processedLogs.raidBoss
                             });
 
@@ -128,7 +129,7 @@ class Database {
                                     ] = mergeBossKillsOfGuildIntoGuildData(
                                         guild,
                                         processedLogs.guildBossKills[key],
-                                        diff
+                                        difficulty
                                     );
                                 } else {
                                     guilds[
@@ -136,14 +137,15 @@ class Database {
                                     ] = mergeBossKillsOfGuildIntoGuildData(
                                         guilds[key],
                                         processedLogs.guildBossKills[key],
-                                        diff
+                                        difficulty
                                     );
                                 }
                             }
                         }
                     }
                 }
-                console.log("db: pushing guilds in");
+
+                console.log("db: Creating guilds collection");
                 let guildsCollection = await this.db.collection("guilds");
                 if (await guildsCollection.findOne())
                     await guildsCollection.deleteMany({});
@@ -154,6 +156,7 @@ class Database {
 
                 maintence.insertOne({
                     lastUpdated: updateStarted,
+                    lastLogIds,
                     initalized: true
                 });
                 this.isUpdating = false;
@@ -848,7 +851,7 @@ class Database {
                         diff
                     );
 
-                    let logs = await getRaidBossLogs(
+                    let logs = await getCategorizedLogs(
                         getBossId(raidData, bossName, diff),
                         diff,
                         lastLogDate
