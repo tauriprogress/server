@@ -16,7 +16,7 @@ const {
     createGuildData,
     updateRaidBoss,
     applyPlayerPerformanceRanks,
-    whenWas,
+    minutesAgo,
     calcGuildContentCompletion,
     createMemberId,
     escapeRegex,
@@ -79,6 +79,7 @@ class Database {
                 stats.insertOne({});
 
                 console.log("db: Requesting all logs");
+
                 let {
                     logs: categorizedLogs,
                     lastLogIds
@@ -99,10 +100,7 @@ class Database {
                             bossName
                         ]) {
                             console.log(
-                                "db: Processing " +
-                                    bossName +
-                                    " difficulty: " +
-                                    difficulty
+                                `db: Processing ${bossName} difficulty: ${difficulty} difficulty`
                             );
 
                             let processedLogs = processRaidBossLogs(
@@ -181,32 +179,10 @@ class Database {
         });
     }
 
-    async getLastLogDateOfBoss(raidName, bossName, diff) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                let lastLogDate = 0;
-                let raidCollection = this.db.collection(raidName);
-
-                let raidBoss = await raidCollection.findOne({
-                    bossName: new RegExp(
-                        "^" + escapeRegex(bossName) + "$",
-                        "i"
-                    ),
-                    difficulty: new RegExp("^" + escapeRegex(diff) + "$", "i")
-                });
-
-                if (raidBoss) lastLogDate = raidBoss.lastLogDate;
-
-                resolve(lastLogDate);
-            } catch (err) {
-                reject(err);
-            }
-        });
-    }
-
     async updateDatabase() {
         return new Promise(async (resolve, reject) => {
             try {
+                console.log("Updating database");
                 if (this.isUpdating)
                     throw new Error("Database is already updating");
                 this.isUpdating = true;
@@ -215,34 +191,79 @@ class Database {
                 let updateStarted = new Date().getTime() / 1000;
                 let maintence = await this.db.collection("maintence");
 
-                for (let raid of raids) {
-                    let raidData = require(`tauriprogress-constants/${
-                        raid.raidName
-                    }`);
+                let lastLogIds = (await maintence.findOne()).lastLogIds;
 
-                    for (let boss of raidData.encounters) {
-                        console.log("db: Updating " + boss.encounter_name);
-                        this.updateStatus = `Updating ${boss.encounter_name}`;
+                if (!lastLogIds)
+                    throw new Error(
+                        `Database update error, last log ids: ${lastLogIds}`
+                    );
 
-                        let result = await this.updateRaidBoss(
-                            raid.raidName,
-                            boss.encounter_name
-                        );
+                console.log("Requesting logs");
+                let {
+                    logs: categorizedLogs,
+                    lastLogIds: newLastLogIds
+                } = await getCategorizedLogs(lastLogIds);
 
-                        if (!result.done) {
-                            throw new Error(result);
+                for (let raidName in categorizedLogs) {
+                    for (let bossName in categorizedLogs[raidName]) {
+                        for (let difficulty in categorizedLogs[raidName][
+                            bossName
+                        ]) {
+                            console.log(
+                                `db: Processing ${bossName} difficulty: ${difficulty} difficulty`
+                            );
+
+                            let processedLogs = processRaidBossLogs(
+                                categorizedLogs[raidName][bossName][difficulty],
+                                bossName,
+                                difficulty
+                            );
+
+                            await this.saveRaidBoss({
+                                raidName: raidName,
+                                raidBoss: processedLogs.raidBoss
+                            });
+
+                            for (let key in processedLogs.guildBossKills) {
+                                let guild;
+                                try {
+                                    guild = await this.getGuild(
+                                        processedLogs.guildBossKills[key].realm,
+                                        processedLogs.guildBossKills[key]
+                                            .guildName
+                                    );
+                                } catch (err) {
+                                    if (err.message === "Guild not found") {
+                                        guild = await createGuildData(
+                                            processedLogs.guildBossKills[key]
+                                                .realm,
+                                            processedLogs.guildBossKills[key]
+                                                .guildName
+                                        );
+                                    }
+                                }
+                                if (guild)
+                                    await this.saveGuild(
+                                        mergeBossKillsOfGuildIntoGuildData(
+                                            guild,
+                                            processedLogs.guildBossKills[key],
+                                            difficulty
+                                        )
+                                    );
+                            }
                         }
                     }
                 }
 
-                if (whenWas(await this.lastUpdated()) > 180)
+                if (minutesAgo(await this.lastUpdated()) > 180)
                     await this.updateGuilds();
 
                 await maintence.updateOne(
                     {},
                     {
                         $set: {
-                            lastUpdated: updateStarted
+                            lastUpdated: updateStarted,
+                            lastLogIds: newLastLogIds
                         }
                     }
                 );
@@ -250,12 +271,192 @@ class Database {
                 this.isUpdating = false;
                 this.updateStatus = "";
 
-                resolve(whenWas(updateStarted));
+                console.log("Database update finished");
+                resolve(minutesAgo(updateStarted));
             } catch (err) {
+                console.log(`Database update error: ${err.message}`);
                 if (err.message !== "Database is already updating") {
                     this.isUpdating = false;
                     this.updateStatus = "";
                 }
+                reject(err);
+            }
+        });
+    }
+
+    async updateGuilds() {
+        return new Promise(async (resolve, reject) => {
+            try {
+                this.updateStatus = "Updating guilds";
+
+                let guilds = await this.db
+                    .collection("guilds")
+                    .find({})
+                    .toArray();
+
+                let total = guilds.length;
+                let current = 0;
+
+                for (let guild of guilds) {
+                    try {
+                        current++;
+                        console.log(
+                            `Updating ${guild.guildName} ${current}/${total}`
+                        );
+                        let newGuild = await createGuildData(
+                            guild.realm,
+                            guild.guildName
+                        );
+
+                        if (newGuild) {
+                            if (guild.exists) {
+                                for (let raid of raids) {
+                                    if (!guild.progression[raid.raidName]) {
+                                        guild.progression[raid.raidName] = {};
+                                        for (let diff in raid.difficulties) {
+                                            guild.progression[raid.raidName][
+                                                diff
+                                            ] = {};
+                                        }
+                                    }
+                                }
+
+                                newGuild = {
+                                    ...newGuild,
+                                    progression: {
+                                        ...guild.progression,
+                                        latestKills:
+                                            newGuild.progression.latestKills
+                                    },
+                                    exists: true
+                                };
+                            }
+
+                            await this.saveGuild(newGuild);
+                        }
+                    } catch (err) {
+                        if (err.message === "guild not found") {
+                            this.saveGuild({ ...guild, exists: false });
+                        }
+
+                        console.log(`Error with updating ${guild.guildName}:`);
+                        console.error(err);
+                    }
+                }
+
+                resolve("Done");
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+
+    async saveRaidBoss({ raidName, raidBoss }) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                if (!raidName)
+                    throw new Error(
+                        "Need to specify which raid the boss belongs to."
+                    );
+                let raidCollection = this.db.collection(raidName);
+                let oldRaidBoss = await raidCollection.findOne({
+                    bossName: new RegExp(
+                        "^" + escapeRegex(raidBoss.bossName) + "$",
+                        "i"
+                    ),
+                    difficulty: new RegExp(
+                        "^" + escapeRegex(raidBoss.difficulty) + "$",
+                        "i"
+                    )
+                });
+
+                if (!oldRaidBoss) {
+                    raidCollection.insertOne(
+                        applyPlayerPerformanceRanks(raidBoss)
+                    );
+                } else {
+                    await raidCollection.updateOne(
+                        {
+                            bossName: new RegExp(
+                                "^" + escapeRegex(raidBoss.bossName) + "$",
+                                "i"
+                            ),
+                            difficulty: raidBoss.difficulty
+                        },
+                        {
+                            $set: {
+                                ...applyPlayerPerformanceRanks(
+                                    updateRaidBoss(oldRaidBoss, raidBoss)
+                                ),
+                                _id: oldRaidBoss["_id"]
+                            }
+                        }
+                    );
+                }
+
+                resolve("Done");
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+
+    async saveGuild(guild) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                guild = calcGuildContentCompletion(guild);
+
+                let oldGuild = await this.db.collection("guilds").findOne({
+                    guildName: new RegExp(
+                        "^" + escapeRegex(guild.guildName) + "$",
+                        "i"
+                    ),
+                    realm: guild.realm
+                });
+
+                if (!oldGuild) {
+                    await this.db.collection("guilds").insertOne(guild);
+                } else {
+                    await this.db.collection("guilds").updateOne(
+                        {
+                            guildName: new RegExp(
+                                "^" + escapeRegex(guild.guildName) + "$",
+                                "i"
+                            ),
+                            realm: guild.realm
+                        },
+                        { $set: { ...guild, _id: oldGuild["_id"] } }
+                    );
+                }
+                resolve("Done");
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+
+    async saveReqStats(url, ip, date) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                let stats = await this.db.collection("stats");
+                const today = `${date.getFullYear()}:${date.getMonth() +
+                    1}:${date.getDate()}`;
+                const time = date.toLocaleString();
+                const replaceReg = /\./gi;
+
+                await stats.updateOne(
+                    {},
+                    {
+                        $set: {
+                            [`${today}.${ip.replace(
+                                replaceReg,
+                                "-"
+                            )}.${time}`]: url
+                        }
+                    }
+                );
+                resolve("Done");
+            } catch (err) {
                 reject(err);
             }
         });
@@ -627,301 +828,11 @@ class Database {
         });
     }
 
-    async saveGuild(guild) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                guild = calcGuildContentCompletion(guild);
-
-                let oldGuild = await this.db.collection("guilds").findOne({
-                    guildName: new RegExp(
-                        "^" + escapeRegex(guild.guildName) + "$",
-                        "i"
-                    ),
-                    realm: guild.realm
-                });
-
-                if (!oldGuild) {
-                    await this.db.collection("guilds").insertOne(guild);
-                } else {
-                    await this.db.collection("guilds").updateOne(
-                        {
-                            guildName: new RegExp(
-                                "^" + escapeRegex(guild.guildName) + "$",
-                                "i"
-                            ),
-                            realm: guild.realm
-                        },
-                        { $set: { ...guild, _id: oldGuild["_id"] } }
-                    );
-                }
-                resolve("Done");
-            } catch (err) {
-                reject(err);
-            }
-        });
-    }
-
-    async saveRaidBoss({ raidName, raidBoss }) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                if (!raidName)
-                    throw new Error(
-                        "Need to specify which raid the boss belongs to."
-                    );
-                let raidCollection = this.db.collection(raidName);
-                let oldRaidBoss = await raidCollection.findOne({
-                    bossName: new RegExp(
-                        "^" + escapeRegex(raidBoss.bossName) + "$",
-                        "i"
-                    ),
-                    difficulty: new RegExp(
-                        "^" + escapeRegex(raidBoss.difficulty) + "$",
-                        "i"
-                    )
-                });
-
-                if (!oldRaidBoss) {
-                    raidCollection.insertOne(
-                        applyPlayerPerformanceRanks(raidBoss)
-                    );
-                } else {
-                    await raidCollection.updateOne(
-                        {
-                            bossName: new RegExp(
-                                "^" + escapeRegex(raidBoss.bossName) + "$",
-                                "i"
-                            ),
-                            difficulty: raidBoss.difficulty
-                        },
-                        {
-                            $set: {
-                                ...applyPlayerPerformanceRanks(
-                                    updateRaidBoss(oldRaidBoss, raidBoss)
-                                ),
-                                _id: oldRaidBoss["_id"]
-                            }
-                        }
-                    );
-                }
-
-                resolve("Done");
-            } catch (err) {
-                reject(err);
-            }
-        });
-    }
-
     async lastUpdated() {
         return new Promise(async (resolve, reject) => {
             try {
                 let maintence = await this.db.collection("maintence");
                 let lastUpdated = (await maintence.findOne()).lastUpdated;
-                resolve(lastUpdated);
-            } catch (err) {
-                reject(err);
-            }
-        });
-    }
-
-    async updateGuilds() {
-        return new Promise(async (resolve, reject) => {
-            try {
-                this.updateStatus = "Updating guilds";
-
-                let guilds = await this.db
-                    .collection("guilds")
-                    .find({})
-                    .toArray();
-
-                for (let guild of guilds) {
-                    try {
-                        let newGuild = await createGuildData(
-                            guild.realm,
-                            guild.guildName
-                        );
-
-                        if (newGuild) {
-                            if (guild.exists) {
-                                for (let raid of raids) {
-                                    if (!guild.progression[raid.raidName]) {
-                                        guild.progression[raid.raidName] = {};
-                                        for (let diff in raid.difficulties) {
-                                            guild.progression[raid.raidName][
-                                                diff
-                                            ] = {};
-                                        }
-                                    }
-                                }
-
-                                newGuild = {
-                                    ...newGuild,
-                                    progression: {
-                                        ...guild.progression,
-                                        latestKills:
-                                            newGuild.progression.latestKills
-                                    },
-                                    exists: true
-                                };
-                            }
-
-                            await this.saveGuild(newGuild);
-                        }
-                    } catch (err) {
-                        if (err.message === "guild not found") {
-                            this.saveGuild({ ...guild, exists: false });
-                        }
-
-                        console.log(`Error with updating ${guild.guildName}:`);
-                        console.error(err);
-                    }
-                }
-
-                resolve("Done");
-            } catch (err) {
-                reject(err);
-            }
-        });
-    }
-
-    async saveReqStats(url, ip, date) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                let stats = await this.db.collection("stats");
-                const today = `${date.getFullYear()}:${date.getMonth() +
-                    1}:${date.getDate()}`;
-                const time = date.toLocaleString();
-                const replaceReg = /\./gi;
-
-                await stats.updateOne(
-                    {},
-                    {
-                        $set: {
-                            [`${today}.${ip.replace(
-                                replaceReg,
-                                "-"
-                            )}.${time}`]: url
-                        }
-                    }
-                );
-                resolve("Done");
-            } catch (err) {
-                reject(err);
-            }
-        });
-    }
-
-    async updateOneRaidBoss(raidName, bossName) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                if (this.isUpdating)
-                    throw new Error("Database is already updating");
-                this.isUpdating = true;
-                this.updateStatus = `Updating ${bossName}`;
-
-                const result = await this.updateRaidBoss(raidName, bossName);
-
-                if (result.done) {
-                    this.isUpdating = false;
-                    this.updateStatus = "";
-                    resolve(result);
-                } else {
-                    throw new Error(result);
-                }
-            } catch (err) {
-                if (err.message !== "Database is already updating") {
-                    this.isUpdating = false;
-                    this.updateStatus = "";
-                }
-
-                reject(err);
-            }
-        });
-    }
-
-    async updateRaidBoss(raidName, bossName) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                let raidData = require(`tauriprogress-constants/${raidName}`);
-
-                for (let diff of raidData.difficulties) {
-                    diff = String(diff);
-                    let lastLogDate = await this.getLastLogDateOfBoss(
-                        raidName,
-                        bossName,
-                        diff
-                    );
-
-                    let logs = await getCategorizedLogs(
-                        getBossId(raidData, bossName, diff),
-                        diff,
-                        lastLogDate
-                    );
-
-                    let processedLogs = processRaidBossLogs(logs, bossName);
-
-                    await this.saveRaidBoss({
-                        raidName: raidName,
-                        raidBoss: processedLogs.raidBoss
-                    });
-
-                    for (let key in processedLogs.guildBossKills) {
-                        let guild;
-                        try {
-                            guild = await this.getGuild(
-                                processedLogs.guildBossKills[key].realm,
-                                processedLogs.guildBossKills[key].guildName
-                            );
-                        } catch (err) {
-                            if (err.message === "Guild not found") {
-                                guild = await createGuildData(
-                                    processedLogs.guildBossKills[key].realm,
-                                    processedLogs.guildBossKills[key].guildName
-                                );
-                            }
-                        }
-                        if (guild)
-                            await this.saveGuild(
-                                mergeBossKillsOfGuildIntoGuildData(
-                                    guild,
-                                    processedLogs.guildBossKills[key],
-                                    diff
-                                )
-                            );
-                    }
-                }
-
-                resolve({
-                    done: true
-                });
-            } catch (err) {
-                if (err.message !== "Database is already updating") {
-                    this.isUpdating = false;
-                    this.updateStatus = "";
-                }
-
-                reject(err);
-            }
-        });
-    }
-
-    async lastUpdateOfBoss(raidName, bossName) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                let raid = await this.db.collection(raidName);
-                let bosses = await raid
-                    .find({
-                        bossName: new RegExp(
-                            "^" + escapeRegex(bossName) + "$",
-                            "i"
-                        )
-                    })
-                    .toArray();
-
-                let lastUpdated = bosses.reduce((acc, boss) => {
-                    if (boss.lastUpdated > acc) acc = boss.lastUpdated;
-                    return acc;
-                }, 0);
-
                 resolve(lastUpdated);
             } catch (err) {
                 reject(err);

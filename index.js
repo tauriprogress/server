@@ -17,7 +17,7 @@ const {
     collectStats
 } = require("./middlewares");
 const tauriApi = require("./tauriApi");
-const { whenWas, secsAgo } = require("./helpers");
+const { minutesAgo, secsAgo } = require("./helpers");
 
 (async function() {
     try {
@@ -25,10 +25,11 @@ const { whenWas, secsAgo } = require("./helpers");
         if (!(await db.isInitalized())) {
             await db.initalizeDatabase();
         }
-
-        if (whenWas(await db.lastUpdated()) / 60 > 24) {
+        if (minutesAgo(await db.lastUpdated()) > 4) {
             db.updateDatabase();
         }
+
+        setInterval(() => db.updateDatabase(), 1000 * 60 * 5);
     } catch (err) {
         console.error(err);
         db.disconnect().catch(err => console.error(err));
@@ -150,36 +151,12 @@ const { whenWas, secsAgo } = require("./helpers");
         try {
             res.send({
                 success: true,
-                response: whenWas(await db.lastUpdated())
+                response: minutesAgo(await db.lastUpdated())
             });
         } catch (err) {
             res.send({
                 success: false,
                 errorstring: err.message
-            });
-        }
-    });
-
-    app.get("/update", async (req, res) => {
-        let lastUpdateTime;
-        try {
-            lastUpdateTime = whenWas(await db.lastUpdated());
-            if (lastUpdateTime < 30)
-                throw new Error(
-                    `Database can be updated in ${30 - lastUpdateTime} minutes.`
-                );
-
-            if (db.isUpdating) throw new Error(db.updateStatus);
-
-            res.send({
-                success: true,
-                response: await db.updateDatabase()
-            });
-        } catch (err) {
-            res.send({
-                success: false,
-                errorstring: err.message,
-                lastUpdated: lastUpdateTime
             });
         }
     });
@@ -214,35 +191,6 @@ const { whenWas, secsAgo } = require("./helpers");
             res.send({
                 success: false,
                 errorstring: err.message
-            });
-        }
-    });
-
-    app.post("/updateRaidBoss", verifyUpdateRaidBoss, async (req, res) => {
-        let lastUpdateTime;
-        try {
-            lastUpdateTime = await db.lastUpdateOfBoss(
-                req.body.raidName,
-                req.body.bossName
-            );
-
-            if (secsAgo(lastUpdateTime) < 300)
-                throw new Error(`Boss can't be updated yet.`);
-
-            if (db.isUpdating) throw new Error(db.updateStatus);
-
-            res.send({
-                success: true,
-                response: await db.updateOneRaidBoss(
-                    req.body.raidName,
-                    req.body.bossName
-                )
-            });
-        } catch (err) {
-            res.send({
-                success: false,
-                errorstring: err.message,
-                lastUpdated: secsAgo(lastUpdateTime)
             });
         }
     });

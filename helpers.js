@@ -109,7 +109,7 @@ async function getCategorizedLogs(lastLogIds = {}) {
 
             resolve({
                 logs,
-                lastLogIds: newLastLogIds
+                lastLogIds: { ...lastLogIds, ...newLastLogIds }
             });
         } catch (err) {
             reject(err);
@@ -208,7 +208,6 @@ function processRaidBossLogs(logs, bossName, difficulty) {
         bestDps: {},
         bestHps: {},
         killCount: 0,
-        lastLogDate: null,
         difficulty
     };
     let guilds = {};
@@ -451,11 +450,6 @@ function processRaidBossLogs(logs, bossName, difficulty) {
         )
         .slice(0, 50);
 
-    raidBoss.lastLogDate = raidBoss.latestKills[0]
-        ? raidBoss.latestKills[0].killtime
-        : null;
-    raidBoss.lastUpdated = new Date().getTime() / 1000;
-
     return {
         raidBoss,
         guildBossKills: guilds
@@ -649,11 +643,7 @@ function updateRaidBoss(oldRaidBoss, newRaidBoss) {
         latestKills: newRaidBoss.latestKills
             .concat(oldRaidBoss.latestKills)
             .slice(0, 50),
-        killCount: oldRaidBoss.killCount + newRaidBoss.killCount,
-        lastLogDate: newRaidBoss.lastLogDate
-            ? newRaidBoss.lastLogDate
-            : oldRaidBoss.lastLogDate,
-        lastUpdated: newRaidBoss.lastUpdated
+        killCount: oldRaidBoss.killCount + newRaidBoss.killCount
     };
 
     for (let realm in newRaidBoss.firstKills) {
@@ -809,8 +799,12 @@ function applyPlayerPerformanceRanks(raidBoss) {
     return raidBoss;
 }
 
-function whenWas(date) {
-    return Math.round((new Date().getTime() / 1000 - Number(date)) / 60);
+function minutesAgo(time) {
+    return Math.round((new Date().getTime() / 1000 - Number(time)) / 60);
+}
+
+function secsAgo(time) {
+    return Math.round(new Date().getTime() / 1000 - time);
 }
 
 function invalidDurumu(bossId, killtime) {
@@ -838,10 +832,6 @@ function getBossId(raidData, bossName, diff = 0) {
             acc = boss.encounter_id;
         return acc;
     }, null);
-}
-
-function secsAgo(time) {
-    return Math.round(new Date().getTime() / 1000 - time);
 }
 
 function addNestedObjectValue(obj, keys, value) {
@@ -936,7 +926,7 @@ module.exports = {
     createGuildData,
     mergeBossKillsOfGuildIntoGuildData,
     updateRaidBoss,
-    whenWas,
+    minutesAgo,
     applyPlayerPerformanceRanks,
     calcGuildContentCompletion,
     createMemberId,
