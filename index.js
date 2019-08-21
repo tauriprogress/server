@@ -11,10 +11,10 @@ const {
     verifyGetRaid,
     verifyGetboss,
     verifyGetLog,
-    verifyUpdateRaidBoss,
     verifyPlayerBossKills,
     verifyGetPlayerPerformance,
-    collectStats
+    collectStats,
+    updateDatabase
 } = require("./middlewares");
 const tauriApi = require("./tauriApi");
 const { minutesAgo, secsAgo } = require("./helpers");
@@ -25,11 +25,6 @@ const { minutesAgo, secsAgo } = require("./helpers");
         if (!(await db.isInitalized())) {
             await db.initalizeDatabase();
         }
-        if (minutesAgo(await db.lastUpdated()) > 4) {
-            db.updateDatabase();
-        }
-
-        setInterval(() => db.updateDatabase(), 1000 * 60 * 5);
     } catch (err) {
         console.error(err);
         db.disconnect().catch(err => console.error(err));
@@ -43,6 +38,7 @@ const { minutesAgo, secsAgo } = require("./helpers");
     );
     app.use(bodyParser.json());
     app.use(collectStats(db));
+    app.use(updateDatabase(db));
 
     app.get("/getguildlist", async (req, res) => {
         try {
@@ -151,7 +147,7 @@ const { minutesAgo, secsAgo } = require("./helpers");
         try {
             res.send({
                 success: true,
-                response: minutesAgo(await db.lastUpdated())
+                response: minutesAgo(await db.getLastUpdated())
             });
         } catch (err) {
             res.send({

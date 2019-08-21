@@ -31,6 +31,7 @@ const {
 class Database {
     constructor() {
         this.db = {};
+        this.lastUpdated = null;
         this.isUpdating = false;
         this.updateStatus = "";
     }
@@ -39,9 +40,14 @@ class Database {
         try {
             console.log("Connecting to database");
             let client = await MongoClient.connect(mongoUrl, {
-                useNewUrlParser: true
+                useNewUrlParser: true,
+                autoReconnect: true,
+                reconnectTries: Number.MAX_SAFE_INTEGER,
+                reconnectInterval: 2000
             });
+
             this.db = client.db("tauriprogress");
+            this.lastUpdated = await this.getLastUpdated();
         } catch (err) {
             throw err;
         }
@@ -100,7 +106,7 @@ class Database {
                             bossName
                         ]) {
                             console.log(
-                                `db: Processing ${bossName} difficulty: ${difficulty} difficulty`
+                                `db: Processing ${bossName} difficulty: ${difficulty}`
                             );
 
                             let processedLogs = processRaidBossLogs(
@@ -255,7 +261,7 @@ class Database {
                     }
                 }
 
-                if (minutesAgo(await this.lastUpdated()) > 180)
+                if (minutesAgo(this.lastUpdated) > 180)
                     await this.updateGuilds();
 
                 await maintence.updateOne(
@@ -270,6 +276,7 @@ class Database {
 
                 this.isUpdating = false;
                 this.updateStatus = "";
+                this.lastUpdated = updateStarted;
 
                 console.log("Database update finished");
                 resolve(minutesAgo(updateStarted));
@@ -828,7 +835,7 @@ class Database {
         });
     }
 
-    async lastUpdated() {
+    async getLastUpdated() {
         return new Promise(async (resolve, reject) => {
             try {
                 let maintence = await this.db.collection("maintence");

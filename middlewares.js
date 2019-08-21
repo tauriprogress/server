@@ -1,6 +1,6 @@
 const { raids } = require("tauriprogress-constants/currentContent");
 const { realms, characterClasses } = require("tauriprogress-constants");
-const { capitalize, validRaidName } = require("./helpers");
+const { capitalize, validRaidName, minutesAgo } = require("./helpers");
 
 function verifyGetGuild(req, res, next) {
     try {
@@ -132,26 +132,6 @@ function verifyGetLog(req, res, next) {
     }
 }
 
-function verifyUpdateRaidBoss(req, res, next) {
-    try {
-        if (req.body.raidName)
-            req.body.raidName = req.body.raidName.trim().replace(/\s+/g, " ");
-
-        if (!validRaidName(req.body.raidName))
-            throw new Error("Invalid raid name.");
-
-        if (req.body.bossName)
-            req.body.bossName = req.body.bossName.trim().replace(/\s+/g, " ");
-
-        if (!validBossName(req.body.raidName, req.body.bossName))
-            throw new Error("Invalid boss name.");
-
-        next();
-    } catch (err) {
-        res.send({ success: false, errorstring: err.message });
-    }
-}
-
 function verifyPlayerBossKills(req, res, next) {
     try {
         if (req.body.realm)
@@ -227,14 +207,23 @@ function collectStats(db) {
     };
 }
 
+function updateDatabase(db) {
+    return (req, res, next) => {
+        if (minutesAgo(db.lastUpdated) > 5) {
+            db.updateDatabase();
+        }
+        next();
+    };
+}
+
 module.exports = {
     verifyGetGuild,
     verifyGetPlayer,
     verifyGetRaid,
     verifyGetboss,
     verifyGetLog,
-    verifyUpdateRaidBoss,
-    collectStats,
     verifyPlayerBossKills,
-    verifyGetPlayerPerformance
+    verifyGetPlayerPerformance,
+    collectStats,
+    updateDatabase
 };
