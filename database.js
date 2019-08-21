@@ -94,22 +94,27 @@ class Database {
                 let guilds = {};
 
                 console.log("db: Creating raids");
-                for (let raidName in categorizedLogs) {
+                for (let raid of raids) {
+                    let raidName = raid.raidName;
+                    let raidData = require(`tauriprogress-constants/${raidName}`);
                     console.log(`db: Creating ${raidName} collection`);
                     raidCollection = await this.db.collection(raidName);
                     if (await raidCollection.findOne())
                         await raidCollection.deleteMany({});
 
-                    for (let bossName in categorizedLogs[raidName]) {
-                        for (let difficulty in categorizedLogs[raidName][
-                            bossName
-                        ]) {
+                    for (let bossData of raidData.encounters) {
+                        let bossName = bossData.encounter_name;
+                        for (let difficulty of raidData.difficulties) {
                             console.log(
                                 `db: Processing ${bossName} difficulty: ${difficulty}`
                             );
 
                             let processedLogs = processRaidBossLogs(
-                                categorizedLogs[raidName][bossName][difficulty],
+                                getNestedObjectValue(categorizedLogs, [
+                                    raidName,
+                                    bossName,
+                                    difficulty
+                                ]) || [],
                                 bossName,
                                 difficulty
                             );
@@ -162,6 +167,7 @@ class Database {
                     lastLogIds,
                     initalized: true
                 });
+                this.lastUpdated = updateStarted;
                 this.isUpdating = false;
                 console.log("db: initalization done.");
                 resolve("Done");
@@ -837,8 +843,9 @@ class Database {
     async getLastUpdated() {
         return new Promise(async (resolve, reject) => {
             try {
-                let maintence = await this.db.collection("maintence");
-                let lastUpdated = (await maintence.findOne()).lastUpdated;
+                let maintence = await this.db.collection("maintence").findOne();
+
+                let lastUpdated = maintence ? maintence.lastUpdated : null;
                 resolve(lastUpdated);
             } catch (err) {
                 reject(err);
