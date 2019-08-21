@@ -20,7 +20,6 @@ const {
     calcGuildContentCompletion,
     createMemberId,
     escapeRegex,
-    getBossId,
     addNestedObjectValue,
     getNestedObjectValue,
     getBestPerformance,

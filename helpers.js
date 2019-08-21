@@ -510,7 +510,8 @@ async function createGuildData(realm, guildName) {
             latestKills: kills,
             currentBossesDefeated: 0,
             completed: false
-        }
+        },
+        exists: true
     };
 
     for (let raid of raids) {
