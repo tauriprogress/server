@@ -266,9 +266,6 @@ class Database {
                     }
                 }
 
-                if (minutesAgo(this.lastUpdated) > 180)
-                    await this.updateGuilds();
-
                 await maintence.updateOne(
                     {},
                     {
@@ -278,6 +275,9 @@ class Database {
                         }
                     }
                 );
+
+                if (minutesAgo(this.lastUpdated) > 180)
+                    await this.updateGuilds();
 
                 this.isUpdating = false;
                 this.updateStatus = "";
