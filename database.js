@@ -92,65 +92,102 @@ class Database {
 
                 let raidCollection;
                 let guilds = {};
+                try {
+                    console.log("db: Creating raids");
+                    for (let raid of raids) {
+                        let raidName = raid.raidName;
+                        let raidData = require(`tauriprogress-constants/${raidName}`);
+                        console.log(`db: Creating ${raidName} collection`);
+                        raidCollection = await this.db.collection(raidName);
+                        if (await raidCollection.findOne())
+                            await raidCollection.deleteMany({});
 
-                console.log("db: Creating raids");
-                for (let raid of raids) {
-                    let raidName = raid.raidName;
-                    let raidData = require(`tauriprogress-constants/${raidName}`);
-                    console.log(`db: Creating ${raidName} collection`);
-                    raidCollection = await this.db.collection(raidName);
-                    if (await raidCollection.findOne())
-                        await raidCollection.deleteMany({});
+                        for (let bossData of raidData.encounters) {
+                            let bossName = bossData.encounter_name;
+                            for (let difficulty of raidData.difficulties) {
+                                console.log(
+                                    `db: Processing ${bossName} difficulty: ${difficulty}`
+                                );
 
-                    for (let bossData of raidData.encounters) {
-                        let bossName = bossData.encounter_name;
-                        for (let difficulty of raidData.difficulties) {
-                            console.log(
-                                `db: Processing ${bossName} difficulty: ${difficulty}`
-                            );
-
-                            let processedLogs = processRaidBossLogs(
-                                getNestedObjectValue(categorizedLogs, [
-                                    raidName,
+                                let processedLogs = processRaidBossLogs(
+                                    getNestedObjectValue(categorizedLogs, [
+                                        raidName,
+                                        bossName,
+                                        difficulty
+                                    ]) || [],
                                     bossName,
                                     difficulty
-                                ]) || [],
-                                bossName,
-                                difficulty
-                            );
+                                );
 
-                            await this.saveRaidBoss({
-                                raidName: raidName,
-                                raidBoss: processedLogs.raidBoss
-                            });
+                                await this.saveRaidBoss({
+                                    raidName: raidName,
+                                    raidBoss: processedLogs.raidBoss
+                                });
 
-                            for (let key in processedLogs.guildBossKills) {
-                                if (!guilds[key]) {
-                                    let guild = await createGuildData(
-                                        processedLogs.guildBossKills[key].realm,
-                                        processedLogs.guildBossKills[key]
-                                            .guildName
-                                    );
+                                for (let key in processedLogs.guildBossKills) {
+                                    if (!guilds[key]) {
+                                        try {
+                                            let guild = await createGuildData(
+                                                processedLogs.guildBossKills[
+                                                    key
+                                                ].realm,
+                                                processedLogs.guildBossKills[
+                                                    key
+                                                ].guildName
+                                            );
 
-                                    guilds[
-                                        key
-                                    ] = mergeBossKillsOfGuildIntoGuildData(
-                                        guild,
-                                        processedLogs.guildBossKills[key],
-                                        difficulty
-                                    );
-                                } else {
-                                    guilds[
-                                        key
-                                    ] = mergeBossKillsOfGuildIntoGuildData(
-                                        guilds[key],
-                                        processedLogs.guildBossKills[key],
-                                        difficulty
-                                    );
+                                            guilds[
+                                                key
+                                            ] = mergeBossKillsOfGuildIntoGuildData(
+                                                guild,
+                                                processedLogs.guildBossKills[
+                                                    key
+                                                ],
+                                                difficulty
+                                            );
+                                        } catch (err) {
+                                            console.error(
+                                                `Error while processing guilds from logs. This error may be ignored (eg: guild not found)`
+                                            );
+                                            console.log(
+                                                `Current guild: ${
+                                                    processedLogs
+                                                        .guildBossKills[key]
+                                                        .guildName
+                                                }, realm: ${
+                                                    processedLogs
+                                                        .guildBossKills[key]
+                                                        .realm
+                                                }`
+                                            );
+                                            console.error(err.message);
+                                        }
+                                    } else {
+                                        guilds[
+                                            key
+                                        ] = mergeBossKillsOfGuildIntoGuildData(
+                                            guilds[key],
+                                            processedLogs.guildBossKills[key],
+                                            difficulty
+                                        );
+                                    }
                                 }
                             }
                         }
                     }
+                } catch (err) {
+                    console.log(
+                        "Error occured in initalization, the data from api requiests have been saved as logData.json in the directory of this file."
+                    );
+                    console.error(err);
+                    fs.writeFileSync(
+                        "logData.json",
+                        JSON.stringify({
+                            logs: categorizedLogs,
+                            lastLogIds: newLastLogIds
+                        })
+                    );
+                    process.exit(1);
                 }
 
                 console.log("db: Creating guilds collection");
@@ -242,14 +279,32 @@ class Database {
                                         processedLogs.guildBossKills[key].realm,
                                         processedLogs.guildBossKills[key]
                                             .guildName
-                                    );
+                                    ).catch(async err => {
+                                        if (err.message === "guild not found") {
+                                            return await createGuildData(
+                                                processedLogs.guildBossKills[
+                                                    key
+                                                ].realm,
+                                                processedLogs.guildBossKills[
+                                                    key
+                                                ].guildName
+                                            );
+                                        }
+
+                                        return false;
+                                    });
                                 } catch (err) {
-                                    if (err.message === "Guild not found") {
-                                        guild = await createGuildData(
-                                            processedLogs.guildBossKills[key]
-                                                .realm,
-                                            processedLogs.guildBossKills[key]
-                                                .guildName
+                                    if (err.message !== "guild not found") {
+                                        console.error(
+                                            `${err.message} \n guildName: ${
+                                                processedLogs.guildBossKills[
+                                                    key
+                                                ].guildName
+                                            } realm: ${
+                                                processedLogs.guildBossKills[
+                                                    key
+                                                ].realm
+                                            }`
                                         );
                                     }
                                 }
@@ -321,38 +376,37 @@ class Database {
                         );
 
                         if (newGuild) {
-                            if (guild.exists) {
-                                for (let raid of raids) {
-                                    if (!guild.progression[raid.raidName]) {
-                                        guild.progression[raid.raidName] = {};
-                                        for (let diff in raid.difficulties) {
-                                            guild.progression[raid.raidName][
-                                                diff
-                                            ] = {};
-                                        }
+                            for (let raid of raids) {
+                                if (!guild.progression[raid.raidName]) {
+                                    guild.progression[raid.raidName] = {};
+                                    for (let diff in raid.difficulties) {
+                                        guild.progression[raid.raidName][
+                                            diff
+                                        ] = {};
                                     }
                                 }
-
-                                newGuild = {
-                                    ...newGuild,
-                                    progression: {
-                                        ...guild.progression,
-                                        latestKills:
-                                            newGuild.progression.latestKills
-                                    },
-                                    exists: true
-                                };
                             }
+
+                            newGuild = {
+                                ...newGuild,
+                                progression: {
+                                    ...guild.progression,
+                                    latestKills:
+                                        newGuild.progression.latestKills
+                                }
+                            };
 
                             await this.saveGuild(newGuild);
                         }
                     } catch (err) {
                         if (err.message === "guild not found") {
-                            this.saveGuild({ ...guild, exists: false });
+                            this.removeGuild(guild);
+                        } else {
+                            console.log(
+                                `Error with updating ${guild.guildName}:`
+                            );
+                            console.error(err);
                         }
-
-                        console.log(`Error with updating ${guild.guildName}:`);
-                        console.error(err);
                     }
                 }
 
@@ -474,6 +528,23 @@ class Database {
         });
     }
 
+    async removeGuild(guild) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                await this.db.collection("guilds").deleteOne({
+                    guildName: new RegExp(
+                        "^" + escapeRegex(guild.guildName) + "$",
+                        "i"
+                    ),
+                    realm: guild.realm
+                });
+                resolve("Done");
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+
     async getGuilds() {
         return new Promise(async (resolve, reject) => {
             try {
@@ -527,7 +598,7 @@ class Database {
                     realm: realm
                 });
 
-                if (!guild) throw new Error("Guild not found");
+                if (!guild) throw new Error("guild not found");
 
                 resolve(guild);
             } catch (err) {
