@@ -147,7 +147,10 @@ const { minutesAgo, secsAgo } = require("./helpers");
         try {
             res.send({
                 success: true,
-                response: minutesAgo(await db.getLastUpdated())
+                response: {
+                    lastUpdated: minutesAgo(await db.getLastUpdated()),
+                    isUpdating: db.isUpdating
+                }
             });
         } catch (err) {
             res.send({
