@@ -271,6 +271,7 @@ class Database {
                         for (let difficulty in categorizedLogs[raidName][
                             bossName
                         ]) {
+                            difficulty = Number(difficulty);
                             console.log(
                                 `db: Processing ${bossName} difficulty: ${difficulty} difficulty`
                             );
@@ -887,6 +888,7 @@ class Database {
                 }
 
                 for (let difficulty in playerPerformance[raidName]) {
+                    difficulty = Number(difficulty);
                     for (let variant of ["dps", "hps"]) {
                         for (let specId in totalPlayerPerformance[difficulty][
                             variant
