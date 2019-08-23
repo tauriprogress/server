@@ -3,6 +3,7 @@ const {
     lastBoss,
     raids
 } = require("tauriprogress-constants/currentContent.json");
+const fs = require("fs");
 const { specs } = require("tauriprogress-constants");
 const dbUser = process.env.MONGODB_USER;
 const dbPassword = process.env.MONGODB_PASSWORD;
@@ -87,9 +88,8 @@ class Database {
 
                 let {
                     logs: categorizedLogs,
-                    lastLogIds
-                } = await getCategorizedLogs();
-
+                    lastLogIds: newLastLogIds
+                } = await db.getCategorizedLogs();
                 let raidCollection;
                 let guilds = {};
                 try {
@@ -108,13 +108,27 @@ class Database {
                                 console.log(
                                     `db: Processing ${bossName} difficulty: ${difficulty}`
                                 );
+                                let currentBossLogs = getNestedObjectValue(
+                                    categorizedLogs,
+                                    [raidName, bossName, difficulty]
+                                );
+
+                                if (currentBossLogs) {
+                                    currentBossLogs = currentBossLogs.filter(
+                                        log => {
+                                            if (
+                                                log.log_id === 149325 &&
+                                                log.realm === "[EN] Evermoon"
+                                            ) {
+                                                return false;
+                                            }
+                                            return true;
+                                        }
+                                    );
+                                }
 
                                 let processedLogs = processRaidBossLogs(
-                                    getNestedObjectValue(categorizedLogs, [
-                                        raidName,
-                                        bossName,
-                                        difficulty
-                                    ]) || [],
+                                    currentBossLogs || [],
                                     bossName,
                                     difficulty
                                 );
@@ -201,7 +215,7 @@ class Database {
 
                 maintence.insertOne({
                     lastUpdated: updateStarted,
-                    lastLogIds,
+                    lastLogIds: newLastLogIds,
                     initalized: true
                 });
                 this.lastUpdated = updateStarted;
