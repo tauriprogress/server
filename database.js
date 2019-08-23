@@ -393,9 +393,9 @@ class Database {
                             for (let raid of raids) {
                                 if (!guild.progression[raid.raidName]) {
                                     guild.progression[raid.raidName] = {};
-                                    for (let diff in raid.difficulties) {
+                                    for (let difficulty in raid.difficulties) {
                                         guild.progression[raid.raidName][
-                                            diff
+                                            difficulty
                                         ] = {};
                                     }
                                 }
@@ -444,10 +444,7 @@ class Database {
                         "^" + escapeRegex(raidBoss.bossName) + "$",
                         "i"
                     ),
-                    difficulty: new RegExp(
-                        "^" + escapeRegex(raidBoss.difficulty) + "$",
-                        "i"
-                    )
+                    difficulty: Number(raidBoss.difficulty)
                 });
 
                 if (!oldRaidBoss) {
@@ -889,23 +886,29 @@ class Database {
                     }
                 }
 
-                for (let diff in playerPerformance[raidName]) {
+                for (let difficulty in playerPerformance[raidName]) {
                     for (let variant of ["dps", "hps"]) {
-                        for (let specId in totalPlayerPerformance[diff][
+                        for (let specId in totalPlayerPerformance[difficulty][
                             variant
                         ]) {
                             let playerTotal = getNestedObjectValue(
                                 totalPlayerPerformance,
-                                [diff, variant, specId]
+                                [difficulty, variant, specId]
                             );
                             let bestTotal = getNestedObjectValue(
                                 totalBestPerformance,
-                                [diff, variant, specId]
+                                [difficulty, variant, specId]
                             );
 
                             playerPerformance = addNestedObjectValue(
                                 playerPerformance,
-                                [raidName, diff, "total", specId, variant],
+                                [
+                                    raidName,
+                                    difficulty,
+                                    "total",
+                                    specId,
+                                    variant
+                                ],
                                 {
                                     [variant]: playerTotal / totalBosses,
                                     topPercent: calcTopPercentOfPerformance(
