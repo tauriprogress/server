@@ -516,8 +516,8 @@ async function createGuildData(realm, guildName) {
 
     for (let raid of raids) {
         newGuild.progression[raid.raidName] = {};
-        for (let diff in raid.difficulties) {
-            newGuild.progression[raid.raidName][diff] = {};
+        for (let difficulty in raid.difficulties) {
+            newGuild.progression[raid.raidName][difficulty] = {};
         }
     }
 
@@ -602,23 +602,24 @@ function calcGuildContentCompletion(guild) {
     let currentBossesDefeated = 0;
     let completed = false;
 
-    for (let diff in guild.progression[raidName]) {
-        if (!bossesDefeated[diff]) bossesDefeated[diff] = 0;
+    for (let difficulty in guild.progression[raidName]) {
+        difficulty = Number(difficulty);
+        if (!bossesDefeated[difficulty]) bossesDefeated[difficulty] = 0;
 
-        for (let boss in guild.progression[raidName][diff]) {
-            bossesDefeated[diff]++;
+        for (let boss in guild.progression[raidName][difficulty]) {
+            bossesDefeated[difficulty]++;
         }
 
-        if (bossesDefeated[diff] > currentBossesDefeated)
-            currentBossesDefeated = bossesDefeated[diff];
+        if (bossesDefeated[difficulty] > currentBossesDefeated)
+            currentBossesDefeated = bossesDefeated[difficulty];
 
-        if (bossesDefeated[diff] === totalBosses) {
+        if (bossesDefeated[difficulty] === totalBosses) {
             completed = !completed
-                ? guild.progression[raidName][diff][lastBoss].firstKill
+                ? guild.progression[raidName][difficulty][lastBoss].firstKill
                 : completed <
-                  guild.progression[raidName][diff][lastBoss].firstKill
+                  guild.progression[raidName][difficulty][lastBoss].firstKill
                 ? completed
-                : guild.progression[raidName][diff][lastBoss].firstKill;
+                : guild.progression[raidName][difficulty][lastBoss].firstKill;
         }
     }
 
@@ -823,12 +824,12 @@ function escapeRegex(s) {
     return String(s).replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
 }
 
-function getBossId(raidData, bossName, diff = 0) {
+function getBossId(raidData, bossName, difficulty = 0) {
     return raidData.encounters.reduce((acc, boss) => {
         if (
             boss.encounter_name === bossName &&
             (boss.encounter_difficulty === 0 ||
-                boss.encounter_difficulty === Number(diff))
+                boss.encounter_difficulty === Number(difficulty))
         )
             acc = boss.encounter_id;
         return acc;
