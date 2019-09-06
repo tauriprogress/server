@@ -344,7 +344,7 @@ class Database {
                             })
                         );
                     } catch (err) {
-                        console.err(
+                        console.error(
                             `Error while tring to save guild ${newGuild.guildName} ${newGuild.realm},
                             this error may safely be ignored.
                             \n ${err.message}`
