@@ -210,7 +210,7 @@ function collectStats(db) {
 function updateDatabase(db) {
     return (req, res, next) => {
         if (minutesAgo(db.lastUpdated) > 5) {
-            db.updateDatabase();
+            db.update();
         }
         next();
     };
