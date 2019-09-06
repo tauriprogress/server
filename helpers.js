@@ -9,10 +9,10 @@ const {
     classToSpec
 } = require("tauriprogress-constants");
 const {
-    raidName,
-    totalBosses,
+    raidName: currentRaidName,
+    totalBosses: currentTotalBosses,
     raids,
-    lastBoss
+    lastBoss: currentLastBoss
 } = require("tauriprogress-constants/currentContent");
 const tauriApi = require("./tauriApi");
 
@@ -23,11 +23,11 @@ for (let raid of raids) {
     difficulties[raid.raidName] = raid.difficulties;
 }
 
-async function getCategorizedLogs(lastLogIds = {}) {
+async function getLogs(lastLogIds = {}) {
     return new Promise(async (resolve, reject) => {
         try {
             let unfilteredLogs = [];
-            let logs = {};
+            let logs = [];
             let newLastLogIds = {};
 
             for (let key in realms) {
@@ -58,10 +58,6 @@ async function getCategorizedLogs(lastLogIds = {}) {
                 if (
                     validRaidName(log.mapentry.name) &&
                     validDifficulty(log.mapentry.name, log.difficulty) &&
-                    !invalidDurumu(
-                        log.encounter_data.encounter_id,
-                        log.killtime
-                    ) &&
                     log.fight_time > 10000
                 ) {
                     let logData;
@@ -80,24 +76,7 @@ async function getCategorizedLogs(lastLogIds = {}) {
                     );
                     if (!logData.success) throw new Error(logData.errorstring);
 
-                    let categorization = [
-                        log.mapentry.name,
-                        log.encounter_data.encounter_name,
-                        log.difficulty
-                    ];
-                    let categorizedLogs = getNestedObjectValue(
-                        logs,
-                        categorization
-                    );
-                    let currentLog = { ...logData.response, realm: log.realm };
-
-                    logs = addNestedObjectValue(
-                        logs,
-                        categorization,
-                        categorizedLogs
-                            ? [...categorizedLogs, currentLog]
-                            : [currentLog]
-                    );
+                    logs.push({ ...logData.response, realm: log.realm });
 
                     newLastLogIds = addNestedObjectValue(
                         newLastLogIds,
@@ -117,346 +96,371 @@ async function getCategorizedLogs(lastLogIds = {}) {
     });
 }
 
-function createGuildBossKill(kill) {
-    return {
-        raidName: kill.mapentry.name,
-        bossName: kill.encounter_data.encounter_name,
-        realm: kill.realm,
-        guildName: kill.guilddata.name,
-        firstKill: kill.killtime,
-        killCount: 1,
-        fastestKill: kill.fight_time,
-        fastestKills: [
-            {
-                log_id: kill.log_id,
-                fight_time: kill.fight_time,
-                killtime: kill.killtime,
-                realm: kill.realm
-            }
-        ],
-        dps: {},
-        hps: {}
-    };
-}
+function processLogs(logs) {
+    let bossData = {};
 
-function updateGuildBossKill(guild, kill) {
-    return {
-        ...guild,
-        killCount: guild.killCount + 1,
-        firstKill:
-            kill.killtime > guild.firstKill ? guild.firstKill : kill.killtime,
-        fastestKill:
-            kill.fight_time > guild.fastestKill
-                ? guild.fastestKill
-                : kill.fight_time,
-        fastestKills: guild.fastestKills
-            .concat({
-                log_id: kill.log_id,
-                fight_time: kill.fight_time,
-                killtime: kill.killtime,
-                realm: kill.realm
-            })
-            .sort((a, b) => a.fight_time - b.fight_time)
-            .slice(0, 10)
-    };
-}
+    let guildData = {};
 
-function getDps({ dmg_done }, { fight_time }) {
-    return dmg_done / (fight_time / 1000);
-}
-
-function memberDps(realm, member, kill, dps) {
-    return {
-        name: member.name,
-        spec: member.spec,
-        class: specToClass[member.spec],
-        realm: realm,
-        ilvl: member.ilvl,
-        date: kill.killtime,
-        dps: dps,
-        logId: kill.log_id,
-        faction: raceToFaction[member.race]
-    };
-}
-
-function getHps({ heal_done, absorb_done }, { fight_time }) {
-    return (heal_done + absorb_done) / (fight_time / 1000);
-}
-
-function memberHps(realm, member, kill, hps) {
-    return {
-        name: member.name,
-        spec: member.spec,
-        class: specToClass[member.spec],
-        realm: realm,
-        ilvl: member.ilvl,
-        date: kill.killtime,
-        hps: hps,
-        logId: kill.log_id,
-        faction: raceToFaction[member.race]
-    };
-}
-
-function processRaidBossLogs(logs, bossName, difficulty) {
-    let raidBoss = {
-        bossName: bossName,
+    let newRaidBoss = {
+        bossName: undefined,
         latestKills: [],
-        firstKills: {},
         fastestKills: {},
         dps: {},
         hps: {},
         bestDps: {},
         bestHps: {},
         killCount: 0,
-        difficulty
+        difficulty: 0
     };
-    let guilds = {};
-    let bossId;
-    if (logs[0]) bossId = logs[0].encounter_data.encounter_id;
+
+    let newGuild = {
+        guildName: undefined,
+        realm: undefined,
+        faction: undefined,
+        progression: {
+            latestKills: [],
+            currentBossesDefeated: 0,
+            completed: false
+        }
+    };
+
+    let newGuildBoss = {
+        bossName: undefined,
+        firstKill: undefined,
+        killCount: 0,
+        fastestKill: Number.MAX_SAFE_INTEGER,
+        fastestKills: [],
+        dps: {},
+        hps: {}
+    };
 
     for (let log of logs) {
-        raidBoss.killCount += 1;
-        let guildId;
-        if (log.guildid) {
-            guildId = `${log.realm} ${log.guilddata.name}`;
+        const raidName = log.mapentry.name;
+        const difficulty = Number(log.difficulty);
+        const bossName = log.encounter_data.encounter_name;
+        const bossId = `${bossName} ${difficulty}`;
+        const realm = log.realm;
+        const faction = determineLogFaction(log);
 
-            if (!guilds[guildId]) {
-                guilds[guildId] = createGuildBossKill(log);
-            } else {
-                guilds[guildId] = updateGuildBossKill(guilds[guildId], log);
-            }
+        const guildName = log.guilddata.name;
+        const guildId = `${guildName} ${realm}`;
+        const guildBossCategorization = [
+            "progression",
+            raidName,
+            difficulty,
+            bossName
+        ];
+        /* create / update boss data */
+        if (!bossData[raidName]) {
+            bossData[raidName] = {};
         }
-
-        for (let member of log.members) {
-            const memberId = createMemberId(
-                log.realm,
-                member.name,
-                member.spec
-            );
-
-            if (specs[member.spec].isDps) {
-                const playerDps = invalidDurumu(bossId, log.killtime)
-                    ? true
-                    : getDps(member, log);
-
-                const processedMember = memberDps(
-                    log.realm,
-                    member,
-                    log,
-                    playerDps
-                );
-
-                const processedMemberCategorization = [
-                    processedMember.realm,
-                    processedMember.faction,
-                    processedMember.class,
-                    processedMember.spec
-                ];
-
-                if (
-                    processedMember.dps >
-                    getNestedObjectValue(raidBoss.bestDps, [
-                        ...processedMemberCategorization,
-                        "dps"
-                    ])
-                ) {
-                    raidBoss.bestDps = addNestedObjectValue(
-                        raidBoss.bestDps,
-                        processedMemberCategorization,
-                        processedMember
-                    );
-                }
-
-                if (
-                    log.guildid &&
-                    (!guilds[guildId].dps[memberId] ||
-                        guilds[guildId].dps[memberId].dps < playerDps)
-                ) {
-                    guilds[guildId].dps[memberId] = processedMember;
-                }
-
-                if (
-                    !raidBoss.dps[memberId] ||
-                    raidBoss.dps[memberId].dps < playerDps
-                ) {
-                    raidBoss.dps[memberId] = processedMember;
-                }
-            }
-
-            if (specs[member.spec].isHealer) {
-                const playerHps = getHps(
-                    {
-                        ...member,
-                        absorb_done:
-                            valuesCorrectSince < log.killtime
-                                ? member.absorb_done
-                                : 0
-                    },
-                    log
-                );
-
-                const processedMember = memberHps(
-                    log.realm,
-                    member,
-                    log,
-                    playerHps
-                );
-
-                const processedMemberCategorization = [
-                    processedMember.realm,
-                    processedMember.faction,
-                    processedMember.class,
-                    processedMember.spec
-                ];
-
-                if (
-                    processedMember.hps >
-                    getNestedObjectValue(raidBoss.bestHps, [
-                        ...processedMemberCategorization,
-                        "hps"
-                    ])
-                ) {
-                    raidBoss.bestHps = addNestedObjectValue(
-                        raidBoss.bestHps,
-                        processedMemberCategorization,
-                        processedMember
-                    );
-                }
-
-                if (
-                    log.guildid &&
-                    (!guilds[guildId].hps[memberId] ||
-                        guilds[guildId].hps[memberId].hps < playerHps)
-                ) {
-                    guilds[guildId].hps[memberId] = processedMember;
-                }
-
-                if (
-                    !raidBoss.hps[memberId] ||
-                    raidBoss.hps[memberId].hps < playerHps
-                ) {
-                    raidBoss.hps[memberId] = processedMember;
-                }
-            }
-        }
-    }
-
-    for (let log of logs.sort((a, b) => a.killtime - b.killtime)) {
-        let logCategorization = [log.realm, raceToFaction[log.members[0].race]];
-
-        let firstKillsOfCategory = getNestedObjectValue(
-            raidBoss.firstKills,
-            logCategorization
-        );
-
-        if (!firstKillsOfCategory) {
-            raidBoss.firstKills = addNestedObjectValue(
-                raidBoss.firstKills,
-                logCategorization,
-                [log]
-            );
-        } else {
-            raidBoss.firstKills = addNestedObjectValue(
-                raidBoss.firstKills,
-                logCategorization,
-                firstKillsOfCategory.concat(log)
+        if (!bossData[raidName][bossId]) {
+            /* create boss data */
+            bossData[raidName][bossId] = JSON.parse(
+                JSON.stringify({
+                    ...newRaidBoss,
+                    bossName: bossName,
+                    difficulty: difficulty
+                })
             );
         }
-    }
 
-    for (let realm in raidBoss.firstKills) {
-        for (let faction in raidBoss.firstKills[realm]) {
-            let objectKeys = [realm, faction];
-            raidBoss.firstKills = addNestedObjectValue(
-                raidBoss.firstKills,
-                objectKeys,
-                getNestedObjectValue(raidBoss.firstKills, objectKeys)
-                    .sort((a, b) => a.killtime - b.killtime)
-                    .slice(0, 3)
-            );
-        }
-    }
+        /* update boss data */
+        bossData[raidName][bossId].killCount += 1;
 
-    for (let log of logs.sort((a, b) => a.fight_time - b.fight_time)) {
-        let logCategorization = [log.realm, raceToFaction[log.members[0].race]];
+        const logCategorization = [realm, faction];
 
-        let fastestKillsOfCategory = getNestedObjectValue(
-            raidBoss.fastestKills,
+        const trimmedLog = {
+            log_id: log.log_id,
+            guilddata: {
+                name: log.guilddata.name,
+                faction: log.guilddata.faction
+            },
+            fight_time: log.fight_time,
+            realm: log.realm,
+            killtime: log.killtime
+        };
+
+        const fastestKillsOfCategory = getNestedObjectValue(
+            bossData[raidName][bossId].fastestKills,
             logCategorization
         );
 
         if (!fastestKillsOfCategory) {
-            raidBoss.fastestKills = addNestedObjectValue(
-                raidBoss.fastestKills,
+            bossData[raidName][bossId].fastestKills = addNestedObjectValue(
+                bossData[raidName][bossId].fastestKills,
                 logCategorization,
-                [
-                    {
-                        log_id: log.log_id,
-                        guilddata: {
-                            name: log.guilddata.name,
-                            faction: log.guilddata.faction
-                        },
-                        fight_time: log.fight_time,
-                        realm: log.realm,
-                        killtime: log.killtime
-                    }
-                ]
+                [trimmedLog]
             );
         } else {
-            raidBoss.fastestKills = addNestedObjectValue(
-                raidBoss.fastestKills,
+            bossData[raidName][bossId].fastestKills = addNestedObjectValue(
+                bossData[raidName][bossId].fastestKills,
                 logCategorization,
-                fastestKillsOfCategory.concat({
-                    log_id: log.log_id,
-                    guilddata: {
-                        name: log.guilddata.name,
-                        faction: log.guilddata.faction
-                    },
-                    fight_time: log.fight_time,
-                    realm: log.realm,
-                    killtime: log.killtime
-                })
+                fastestKillsOfCategory.concat(trimmedLog)
             );
+        }
+
+        bossData[raidName][bossId].latestKills.unshift(trimmedLog);
+
+        /* create / update guild data */
+        if (guildName) {
+            if (!guildData[guildId]) {
+                guildData[guildId] = JSON.parse(
+                    JSON.stringify({
+                        ...newGuild,
+                        guildName: guildName,
+                        realm: realm,
+                        faction: faction
+                    })
+                );
+            }
+
+            /* update guild data */
+            guildData[guildId].progression.latestKills.unshift({
+                log_id: log.log_id,
+                mapentry: log.mapentry,
+                encounter_data: log.encounter_data,
+                difficulty: log.difficulty,
+                fight_time: log.fight_time,
+                killtime: log.killtime
+            });
+
+            let oldGuildBoss = getNestedObjectValue(
+                guildData[guildId],
+                guildBossCategorization
+            );
+
+            /* create guild boss */
+            if (!oldGuildBoss) {
+                guildData[guildId] = addNestedObjectValue(
+                    guildData[guildId],
+                    guildBossCategorization,
+                    {
+                        ...JSON.parse(JSON.stringify(newGuildBoss)),
+                        bossName: bossName,
+                        firstKill: log.killtime,
+                        killCount: 0,
+                        fastestKill: log.fight_time
+                    }
+                );
+
+                oldGuildBoss = getNestedObjectValue(
+                    guildData[guildId],
+                    guildBossCategorization
+                );
+            }
+
+            /* update guild boss */
+            guildData[guildId] = addNestedObjectValue(
+                guildData[guildId],
+                guildBossCategorization,
+                {
+                    ...oldGuildBoss,
+                    killCount: oldGuildBoss.killCount + 1,
+                    fastestKills: [
+                        ...oldGuildBoss.fastestKills,
+                        {
+                            log_id: log.log_id,
+                            fight_time: log.fight_time,
+                            killtime: log.killtime,
+                            realm: realm
+                        }
+                    ]
+                }
+            );
+        }
+
+        /* process data of characters and save it to boss and guild data */
+        for (let character of log.members) {
+            const characterId = createCharacterId(
+                log.realm,
+                character.name,
+                character.spec
+            );
+            for (let variant of ["dps", "hps"]) {
+                if (
+                    specs[character.spec][
+                        `is${capitalize(
+                            variant === "dps" ? variant : "healer"
+                        )}`
+                    ]
+                ) {
+                    let characterData = {
+                        name: character.name,
+                        spec: character.spec,
+                        class: specToClass[character.spec],
+                        realm: realm,
+                        ilvl: character.ilvl,
+                        date: log.killtime,
+                        logId: log.log_id,
+                        faction: raceToFaction[character.race]
+                    };
+
+                    if (variant === "dps") {
+                        characterData[variant] =
+                            character.dmg_done / (log.fight_time / 1000);
+                    } else {
+                        characterData[variant] =
+                            (character.heal_done + character.absorb_done) /
+                            (log.fight_time / 1000);
+                    }
+
+                    if (
+                        !bossData[raidName][bossId][variant][characterId] ||
+                        characterData[variant] >
+                            bossData[raidName][bossId][variant][characterId][
+                                variant
+                            ]
+                    ) {
+                        bossData[raidName][bossId][variant][
+                            characterId
+                        ] = characterData;
+                    }
+
+                    const characterCategorization = [
+                        characterData.realm,
+                        characterData.faction,
+                        characterData.class,
+                        characterData.spec
+                    ];
+
+                    if (
+                        characterData[variant] >
+                        getNestedObjectValue(
+                            bossData[raidName][bossId][
+                                `best${capitalize(variant)}`
+                            ],
+                            [...characterCategorization, variant]
+                        )
+                    ) {
+                        bossData[raidName][bossId][
+                            `best${capitalize(variant)}`
+                        ] = addNestedObjectValue(
+                            bossData[raidName][bossId][
+                                `best${capitalize(variant)}`
+                            ],
+                            characterCategorization,
+                            characterData
+                        );
+                    }
+
+                    if (guildName) {
+                        let oldCharacter = getNestedObjectValue(
+                            guildData[guildId],
+                            [...guildBossCategorization, variant, characterId]
+                        );
+
+                        if (
+                            !oldCharacter ||
+                            characterData[variant] > oldCharacter[variant]
+                        ) {
+                            guildData[guildId] = addNestedObjectValue(
+                                guildData[guildId],
+                                [
+                                    ...guildBossCategorization,
+                                    variant,
+                                    characterId
+                                ],
+                                characterData
+                            );
+                        }
+                    }
+                }
+            }
         }
     }
 
-    for (let realm in raidBoss.fastestKills) {
-        for (let faction in raidBoss.fastestKills[realm]) {
-            let objectKeys = [realm, faction];
-            raidBoss.fastestKills = addNestedObjectValue(
-                raidBoss.fastestKills,
-                objectKeys,
-                getNestedObjectValue(raidBoss.fastestKills, objectKeys)
-                    .sort((a, b) => a.fight_time - b.fight_time)
-                    .slice(0, 50)
-            );
+    /* bosses: cut latestKills to 50, cut fastestKills of each category to 50 */
+    for (let raidName in bossData) {
+        for (let bossId in bossData[raidName]) {
+            bossData[raidName][bossId].latestKills = bossData[raidName][
+                bossId
+            ].latestKills.slice(0, 50);
+
+            for (let realm in bossData[raidName][bossId].fastestKills) {
+                for (let faction in bossData[raidName][bossId].fastestKills[
+                    realm
+                ]) {
+                    let categorization = [realm, faction];
+                    bossData[raidName][
+                        bossId
+                    ].fastestKills = addNestedObjectValue(
+                        bossData[raidName][bossId].fastestKills,
+                        categorization,
+                        getNestedObjectValue(
+                            bossData[raidName][bossId].fastestKills,
+                            categorization
+                        )
+                            .sort((a, b) => a.fight_time - b.fight_time)
+                            .slice(0, 50)
+                    );
+                }
+            }
         }
     }
 
-    raidBoss.latestKills = raidBoss.latestKills
-        .concat(
-            logs
-                .sort((a, b) => b.killtime - a.killtime)
-                .map(log => ({
-                    log_id: log.log_id,
-                    guilddata: {
-                        name: log.guilddata.name,
-                        faction: log.guilddata.faction
-                    },
-                    fight_time: log.fight_time,
-                    realm: log.realm,
-                    killtime: log.killtime
-                }))
-        )
-        .slice(0, 50);
+    /* guilds: cut latestKills to 50, cut fastestKills to 10 */
+    for (let guildId in guildData) {
+        guildData[guildId].progression.latestKills = guildData[
+            guildId
+        ].progression.latestKills.slice(0, 50);
+
+        for (let raidName in guildData[guildId].progression) {
+            if (validRaidName(raidName)) {
+                for (let difficulty in guildData[guildId].progression[
+                    raidName
+                ]) {
+                    for (let bossName in guildData[guildId].progression[
+                        raidName
+                    ][difficulty]) {
+                        guildData[guildId].progression[raidName][difficulty][
+                            bossName
+                        ].fastestKills = guildData[guildId].progression[
+                            raidName
+                        ][difficulty][bossName].fastestKills
+                            .sort((a, b) => a.fight_time - b.fight_time)
+                            .slice(0, 10);
+                    }
+                }
+            }
+        }
+    }
 
     return {
-        raidBoss,
-        guildBossKills: guilds
+        bossData,
+        guildData
     };
 }
 
-async function createGuildData(realm, guildName) {
+function determineLogFaction(log) {
+    /**
+     * The reasons for this function:
+     *  - There is no reference to the faction the kill took place in
+     *  - The only way to determine faction is to look at guild or character data
+     *  - The guild/character data is unreliable to determine faction
+     *      because it is picked from a relational table at the time of the request based on a guild/char id,
+     *      this means that the guild/char data may change over time
+     *      (eg: guild/char gone through a faction change)
+     *
+     * To determine faction with higher probability,
+     *  this function counts the faction each char belongs to and picks the highest
+     *
+     */
+
+    let alliance = 0;
+    let horde = 0;
+    for (let member of log.members) {
+        if (raceToFaction[member.race] === 0) {
+            alliance++;
+        } else {
+            horde++;
+        }
+    }
+
+    return horde > alliance ? 1 : 0;
+}
+
+async function requestGuildData(guildName, realm) {
     let guild;
 
     do {
@@ -469,26 +473,6 @@ async function createGuildData(realm, guildName) {
     if (!guild.success) throw new Error(guild.errorstring);
 
     guild = guild.response;
-
-    let kills;
-
-    do {
-        try {
-            kills = await tauriApi.getRaidGuild(realm, guildName);
-        } catch (err) {
-            kills = err.message;
-        }
-    } while (!kills.success && kills === "request timed out");
-    if (!kills.success) throw new Error(kills.errorstring);
-
-    kills = kills.response.logs.slice(0, 50).map(log => ({
-        log_id: log.log_id,
-        mapentry: log.mapentry,
-        encounter_data: log.encounter_data,
-        difficulty: log.difficulty,
-        fight_time: log.fight_time,
-        killtime: log.killtime
-    }));
 
     let guildList = [];
 
@@ -505,96 +489,87 @@ async function createGuildData(realm, guildName) {
 
     let newGuild = {
         ...guild,
-        guildList: guildList,
-        progression: {
-            latestKills: kills,
-            currentBossesDefeated: 0,
-            completed: false
-        },
-        exists: true
+        guildList: guildList
     };
-
-    for (let raid of raids) {
-        newGuild.progression[raid.raidName] = {};
-        for (let difficulty in raid.difficulties) {
-            newGuild.progression[raid.raidName][difficulty] = {};
-        }
-    }
 
     return newGuild;
 }
 
-function mergeBossKillsOfGuildIntoGuildData(guildData, bossKill, difficulty) {
-    delete bossKill.bestDps;
-    delete bossKill.bestHps;
-    delete bossKill.latestKills;
+function updateGuildData(oldGuild, newGuild) {
+    let updatedGuild = JSON.parse(JSON.stringify(oldGuild));
 
-    let bossOfGuild =
-        guildData.progression[bossKill.raidName][difficulty][bossKill.bossName];
+    for (let raidName in newGuild.progression) {
+        if (validRaidName(raidName)) {
+            for (let difficulty in newGuild.progression[raidName]) {
+                for (let bossName in newGuild.progression[raidName][
+                    difficulty
+                ]) {
+                    const bossCategorization = [raidName, difficulty, bossName];
+                    let oldBoss = getNestedObjectValue(
+                        oldGuild.progression,
+                        bossCategorization
+                    );
+                    let newBoss = getNestedObjectValue(
+                        newGuild.progression,
+                        bossCategorization
+                    );
+                    let updatedBoss;
+                    if (oldBoss) {
+                        updatedBoss = {
+                            ...oldBoss,
+                            killCount: oldBoss.killCount + newBoss.killCount,
+                            fastestKill:
+                                oldBoss.fastestKill > newBoss.fastestKill
+                                    ? oldBoss.fastestKill
+                                    : newBoss.fastestKill,
+                            fastestKills: [
+                                ...oldBoss.fastestKills,
+                                ...newBoss.fastestKills
+                            ]
+                                .sort((a, b) => a.fight_time - b.fight_time)
+                                .slice(0, 10),
+                            firstKill:
+                                oldBoss.firstKill < newBoss.firstKill
+                                    ? oldBoss.firstKill
+                                    : newBoss.firstKill
+                        };
 
-    let newGuildData = JSON.parse(JSON.stringify(guildData));
+                        for (let variant of ["dps", "hps"]) {
+                            for (let characterId in newBoss[variant]) {
+                                let oldCharacter =
+                                    oldBoss[variant][characterId];
+                                let newCharacter =
+                                    newBoss[variant][characterId];
+                                if (
+                                    !oldCharacter ||
+                                    oldCharacter[variant] <
+                                        newCharacter[variant]
+                                ) {
+                                    updatedBoss[variant][
+                                        characterId
+                                    ] = newCharacter;
+                                }
+                            }
+                        }
+                    } else {
+                        updatedBoss = newBoss;
+                    }
 
-    if (!bossOfGuild) {
-        newGuildData.progression[bossKill.raidName][difficulty][
-            bossKill.bossName
-        ] = bossKill;
-    } else {
-        newGuildData.progression[bossKill.raidName][difficulty][
-            bossKill.bossName
-        ].fastestKills = guildData.progression[bossKill.raidName][difficulty][
-            bossKill.bossName
-        ].fastestKills
-            .concat(bossKill.fastestKills)
-            .sort((a, b) => a.fight_time - b.fight_time)
-            .slice(0, 10);
-
-        let oldDpses =
-            guildData.progression[bossKill.raidName][difficulty][
-                bossKill.bossName
-            ].dps;
-        let oldHpses =
-            guildData.progression[bossKill.raidName][difficulty][
-                bossKill.bossName
-            ].hps;
-
-        for (let key in bossKill.dps) {
-            let member = bossKill.dps[key];
-
-            if (!oldDpses[key] || oldDpses[key].dps < member.dps) {
-                newGuildData.progression[bossKill.raidName][difficulty][
-                    bossKill.bossName
-                ].dps[key] = member;
+                    updatedGuild.progression = addNestedObjectValue(
+                        updatedGuild.progression,
+                        bossCategorization,
+                        updatedBoss
+                    );
+                }
             }
         }
-
-        for (let key in bossKill.hps) {
-            let member = bossKill.hps[key];
-            if (!oldHpses[key] || oldHpses[key].hps < member.hps) {
-                newGuildData.progression[bossKill.raidName][difficulty][
-                    bossKill.bossName
-                ].hps[key] = member;
-            }
-        }
-
-        newGuildData.progression[bossKill.raidName][difficulty][
-            bossKill.bossName
-        ] = {
-            ...newGuildData.progression[bossKill.raidName][difficulty][
-                bossKill.bossName
-            ],
-            killCount: bossOfGuild.killCount + bossKill.killCount,
-            firstKill:
-                bossOfGuild.firstKill < bossKill.firstKill
-                    ? bossOfGuild.firstKill
-                    : bossKill.firstKill,
-            fastestKill:
-                bossOfGuild.fastestKill < bossKill.fastestKill
-                    ? bossOfGuild.fastestKill
-                    : bossKill.fastestKill
-        };
     }
 
-    return newGuildData;
+    updatedGuild.progression.latestKills = [
+        ...newGuild.progression.latestKills,
+        ...oldGuild.progression.latestKills
+    ].slice(0, 50);
+    return updatedGuild;
 }
 
 function calcGuildContentCompletion(guild) {
@@ -602,24 +577,30 @@ function calcGuildContentCompletion(guild) {
     let currentBossesDefeated = 0;
     let completed = false;
 
-    for (let difficulty in guild.progression[raidName]) {
+    for (let difficulty in guild.progression[currentRaidName]) {
         difficulty = Number(difficulty);
         if (!bossesDefeated[difficulty]) bossesDefeated[difficulty] = 0;
 
-        for (let boss in guild.progression[raidName][difficulty]) {
+        for (let boss in guild.progression[currentRaidName][difficulty]) {
             bossesDefeated[difficulty]++;
         }
 
         if (bossesDefeated[difficulty] > currentBossesDefeated)
             currentBossesDefeated = bossesDefeated[difficulty];
 
-        if (bossesDefeated[difficulty] === totalBosses) {
+        if (bossesDefeated[difficulty] === currentTotalBosses) {
             completed = !completed
-                ? guild.progression[raidName][difficulty][lastBoss].firstKill
+                ? guild.progression[currentRaidName][difficulty][
+                      currentLastBoss
+                  ].firstKill
                 : completed <
-                  guild.progression[raidName][difficulty][lastBoss].firstKill
+                  guild.progression[currentRaidName][difficulty][
+                      currentLastBoss
+                  ].firstKill
                 ? completed
-                : guild.progression[raidName][difficulty][lastBoss].firstKill;
+                : guild.progression[currentRaidName][difficulty][
+                      currentLastBoss
+                  ].firstKill;
         }
     }
 
@@ -648,31 +629,6 @@ function updateRaidBoss(oldRaidBoss, newRaidBoss) {
         killCount: oldRaidBoss.killCount + newRaidBoss.killCount
     };
 
-    for (let realm in newRaidBoss.firstKills) {
-        for (let faction in newRaidBoss.firstKills[realm]) {
-            let objectKeys = [realm, faction];
-
-            let oldLogs =
-                getNestedObjectValue(oldRaidBoss.firstKills, objectKeys) || [];
-
-            let newLogs = getNestedObjectValue(
-                newRaidBoss.firstKills,
-                objectKeys
-            );
-
-            let updatedLogs = oldLogs
-                .concat(newLogs)
-                .sort((a, b) => a.killtime - b.killtime)
-                .slice(0, 3);
-
-            updatedRaidBoss.firstKills = addNestedObjectValue(
-                updatedRaidBoss.firstKills,
-                objectKeys,
-                updatedLogs
-            );
-        }
-    }
-
     for (let realm in newRaidBoss.fastestKills) {
         for (let faction in newRaidBoss.fastestKills[realm]) {
             let objectKeys = [realm, faction];
@@ -698,67 +654,39 @@ function updateRaidBoss(oldRaidBoss, newRaidBoss) {
         }
     }
 
-    for (let key in newRaidBoss.dps) {
-        let member = newRaidBoss.dps[key];
+    for (let variant of ["dps", "hps"]) {
+        for (let key in newRaidBoss[variant]) {
+            let member = newRaidBoss[variant][key];
 
-        const memberCategorization = [
-            member.realm,
-            member.faction,
-            member.class,
-            member.spec
-        ];
+            const memberCategorization = [
+                member.realm,
+                member.faction,
+                member.class,
+                member.spec
+            ];
 
-        if (
-            member.dps >
-            getNestedObjectValue(updatedRaidBoss.bestDps, [
-                ...memberCategorization,
-                "dps"
-            ])
-        ) {
-            updatedRaidBoss.bestDps = addNestedObjectValue(
-                updatedRaidBoss.bestDps,
-                memberCategorization,
-                member
-            );
-        }
+            if (
+                member[variant] >
+                getNestedObjectValue(
+                    updatedRaidBoss[`best${capitalize(variant)}`],
+                    [...memberCategorization, variant]
+                )
+            ) {
+                updatedRaidBoss[
+                    `best${capitalize(variant)}`
+                ] = addNestedObjectValue(
+                    updatedRaidBoss[`best${capitalize(variant)}`],
+                    memberCategorization,
+                    member
+                );
+            }
 
-        if (
-            !updatedRaidBoss.dps[key] ||
-            updatedRaidBoss.dps[key].dps < member.dps
-        ) {
-            updatedRaidBoss.dps[key] = member;
-        }
-    }
-
-    for (let key in newRaidBoss.hps) {
-        let member = newRaidBoss.hps[key];
-
-        const memberCategorization = [
-            member.realm,
-            member.faction,
-            member.class,
-            member.spec
-        ];
-
-        if (
-            member.hps >
-            getNestedObjectValue(updatedRaidBoss.bestHps, [
-                ...memberCategorization,
-                "hps"
-            ])
-        ) {
-            updatedRaidBoss.bestHps = addNestedObjectValue(
-                updatedRaidBoss.bestHps,
-                memberCategorization,
-                member
-            );
-        }
-
-        if (
-            !updatedRaidBoss.hps[key] ||
-            updatedRaidBoss.hps[key].hps < member.hps
-        ) {
-            updatedRaidBoss.hps[key] = member;
+            if (
+                !updatedRaidBoss[variant][key] ||
+                updatedRaidBoss[variant][key][variant] < member[variant]
+            ) {
+                updatedRaidBoss[variant][key] = member;
+            }
         }
     }
 
@@ -816,7 +744,7 @@ function invalidDurumu(bossId, killtime) {
     return false;
 }
 
-function createMemberId(realm, name, spec) {
+function createCharacterId(realm, name, spec) {
     return `${shortRealms[realm]} ${name} ${spec}`;
 }
 
@@ -923,15 +851,15 @@ function validDifficulty(raidName, difficulty) {
 }
 
 module.exports = {
-    getCategorizedLogs,
-    processRaidBossLogs,
-    createGuildData,
-    mergeBossKillsOfGuildIntoGuildData,
+    getLogs,
+    processLogs,
+    requestGuildData,
+    updateGuildData,
     updateRaidBoss,
     minutesAgo,
     applyPlayerPerformanceRanks,
     calcGuildContentCompletion,
-    createMemberId,
+    createCharacterId,
     escapeRegex,
     getBossId,
     secsAgo,
@@ -941,5 +869,6 @@ module.exports = {
     calcTopPercentOfPerformance,
     capitalize,
     validRaidName,
-    validDifficulty
+    validDifficulty,
+    invalidDurumu
 };

@@ -11,21 +11,22 @@ const dbAddress = process.env.MONGODB_ADDRESS;
 const mongoUrl = `mongodb://${dbUser}:${dbPassword}@${dbAddress}`;
 const MongoClient = require("mongodb").MongoClient;
 const {
-    getCategorizedLogs,
-    processRaidBossLogs,
-    mergeBossKillsOfGuildIntoGuildData,
-    createGuildData,
+    getLogs,
+    processLogs,
+    updateGuildData,
+    requestGuildData,
     updateRaidBoss,
     applyPlayerPerformanceRanks,
     minutesAgo,
     calcGuildContentCompletion,
-    createMemberId,
+    createCharacterId,
     escapeRegex,
     addNestedObjectValue,
     getNestedObjectValue,
     getBestPerformance,
     calcTopPercentOfPerformance,
-    capitalize
+    capitalize,
+    invalidDurumu
 } = require("./helpers");
 
 class Database {
@@ -71,137 +72,23 @@ class Database {
     async initalizeDatabase() {
         return new Promise(async (resolve, reject) => {
             try {
-                this.isUpdating = true;
-                console.log("Initalizing database");
-                const updateStarted = new Date().getTime() / 1000;
-
+                console.log("db: Initalizing database");
                 console.log("db: Creating maintence collection");
                 let maintence = await this.db.collection("maintence");
                 if (await maintence.findOne()) await maintence.deleteMany({});
+                maintence.insertOne({});
 
                 console.log("db: Creating stats collection");
                 let stats = await this.db.collection("stats");
                 if (await stats.findOne()) await stats.deleteMany({});
                 stats.insertOne({});
 
-                console.log("db: Requesting all logs");
-
-                let {
-                    logs: categorizedLogs,
-                    lastLogIds: newLastLogIds
-                } = await db.getCategorizedLogs();
-                let raidCollection;
-                let guilds = {};
-                try {
-                    console.log("db: Creating raids");
-                    for (let raid of raids) {
-                        let raidName = raid.raidName;
-                        let raidData = require(`tauriprogress-constants/${raidName}`);
-                        console.log(`db: Creating ${raidName} collection`);
-                        raidCollection = await this.db.collection(raidName);
-                        if (await raidCollection.findOne())
-                            await raidCollection.deleteMany({});
-
-                        for (let bossData of raidData.encounters) {
-                            let bossName = bossData.encounter_name;
-                            for (let difficulty of raidData.difficulties) {
-                                console.log(
-                                    `db: Processing ${bossName} difficulty: ${difficulty}`
-                                );
-                                let currentBossLogs = getNestedObjectValue(
-                                    categorizedLogs,
-                                    [raidName, bossName, difficulty]
-                                );
-
-                                if (currentBossLogs) {
-                                    currentBossLogs = currentBossLogs.filter(
-                                        log => {
-                                            if (
-                                                log.log_id === 149325 &&
-                                                log.realm === "[EN] Evermoon"
-                                            ) {
-                                                return false;
-                                            }
-                                            return true;
-                                        }
-                                    );
-                                }
-
-                                let processedLogs = processRaidBossLogs(
-                                    currentBossLogs || [],
-                                    bossName,
-                                    difficulty
-                                );
-
-                                await this.saveRaidBoss({
-                                    raidName: raidName,
-                                    raidBoss: processedLogs.raidBoss
-                                });
-
-                                for (let key in processedLogs.guildBossKills) {
-                                    if (!guilds[key]) {
-                                        try {
-                                            let guild = await createGuildData(
-                                                processedLogs.guildBossKills[
-                                                    key
-                                                ].realm,
-                                                processedLogs.guildBossKills[
-                                                    key
-                                                ].guildName
-                                            );
-
-                                            guilds[
-                                                key
-                                            ] = mergeBossKillsOfGuildIntoGuildData(
-                                                guild,
-                                                processedLogs.guildBossKills[
-                                                    key
-                                                ],
-                                                difficulty
-                                            );
-                                        } catch (err) {
-                                            console.error(
-                                                `Error while processing guilds from logs. This error may be ignored (eg: guild not found)`
-                                            );
-                                            console.log(
-                                                `Current guild: ${
-                                                    processedLogs
-                                                        .guildBossKills[key]
-                                                        .guildName
-                                                }, realm: ${
-                                                    processedLogs
-                                                        .guildBossKills[key]
-                                                        .realm
-                                                }`
-                                            );
-                                            console.error(err.message);
-                                        }
-                                    } else {
-                                        guilds[
-                                            key
-                                        ] = mergeBossKillsOfGuildIntoGuildData(
-                                            guilds[key],
-                                            processedLogs.guildBossKills[key],
-                                            difficulty
-                                        );
-                                    }
-                                }
-                            }
-                        }
-                    }
-                } catch (err) {
-                    console.log(
-                        "Error occured in initalization, the data from api requiests have been saved as logData.json in the directory of this file."
-                    );
-                    console.error(err);
-                    fs.writeFileSync(
-                        "logData.json",
-                        JSON.stringify({
-                            logs: categorizedLogs,
-                            lastLogIds: newLastLogIds
-                        })
-                    );
-                    process.exit(1);
+                for (let raid of raids) {
+                    let raidName = raid.raidName;
+                    console.log(`db: Creating ${raidName} collection`);
+                    let raidCollection = await this.db.collection(raidName);
+                    if (await raidCollection.findOne())
+                        await raidCollection.deleteMany({});
                 }
 
                 console.log("db: Creating guilds collection");
@@ -209,17 +96,7 @@ class Database {
                 if (await guildsCollection.findOne())
                     await guildsCollection.deleteMany({});
 
-                for (let key in guilds) {
-                    await this.saveGuild(guilds[key]);
-                }
-
-                maintence.insertOne({
-                    lastUpdated: updateStarted,
-                    lastLogIds: newLastLogIds,
-                    initalized: true
-                });
-                this.lastUpdated = updateStarted;
-                this.isUpdating = false;
+                await this.update(true);
                 console.log("db: initalization done.");
                 resolve("Done");
             } catch (err) {
@@ -234,106 +111,84 @@ class Database {
             try {
                 let maintence = await this.db.collection("maintence").findOne();
                 if (!maintence) resolve(false);
-                resolve(maintence.initalized);
+                resolve(maintence.isInitalized);
             } catch (err) {
                 reject(err);
             }
         });
     }
 
-    async updateDatabase() {
+    async update(isInitalization) {
         return new Promise(async (resolve, reject) => {
             try {
-                console.log("Updating database");
+                console.log("db: Updating database");
                 if (this.isUpdating)
                     throw new Error("Database is already updating");
                 this.isUpdating = true;
                 this.updateStatus = "Database is already updating";
 
-                let updateStarted = new Date().getTime() / 1000;
-                let maintence = await this.db.collection("maintence");
+                const updateStarted = new Date().getTime() / 1000;
+                const maintence = await this.db.collection("maintence");
 
-                let lastLogIds = (await maintence.findOne()).lastLogIds;
+                const lastLogIds = isInitalization
+                    ? {}
+                    : (await maintence.findOne()).lastLogIds;
 
                 if (!lastLogIds)
                     throw new Error(
                         `Database update error, last log ids: ${lastLogIds}`
                     );
 
-                console.log("Requesting logs");
-                let {
-                    logs: categorizedLogs,
-                    lastLogIds: newLastLogIds
-                } = await getCategorizedLogs(lastLogIds);
-
-                for (let raidName in categorizedLogs) {
-                    for (let bossName in categorizedLogs[raidName]) {
-                        for (let difficulty in categorizedLogs[raidName][
-                            bossName
-                        ]) {
-                            difficulty = Number(difficulty);
-                            console.log(
-                                `db: Processing ${bossName} difficulty: ${difficulty} difficulty`
-                            );
-
-                            let processedLogs = processRaidBossLogs(
-                                categorizedLogs[raidName][bossName][difficulty],
-                                bossName,
-                                difficulty
-                            );
-
-                            await this.saveRaidBoss({
-                                raidName: raidName,
-                                raidBoss: processedLogs.raidBoss
-                            });
-
-                            for (let key in processedLogs.guildBossKills) {
-                                let guild;
-                                try {
-                                    guild = await this.getGuild(
-                                        processedLogs.guildBossKills[key].realm,
-                                        processedLogs.guildBossKills[key]
-                                            .guildName
-                                    ).catch(async err => {
-                                        if (err.message === "guild not found") {
-                                            return await createGuildData(
-                                                processedLogs.guildBossKills[
-                                                    key
-                                                ].realm,
-                                                processedLogs.guildBossKills[
-                                                    key
-                                                ].guildName
-                                            );
-                                        }
-
-                                        return false;
-                                    });
-                                } catch (err) {
-                                    if (err.message !== "guild not found") {
-                                        console.error(
-                                            `${err.message} \n guildName: ${
-                                                processedLogs.guildBossKills[
-                                                    key
-                                                ].guildName
-                                            } realm: ${
-                                                processedLogs.guildBossKills[
-                                                    key
-                                                ].realm
-                                            }`
-                                        );
-                                    }
-                                }
-                                if (guild)
-                                    await this.saveGuild(
-                                        mergeBossKillsOfGuildIntoGuildData(
-                                            guild,
-                                            processedLogs.guildBossKills[key],
-                                            difficulty
-                                        )
-                                    );
-                            }
+                console.log("db: Requesting logs");
+                let { logs, lastLogIds: newLastLogIds } = await getLogs(
+                    lastLogIds
+                );
+                if (isInitalization) {
+                    logs = logs.filter(log => {
+                        if (
+                            (log.log_id === 149325 &&
+                                log.realm === "[EN] Evermoon") ||
+                            invalidDurumu(
+                                log.encounter_data.encounter_id,
+                                log.killtime
+                            )
+                        ) {
+                            return false;
                         }
+                        return true;
+                    });
+                    console.log(
+                        "db: Saving logs in case something goes wrong in the initalization process as logData.json in this directory."
+                    );
+                    fs.writeFileSync(
+                        "logData.json",
+                        JSON.stringify({ logs, lastLogIds: newLastLogIds })
+                    );
+                }
+                console.log("db: Processing logs");
+                let { bossData, guildData } = processLogs(logs);
+
+                console.log("db: Saving raid bosses");
+                for (let raidName in bossData) {
+                    for (let bossId in bossData[raidName]) {
+                        const { bossName, difficulty } = bossData[raidName][
+                            bossId
+                        ];
+                        console.log(
+                            `db: Saving ${bossName} difficulty: ${difficulty}`
+                        );
+
+                        await this.saveRaidBoss({
+                            raidName,
+                            raidBoss: bossData[raidName][bossId]
+                        });
                     }
+                }
+
+                console.log("db: Saving guilds");
+                for (let guildId in guildData) {
+                    console.log(`db: Saving: ${guildId}`);
+                    await this.saveGuild(guildData[guildId]);
                 }
 
                 await maintence.updateOne(
@@ -341,22 +196,23 @@ class Database {
                     {
                         $set: {
                             lastUpdated: updateStarted,
-                            lastLogIds: newLastLogIds
+                            lastLogIds: newLastLogIds,
+                            isInitalized: true
                         }
                     }
                 );
 
-                if (minutesAgo(this.lastUpdated) > 180)
+                if (!isInitalization && minutesAgo(this.lastUpdated) > 720)
                     await this.updateGuilds();
 
                 this.isUpdating = false;
                 this.updateStatus = "";
                 this.lastUpdated = updateStarted;
 
-                console.log("Database update finished");
+                console.log("db: Database update finished");
                 resolve(minutesAgo(updateStarted));
             } catch (err) {
-                console.log(`Database update error: ${err.message}`);
+                console.error(`Database update error: ${err.message}`);
                 if (err.message !== "Database is already updating") {
                     this.isUpdating = false;
                     this.updateStatus = "";
@@ -383,35 +239,20 @@ class Database {
                     try {
                         current++;
                         console.log(
-                            `Updating ${guild.guildName} ${current}/${total}`
+                            `db: Updating ${guild.guildName} ${current}/${total}`
                         );
-                        let newGuild = await createGuildData(
-                            guild.realm,
-                            guild.guildName
+                        let newGuild = await requestGuildData(
+                            guild.guildName,
+                            guild.realm
                         );
 
                         if (newGuild) {
-                            for (let raid of raids) {
-                                if (!guild.progression[raid.raidName]) {
-                                    guild.progression[raid.raidName] = {};
-                                    for (let difficulty in raid.difficulties) {
-                                        guild.progression[raid.raidName][
-                                            difficulty
-                                        ] = {};
-                                    }
-                                }
-                            }
-
-                            newGuild = {
-                                ...newGuild,
-                                progression: {
-                                    ...guild.progression,
-                                    latestKills:
-                                        newGuild.progression.latestKills
-                                }
-                            };
-
-                            await this.saveGuild(newGuild);
+                            await this.saveGuild(
+                                calcGuildContentCompletion({
+                                    ...guild,
+                                    ...newGuild
+                                })
+                            );
                         }
                     } catch (err) {
                         if (err.message === "guild not found") {
@@ -479,31 +320,53 @@ class Database {
         });
     }
 
-    async saveGuild(guild) {
+    async saveGuild(newGuild) {
         return new Promise(async (resolve, reject) => {
             try {
-                guild = calcGuildContentCompletion(guild);
-
                 let oldGuild = await this.db.collection("guilds").findOne({
                     guildName: new RegExp(
-                        "^" + escapeRegex(guild.guildName) + "$",
+                        "^" + escapeRegex(newGuild.guildName) + "$",
                         "i"
                     ),
-                    realm: guild.realm
+                    realm: newGuild.realm
                 });
 
                 if (!oldGuild) {
-                    await this.db.collection("guilds").insertOne(guild);
+                    try {
+                        let guildData = await requestGuildData(
+                            newGuild.guildName,
+                            newGuild.realm
+                        );
+                        await this.db.collection("guilds").insertOne(
+                            calcGuildContentCompletion({
+                                ...guildData,
+                                ...newGuild
+                            })
+                        );
+                    } catch (err) {
+                        console.err(
+                            `Error while tring to save guild ${newGuild.guildName} ${newGuild.realm},
+                            this error may safely be ignored.
+                            \n ${err.message}`
+                        );
+                    }
                 } else {
                     await this.db.collection("guilds").updateOne(
                         {
                             guildName: new RegExp(
-                                "^" + escapeRegex(guild.guildName) + "$",
+                                "^" + escapeRegex(newGuild.guildName) + "$",
                                 "i"
                             ),
-                            realm: guild.realm
+                            realm: newGuild.realm
                         },
-                        { $set: { ...guild, _id: oldGuild["_id"] } }
+                        {
+                            $set: {
+                                ...calcGuildContentCompletion(
+                                    updateGuildData(oldGuild, newGuild)
+                                ),
+                                _id: oldGuild["_id"]
+                            }
+                        }
                     );
                 }
                 resolve("Done");
@@ -634,20 +497,6 @@ class Database {
                     .toArray();
 
                 for (let boss of bosses) {
-                    for (let realm in boss.firstKills) {
-                        for (let faction in boss.firstKills[realm]) {
-                            let objectKeys = [realm, faction];
-                            boss.firstKills = addNestedObjectValue(
-                                boss.firstKills,
-                                objectKeys,
-                                getNestedObjectValue(
-                                    boss.firstKills,
-                                    objectKeys
-                                ).slice(0, 1)
-                            );
-                        }
-                    }
-
                     for (let realm in boss.fastestKills) {
                         for (let faction in boss.fastestKills[realm]) {
                             let objectKeys = [realm, faction];
@@ -744,14 +593,18 @@ class Database {
                 };
 
                 for (let specId of playerSpecs) {
-                    const playerId = createMemberId(realm, playerName, specId);
+                    const characterId = createCharacterId(
+                        realm,
+                        playerName,
+                        specId
+                    );
 
                     if (specs[specId].isDps) {
-                        projection[`dps.${playerId}`] = 1;
+                        projection[`dps.${characterId}`] = 1;
                     }
 
                     if (specs[specId].isHealer) {
-                        projection[`hps.${playerId}`] = 1;
+                        projection[`hps.${characterId}`] = 1;
                     }
                 }
 
@@ -769,7 +622,7 @@ class Database {
                     };
 
                     for (let specId of playerSpecs) {
-                        let playerId = createMemberId(
+                        let characterId = createCharacterId(
                             realm,
                             playerName,
                             specId
@@ -777,7 +630,7 @@ class Database {
 
                         for (let variant of ["dps", "hps"]) {
                             let playerData = boss[variant]
-                                ? boss[variant][playerId]
+                                ? boss[variant][characterId]
                                 : null;
 
                             if (playerData) {
