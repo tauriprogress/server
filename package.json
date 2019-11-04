@@ -12,6 +12,10 @@
     "tauriprogress-constants": "git+https://github.com/tauriprogress/constants.git"
   },
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "test": "jest"
+  },
+  "devDependencies": {
+    "jest": "^24.9.0"
   }
 }
