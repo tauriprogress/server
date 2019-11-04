@@ -1,0 +1,1777 @@
+{
+    "dataUrlPrefix": "mop-",
+    "isCata": false,
+    "expansion": 4,
+    "guildName": "Bad Choice",
+    "titleName": "Bad Choice",
+    "realm": "[HU] Tauri WoW Server",
+    "guildEmblemStyle": "emblemstyle=126&emblemcolor=16&embborderstyle=5&embbordercolor=15&bgcolor=45&faction=0",
+    "gFaction": 0,
+    "guildEmblemObject": "{\"ring\":\"alliance\",\"bg\":[0,45],\"border\":[5,15],\"emblem\":[126,16]}",
+    "GrantAccess": true,
+    "faction": 0,
+    "guildList": [
+        {
+            "name": "Grey",
+            "class": 9,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Tag",
+            "level": 90,
+            "rank": 5
+        },
+        {
+            "name": "Hupap",
+            "class": 5,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Tag",
+            "level": 90,
+            "rank": 5
+        },
+        {
+            "name": "Morgomasina",
+            "class": 11,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Family",
+            "level": 90,
+            "rank": 9
+        },
+        {
+            "name": "Azgroth",
+            "class": 9,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Main Alt",
+            "level": 90,
+            "rank": 7
+        },
+        {
+            "name": "Chainir",
+            "class": 6,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "unknown",
+            "level": 90,
+            "rank": 20
+        },
+        {
+            "name": "Malaszkaa",
+            "class": 3,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Family",
+            "level": 90,
+            "rank": 9
+        },
+        {
+            "name": "Jagermann",
+            "class": 3,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Family",
+            "level": 90,
+            "rank": 9
+        },
+        {
+            "name": "Forestdruid",
+            "class": 11,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Family",
+            "level": 90,
+            "rank": 9
+        },
+        {
+            "name": "Necronlord",
+            "class": 6,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Family",
+            "level": 90,
+            "rank": 9
+        },
+        {
+            "name": "Goll",
+            "class": 2,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Licskingcápa",
+            "class": 6,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Brodda",
+            "class": 11,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Nean",
+            "class": 1,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Family",
+            "level": 90,
+            "rank": 9
+        },
+        {
+            "name": "Manipulation",
+            "class": 9,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Main Alt",
+            "level": 90,
+            "rank": 7
+        },
+        {
+            "name": "Flair",
+            "class": 2,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Tag",
+            "level": 90,
+            "rank": 5
+        },
+        {
+            "name": "Deäthless",
+            "class": 2,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Nyuti",
+            "class": 1,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Ynes",
+            "class": 6,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Tag",
+            "level": 90,
+            "rank": 5
+        },
+        {
+            "name": "Áramcápa",
+            "class": 7,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Tedrex",
+            "class": 2,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "unknown",
+            "level": 90,
+            "rank": 20
+        },
+        {
+            "name": "Piperita",
+            "class": 11,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Zsetavina",
+            "class": 2,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Family",
+            "level": 90,
+            "rank": 9
+        },
+        {
+            "name": "Corvina",
+            "class": 7,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Sepek",
+            "class": 8,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Vadászcápa",
+            "class": 3,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Rachelle",
+            "class": 3,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Family",
+            "level": 90,
+            "rank": 9
+        },
+        {
+            "name": "Newmeta",
+            "class": 6,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Jalinn",
+            "class": 11,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Family",
+            "level": 90,
+            "rank": 9
+        },
+        {
+            "name": "Chloemerchel",
+            "class": 5,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Offi Alt",
+            "level": 90,
+            "rank": 2
+        },
+        {
+            "name": "Alalock",
+            "class": 9,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Manipulator",
+            "class": 6,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Szofii",
+            "class": 2,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Family",
+            "level": 90,
+            "rank": 9
+        },
+        {
+            "name": "Metorex",
+            "class": 3,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Mînneyar",
+            "class": 3,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "unknown",
+            "level": 90,
+            "rank": 20
+        },
+        {
+            "name": "Rebecka",
+            "class": 7,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Offi Alt",
+            "level": 90,
+            "rank": 2
+        },
+        {
+            "name": "Mirial",
+            "class": 2,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Offi Alt",
+            "level": 90,
+            "rank": 2
+        },
+        {
+            "name": "Justicya",
+            "class": 1,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Lanahh",
+            "class": 5,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Offi Alt",
+            "level": 90,
+            "rank": 2
+        },
+        {
+            "name": "Swiftarrows",
+            "class": 3,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Mcstrans",
+            "class": 8,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Family",
+            "level": 90,
+            "rank": 9
+        },
+        {
+            "name": "Eaveerrogtwo",
+            "class": 11,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Screàm",
+            "class": 5,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Family",
+            "level": 90,
+            "rank": 9
+        },
+        {
+            "name": "Phoward",
+            "class": 11,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Füligjimmy",
+            "class": 7,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Dirtyfred",
+            "class": 1,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 80,
+            "rank": 8
+        },
+        {
+            "name": "Hoilin",
+            "class": 7,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Family",
+            "level": 90,
+            "rank": 9
+        },
+        {
+            "name": "Szupercápa",
+            "class": 8,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Veteran",
+            "level": 90,
+            "rank": 4
+        },
+        {
+            "name": "Sydart",
+            "class": 9,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Whitefles",
+            "class": 5,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Officer",
+            "level": 90,
+            "rank": 1
+        },
+        {
+            "name": "Yuukine",
+            "class": 7,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Main Alt",
+            "level": 90,
+            "rank": 7
+        },
+        {
+            "name": "Rali",
+            "class": 6,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Növénycápa",
+            "class": 11,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Butcha",
+            "class": 7,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Megacápa",
+            "class": 2,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Main Alt",
+            "level": 90,
+            "rank": 7
+        },
+        {
+            "name": "Finciminci",
+            "class": 8,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Manipuláció",
+            "class": 2,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Csepp",
+            "class": 5,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Family",
+            "level": 90,
+            "rank": 9
+        },
+        {
+            "name": "Zsetáv",
+            "class": 8,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Vielian",
+            "class": 2,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Offi Alt",
+            "level": 90,
+            "rank": 2
+        },
+        {
+            "name": "Bluewo",
+            "class": 1,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Tag",
+            "level": 90,
+            "rank": 5
+        },
+        {
+            "name": "Nyusznyusz",
+            "class": 1,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Tag",
+            "level": 90,
+            "rank": 5
+        },
+        {
+            "name": "Gusto",
+            "class": 5,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Jaylene",
+            "class": 4,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Manipulátor",
+            "class": 7,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Tag",
+            "level": 90,
+            "rank": 5
+        },
+        {
+            "name": "Tányércápa",
+            "class": 1,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Hiyoki",
+            "class": 8,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Sypeni",
+            "class": 1,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Dezeak",
+            "class": 7,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Vinyärd",
+            "class": 6,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Døñtçrýßïtçh",
+            "class": 3,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Family",
+            "level": 90,
+            "rank": 9
+        },
+        {
+            "name": "Nakonxipanna",
+            "class": 9,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Miamanó",
+            "class": 4,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Blackbone",
+            "class": 2,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Main Alt",
+            "level": 90,
+            "rank": 7
+        },
+        {
+            "name": "Gyi",
+            "class": 11,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Trainwreck",
+            "class": 11,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Family",
+            "level": 90,
+            "rank": 9
+        },
+        {
+            "name": "Fangley",
+            "class": 3,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Veteran",
+            "level": 90,
+            "rank": 4
+        },
+        {
+            "name": "Jiujitsu",
+            "class": 10,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Zathana",
+            "class": 10,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Offi Alt",
+            "level": 90,
+            "rank": 2
+        },
+        {
+            "name": "Bernardlowe",
+            "class": 10,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Main Alt",
+            "level": 90,
+            "rank": 7
+        },
+        {
+            "name": "Manipulatio",
+            "class": 10,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Säorise",
+            "class": 10,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "unknown",
+            "level": 90,
+            "rank": 20
+        },
+        {
+            "name": "Chastain",
+            "class": 9,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Nedru",
+            "class": 11,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Lärahh",
+            "class": 11,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Raid Leader",
+            "level": 90,
+            "rank": 3
+        },
+        {
+            "name": "Zsiványfred",
+            "class": 4,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Lyézuscápa",
+            "class": 5,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Alapala",
+            "class": 2,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Tdk",
+            "class": 6,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Tag",
+            "level": 90,
+            "rank": 5
+        },
+        {
+            "name": "Nätashä",
+            "class": 10,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 82,
+            "rank": 8
+        },
+        {
+            "name": "Bovilt",
+            "class": 6,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Macskamacko",
+            "class": 10,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Meinschatten",
+            "class": 5,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Brødda",
+            "class": 3,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Family",
+            "level": 90,
+            "rank": 9
+        },
+        {
+            "name": "Leerooy",
+            "class": 1,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Veteran",
+            "level": 90,
+            "rank": 4
+        },
+        {
+            "name": "Zsiráfcápa",
+            "class": 10,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Fyncsusz",
+            "class": 8,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Tag",
+            "level": 90,
+            "rank": 5
+        },
+        {
+            "name": "Kallon",
+            "class": 6,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Offi Alt",
+            "level": 90,
+            "rank": 2
+        },
+        {
+            "name": "Falsthad",
+            "class": 2,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Tag",
+            "level": 90,
+            "rank": 5
+        },
+        {
+            "name": "Rakmi",
+            "class": 2,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Tag",
+            "level": 90,
+            "rank": 5
+        },
+        {
+            "name": "Exitheck",
+            "class": 8,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Ayäto",
+            "class": 4,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Minämi",
+            "class": 9,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Lumenn",
+            "class": 6,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Gefjun",
+            "class": 5,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "unknown",
+            "level": 90,
+            "rank": 20
+        },
+        {
+            "name": "Misäqt",
+            "class": 3,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Family",
+            "level": 90,
+            "rank": 9
+        },
+        {
+            "name": "Ashoreth",
+            "class": 5,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Family",
+            "level": 90,
+            "rank": 9
+        },
+        {
+            "name": "Leroy",
+            "class": 4,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Cätryn",
+            "class": 2,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Lyriah",
+            "class": 11,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 89,
+            "rank": 8
+        },
+        {
+            "name": "Senkiälfonz",
+            "class": 3,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Atral",
+            "class": 8,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Hlofgar",
+            "class": 6,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Ieavemylife",
+            "class": 2,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Tag",
+            "level": 90,
+            "rank": 5
+        },
+        {
+            "name": "Reddevill",
+            "class": 1,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Ieaveq",
+            "class": 8,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Main Alt",
+            "level": 90,
+            "rank": 7
+        },
+        {
+            "name": "Werkfun",
+            "class": 11,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Offi Alt",
+            "level": 90,
+            "rank": 2
+        },
+        {
+            "name": "Prayofhymn",
+            "class": 5,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Gailia",
+            "class": 2,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Tag",
+            "level": 90,
+            "rank": 5
+        },
+        {
+            "name": "Sátáncápa",
+            "class": 9,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Manimination",
+            "class": 3,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Avangarder",
+            "class": 2,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Totemicburst",
+            "class": 7,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Kuroichi",
+            "class": 10,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Family",
+            "level": 90,
+            "rank": 9
+        },
+        {
+            "name": "Morelszki",
+            "class": 6,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Main Alt",
+            "level": 90,
+            "rank": 7
+        },
+        {
+            "name": "Screâm",
+            "class": 3,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Hobbyte",
+            "class": 8,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Track",
+            "class": 5,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Family",
+            "level": 90,
+            "rank": 9
+        },
+        {
+            "name": "Metxol",
+            "class": 6,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Adrameleçh",
+            "class": 7,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Offi Alt",
+            "level": 90,
+            "rank": 2
+        },
+        {
+            "name": "Ñarvîn",
+            "class": 10,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Family",
+            "level": 90,
+            "rank": 9
+        },
+        {
+            "name": "Superstition",
+            "class": 5,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Manipulésön",
+            "class": 1,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Skinner",
+            "class": 3,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Main Alt",
+            "level": 90,
+            "rank": 7
+        },
+        {
+            "name": "Alchemys",
+            "class": 5,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Metlol",
+            "class": 7,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Exithheck",
+            "class": 5,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Family",
+            "level": 90,
+            "rank": 9
+        },
+        {
+            "name": "Piszokfred",
+            "class": 6,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Veteran",
+            "level": 90,
+            "rank": 4
+        },
+        {
+            "name": "Elendyr",
+            "class": 11,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Tag",
+            "level": 90,
+            "rank": 5
+        },
+        {
+            "name": "Metcol",
+            "class": 1,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Tag",
+            "level": 90,
+            "rank": 5
+        },
+        {
+            "name": "Jiräiya",
+            "class": 8,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Offi Alt",
+            "level": 90,
+            "rank": 2
+        },
+        {
+            "name": "Nilä",
+            "class": 5,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Zyxa",
+            "class": 9,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Main Alt",
+            "level": 90,
+            "rank": 7
+        },
+        {
+            "name": "Skuggä",
+            "class": 4,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Freía",
+            "class": 6,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Macskafogó",
+            "class": 9,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Tisztafred",
+            "class": 2,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Sium",
+            "class": 3,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Lethallady",
+            "class": 9,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Family",
+            "level": 90,
+            "rank": 9
+        },
+        {
+            "name": "Totemicheal",
+            "class": 7,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Veteran",
+            "level": 90,
+            "rank": 4
+        },
+        {
+            "name": "Shìbuki",
+            "class": 7,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "unknown",
+            "level": 90,
+            "rank": 20
+        },
+        {
+            "name": "Totemicsmash",
+            "class": 10,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Main Alt",
+            "level": 90,
+            "rank": 7
+        },
+        {
+            "name": "Amberhit",
+            "class": 2,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "unknown",
+            "level": 90,
+            "rank": 20
+        },
+        {
+            "name": "Änavel",
+            "class": 7,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Fyncs",
+            "class": 7,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Main Alt",
+            "level": 90,
+            "rank": 7
+        },
+        {
+            "name": "Rugalmascápa",
+            "class": 4,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Zixa",
+            "class": 10,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Fangleaf",
+            "class": 11,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Hippiribanc",
+            "class": 11,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Lêêrooy",
+            "class": 3,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Skyinter",
+            "class": 3,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Tag",
+            "level": 90,
+            "rank": 5
+        },
+        {
+            "name": "Aladielor",
+            "class": 6,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Veteran",
+            "level": 90,
+            "rank": 4
+        },
+        {
+            "name": "Heäven",
+            "class": 5,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Main Alt",
+            "level": 90,
+            "rank": 7
+        },
+        {
+            "name": "Fraidlock",
+            "class": 9,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Werkci",
+            "class": 5,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Offi Alt",
+            "level": 90,
+            "rank": 2
+        },
+        {
+            "name": "Werkmonk",
+            "class": 10,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Offi Alt",
+            "level": 90,
+            "rank": 2
+        },
+        {
+            "name": "Bloodshami",
+            "class": 7,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Officer",
+            "level": 90,
+            "rank": 1
+        },
+        {
+            "name": "Lata",
+            "class": 9,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Veteran",
+            "level": 90,
+            "rank": 4
+        },
+        {
+            "name": "Lickpap",
+            "class": 5,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Feroxis",
+            "class": 1,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 35,
+            "rank": 8
+        },
+        {
+            "name": "Tränquilizer",
+            "class": 11,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Offi Alt",
+            "level": 35,
+            "rank": 2
+        },
+        {
+            "name": "Rejuvinated",
+            "class": 11,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Bloodshámi",
+            "class": 1,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Family",
+            "level": 90,
+            "rank": 9
+        },
+        {
+            "name": "Staldan",
+            "class": 3,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Officer",
+            "level": 90,
+            "rank": 1
+        },
+        {
+            "name": "Staldän",
+            "class": 7,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Offi Alt",
+            "level": 90,
+            "rank": 2
+        },
+        {
+            "name": "Desdo",
+            "class": 11,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Main Alt",
+            "level": 90,
+            "rank": 7
+        },
+        {
+            "name": "Kibler",
+            "class": 11,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Wtfisamonk",
+            "class": 10,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Sírómalac",
+            "class": 10,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Mauit",
+            "class": 11,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 36,
+            "rank": 8
+        },
+        {
+            "name": "Phar",
+            "class": 7,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Fénypocok",
+            "class": 5,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 87,
+            "rank": 8
+        },
+        {
+            "name": "Rëbëllinä",
+            "class": 3,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Raid Leader",
+            "level": 90,
+            "rank": 3
+        },
+        {
+            "name": "Leiaa",
+            "class": 9,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Offi Alt",
+            "level": 90,
+            "rank": 2
+        },
+        {
+            "name": "Bäldur",
+            "class": 7,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Yrinä",
+            "class": 3,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Fyncsi",
+            "class": 1,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Midsommar",
+            "class": 3,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 71,
+            "rank": 8
+        },
+        {
+            "name": "Andiqt",
+            "class": 8,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "unknown",
+            "level": 90,
+            "rank": 20
+        },
+        {
+            "name": "Durando",
+            "class": 6,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Family",
+            "level": 90,
+            "rank": 9
+        },
+        {
+            "name": "Oldphelan",
+            "class": 1,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Sipeny",
+            "class": 11,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Cremiz",
+            "class": 9,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Hëaven",
+            "class": 11,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Tag",
+            "level": 90,
+            "rank": 5
+        },
+        {
+            "name": "Dezeäk",
+            "class": 7,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Feremathes",
+            "class": 11,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Guild Master",
+            "level": 90,
+            "rank": 0
+        },
+        {
+            "name": "Totemicmage",
+            "class": 8,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Moonyvonne",
+            "class": 8,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Újonc",
+            "level": 90,
+            "rank": 6
+        },
+        {
+            "name": "Holyshøøt",
+            "class": 3,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Main Alt",
+            "level": 90,
+            "rank": 7
+        },
+        {
+            "name": "Lézergenyó",
+            "class": 11,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Family",
+            "level": 90,
+            "rank": 9
+        },
+        {
+            "name": "Alamagë",
+            "class": 8,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Vaalcsika",
+            "class": 11,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Family",
+            "level": 90,
+            "rank": 9
+        },
+        {
+            "name": "Alúcard",
+            "class": 1,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "unknown",
+            "level": 90,
+            "rank": 20
+        },
+        {
+            "name": "Fyncsä",
+            "class": 6,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Family",
+            "level": 56,
+            "rank": 9
+        },
+        {
+            "name": "Zyxxa",
+            "class": 6,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Alt",
+            "level": 90,
+            "rank": 8
+        },
+        {
+            "name": "Fynçsusz",
+            "class": 3,
+            "realm": "[HU] Tauri WoW Server",
+            "rank_name": "Family",
+            "level": 8,
+            "rank": 9
+        }
+    ],
+    "guildMembersCount": 205,
+    "gRanks": {
+        "0": { "rights": 16642559, "rname": "Guild Master" },
+        "1": { "rights": 14545407, "rname": "Officer" },
+        "2": { "rights": 14545343, "rname": "Offi Alt" },
+        "3": { "rights": 1372607, "rname": "Raid Leader" },
+        "4": { "rights": 286739, "rname": "Veteran" },
+        "5": { "rights": 278531, "rname": "Tag" },
+        "6": { "rights": 16387, "rname": "Újonc" },
+        "7": { "rights": 286723, "rname": "Main Alt" },
+        "8": { "rights": 24579, "rname": "Alt" },
+        "9": { "rights": 16387, "rname": "Family" }
+    },
+    "name": "",
+    "progression": {
+        "latestKills": [
+            {
+                "log_id": 1111,
+                "mapentry": {
+                    "id": 1136,
+                    "expansion": 4,
+                    "type": 2,
+                    "name": "Throne of Thunder"
+                },
+                "encounter_data": {
+                    "encounter_id": 111,
+                    "encounter_map": 111,
+                    "encounter_difficulty": 1,
+                    "encounter_name": "Jin'rokh the Breaker",
+                    "encounter_sorting": 1,
+                    "encounter_index": 1
+                },
+                "difficulty": 1,
+                "fight_time": 11,
+                "killtime": 999999999999999999999999
+            },
+            {
+                "log_id": 1112,
+                "mapentry": {
+                    "id": 1136,
+                    "expansion": 4,
+                    "type": 2,
+                    "name": "Throne of Thunder"
+                },
+                "encounter_data": {
+                    "encounter_id": 111,
+                    "encounter_map": 111,
+                    "encounter_difficulty": 1,
+                    "encounter_name": "Jin'rokh the Breaker",
+                    "encounter_sorting": 2,
+                    "encounter_index": 2
+                },
+                "difficulty": 1,
+                "fight_time": 12,
+                "killtime": 99999999999999999999999
+            }
+        ],
+        "currentBossesDefeated": 2,
+        "completed": false,
+        "Throne of Thunder": {
+            "5": {
+                "Jin'rokh the Breaker": {
+                    "killCount": 2,
+                    "fastestKill": 11,
+                    "firstKill": 999999999999999999999998,
+                    "fastestKills": [
+                        {
+                            "log_id": 1111,
+                            "fight_time": 11,
+                            "killtime": 999999999999999999999999,
+                            "realm": "[HU] Tauri WoW Server"
+                        },
+                        {
+                            "log_id": 1112,
+                            "fight_time": 12,
+                            "killtime": 999999999999999999999998,
+                            "realm": "[HU] Tauri WoW Server"
+                        }
+                    ],
+                    "dps": {
+                        "t Testdps 250": {
+                            "name": "Testdps",
+                            "spec": 250,
+                            "class": 6,
+                            "realm": "[HU] Tauri WoW Server",
+                            "ilvl": 666,
+                            "date": 999999999999999999999998,
+                            "logId": 1112,
+                            "faction": 0,
+                            "dps": 294534.6329852797
+                        },
+                        "t Testdps2 250": {
+                            "name": "Testdps2",
+                            "spec": 250,
+                            "class": 6,
+                            "realm": "[HU] Tauri WoW Server",
+                            "ilvl": 666,
+                            "date": 999999999999999999999999,
+                            "logId": 1111,
+                            "faction": 0,
+                            "dps": 333333.6329852797
+                        }
+                    },
+                    "hps": {
+                        "t Testhps 257": {
+                            "name": "Testhps",
+                            "spec": 257,
+                            "class": 5,
+                            "realm": "[HU] Tauri WoW Server",
+                            "ilvl": 548,
+                            "date": 999999999999999999999998,
+                            "logId": 1112,
+                            "faction": 0,
+                            "hps": 157440.31886601046,
+                            "rank": 123,
+                            "specRank": 1
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
