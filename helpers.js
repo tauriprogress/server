@@ -496,7 +496,12 @@ async function requestGuildData(guildName, realm) {
 }
 
 function updateGuildData(oldGuild, newGuild) {
-    let updatedGuild = JSON.parse(JSON.stringify(oldGuild));
+    let updatedGuild = {
+        ...JSON.parse(JSON.stringify(oldGuild)),
+        ...(({ progression, ...others }) => ({
+            ...JSON.parse(JSON.stringify(others))
+        }))(newGuild)
+    };
 
     for (let raidName in newGuild.progression) {
         if (validRaidName(raidName)) {
@@ -569,6 +574,7 @@ function updateGuildData(oldGuild, newGuild) {
         ...newGuild.progression.latestKills,
         ...oldGuild.progression.latestKills
     ].slice(0, 50);
+
     return updatedGuild;
 }
 
