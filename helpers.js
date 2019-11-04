@@ -257,6 +257,10 @@ function processLogs(logs) {
                 {
                     ...oldGuildBoss,
                     killCount: oldGuildBoss.killCount + 1,
+                    fastestKill:
+                        oldGuildBoss.fastestKill < log.fight_time
+                            ? oldGuildBoss.fastestKill
+                            : log.fight_time,
                     fastestKills: [
                         ...oldGuildBoss.fastestKills,
                         {
@@ -524,7 +528,7 @@ function updateGuildData(oldGuild, newGuild) {
                             ...oldBoss,
                             killCount: oldBoss.killCount + newBoss.killCount,
                             fastestKill:
-                                oldBoss.fastestKill > newBoss.fastestKill
+                                oldBoss.fastestKill < newBoss.fastestKill
                                     ? oldBoss.fastestKill
                                     : newBoss.fastestKill,
                             fastestKills: [
@@ -570,10 +574,12 @@ function updateGuildData(oldGuild, newGuild) {
         }
     }
 
-    updatedGuild.progression.latestKills = [
-        ...newGuild.progression.latestKills,
-        ...oldGuild.progression.latestKills
-    ].slice(0, 50);
+    if (newGuild.progression) {
+        updatedGuild.progression.latestKills = [
+            ...newGuild.progression.latestKills,
+            ...oldGuild.progression.latestKills
+        ].slice(0, 50);
+    }
 
     return updatedGuild;
 }
