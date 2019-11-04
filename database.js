@@ -143,6 +143,7 @@ class Database {
                 let { logs, lastLogIds: newLastLogIds } = await getLogs(
                     lastLogIds
                 );
+
                 if (isInitalization) {
                     logs = logs.filter(log => {
                         if (
@@ -247,12 +248,7 @@ class Database {
                         );
 
                         if (newGuild) {
-                            await this.saveGuild(
-                                calcGuildContentCompletion({
-                                    ...guild,
-                                    ...newGuild
-                                })
-                            );
+                            await this.saveGuild(newGuild);
                         }
                     } catch (err) {
                         if (err.message === "guild not found") {
