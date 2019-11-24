@@ -4,7 +4,7 @@ const {
     raids
 } = require("tauriprogress-constants/currentContent.json");
 const fs = require("fs");
-const { specs } = require("tauriprogress-constants");
+const { specs, tauriLogBugs } = require("tauriprogress-constants");
 const dbUser = process.env.MONGODB_USER;
 const dbPassword = process.env.MONGODB_PASSWORD;
 const dbAddress = process.env.MONGODB_ADDRESS;
@@ -26,7 +26,7 @@ const {
     getBestPerformance,
     calcTopPercentOfPerformance,
     capitalize,
-    invalidDurumu
+    logBugHandler
 } = require("./helpers");
 
 class Database {
@@ -145,19 +145,6 @@ class Database {
                 );
 
                 if (isInitalization) {
-                    logs = logs.filter(log => {
-                        if (
-                            (log.log_id === 149325 &&
-                                log.realm === "[EN] Evermoon") ||
-                            invalidDurumu(
-                                log.encounter_data.encounter_id,
-                                log.killtime
-                            )
-                        ) {
-                            return false;
-                        }
-                        return true;
-                    });
                     console.log(
                         "db: Saving logs in case something goes wrong in the initalization process as logData.json in this directory."
                     );
@@ -165,6 +152,18 @@ class Database {
                         "logData.json",
                         JSON.stringify({ logs, lastLogIds: newLastLogIds })
                     );
+
+                    logs = logs.reduce((acc, log) => {
+                        for (let bug of tauriLogBugs) {
+                            log = logBugHandler(log, bug);
+                        }
+
+                        if (log) {
+                            acc.push(log);
+                        }
+
+                        return acc;
+                    }, []);
                 }
                 console.log("db: Processing logs");
                 let { bossData, guildData } = processLogs(logs);
