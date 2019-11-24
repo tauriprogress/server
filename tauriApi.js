@@ -183,7 +183,7 @@ class TauriApi {
         });
     }
 
-    getRaidGuildRank(realm, encounter, difficulty) {
+    getRaidGuildRank(realm, guildName, encounter, difficulty) {
         // similar to getRaidRank, but only returns guild kills, not including random kills
         return this.request({
             method: "POST",
@@ -193,6 +193,7 @@ class TauriApi {
                     url: "raid-guildrank-encounter",
                     params: {
                         r: realm,
+                        gn: guildName,
                         encounter: encounter,
                         difficulty: difficulty
                     }
