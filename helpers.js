@@ -1,9 +1,7 @@
 const {
-    durumuId,
     realms,
     specs,
     specToClass,
-    valuesCorrectSince,
     shortRealms,
     raceToFaction,
     classToSpec
@@ -187,7 +185,9 @@ function processLogs(logs) {
         );
 
         if (!fastestKillsOfCategory) {
-            bossData[raidName][bossId].fastestKills = addNestedObjectValue(
+            bossData[raidName][
+                bossId
+            ].fastestKills = addNestedObjectValue(
                 bossData[raidName][bossId].fastestKills,
                 logCategorization,
                 [trimmedLog]
@@ -749,13 +749,6 @@ function secsAgo(time) {
     return Math.round(new Date().getTime() / 1000 - time);
 }
 
-function invalidDurumu(bossId, killtime) {
-    if (durumuId === bossId && valuesCorrectSince > killtime) {
-        return true;
-    }
-    return false;
-}
-
 function createCharacterId(realm, name, spec) {
     return `${shortRealms[realm]} ${name} ${spec}`;
 }
@@ -862,6 +855,48 @@ function validDifficulty(raidName, difficulty) {
     return difficulties[raidName][difficulty] ? true : false;
 }
 
+function logBugHandler(log, bug) {
+    if (log) {
+        switch (bug.type) {
+            case "log":
+                if (log.log_id === bug.logId && log.realm === bug.realm) {
+                    log = false;
+                }
+
+                break;
+            case "boss":
+                if (
+                    log.encounter_data.encounter_id === bug.boss &&
+                    log.killtime > bug.date.from &&
+                    log.killtime < bug.date.to
+                ) {
+                    log = false;
+                }
+
+                break;
+            case "spec":
+                log.members = log.members.map(member => {
+                    if (
+                        member.spec === bug.specId &&
+                        log.killtime > bug.date.from &&
+                        log.killtime < bug.date.to
+                    ) {
+                        return {
+                            ...member,
+                            [bug.changeKey.key]: bug.changeKey.value
+                        };
+                    }
+                    return member;
+                });
+
+                break;
+            default:
+        }
+    }
+
+    return log;
+}
+
 module.exports = {
     getLogs,
     processLogs,
@@ -882,5 +917,5 @@ module.exports = {
     capitalize,
     validRaidName,
     validDifficulty,
-    invalidDurumu
+    logBugHandler
 };
