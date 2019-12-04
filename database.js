@@ -441,13 +441,7 @@ class Database {
                             guildName: 1,
                             gFaction: 1,
                             realm: 1,
-                            ["progression.currentBossesDefeated"]: 1,
-                            ["progression.completed"]: 1,
-                            ["progression." +
-                            raidName +
-                            "." +
-                            lastBoss +
-                            ".firstKill"]: 1
+                            ["progression.completion"]: 1
                         })
                         .toArray()
                 );
