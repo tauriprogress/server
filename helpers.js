@@ -585,41 +585,41 @@ function updateGuildData(oldGuild, newGuild) {
 }
 
 function calcGuildContentCompletion(guild) {
-    let bossesDefeated = {};
-    let currentBossesDefeated = 0;
-    let completed = false;
+    let completion = {
+        completed: false,
+        bossesDefeated: 0
+    };
 
     for (let difficulty in guild.progression[currentRaidName]) {
         difficulty = Number(difficulty);
-        if (!bossesDefeated[difficulty]) bossesDefeated[difficulty] = 0;
+        if (!completion[difficulty])
+            completion[difficulty] = { progress: 0, completed: false };
 
         for (let boss in guild.progression[currentRaidName][difficulty]) {
-            bossesDefeated[difficulty]++;
+            completion[difficulty].progress++;
         }
 
-        if (bossesDefeated[difficulty] > currentBossesDefeated)
-            currentBossesDefeated = bossesDefeated[difficulty];
+        if (completion[difficulty].progress === currentTotalBosses) {
+            const firstKill =
+                guild.progression[currentRaidName][difficulty][currentLastBoss]
+                    .firstKill;
+            completion[difficulty].completed = firstKill;
 
-        if (bossesDefeated[difficulty] === currentTotalBosses) {
-            completed = !completed
-                ? guild.progression[currentRaidName][difficulty][
-                      currentLastBoss
-                  ].firstKill
-                : completed <
-                  guild.progression[currentRaidName][difficulty][
-                      currentLastBoss
-                  ].firstKill
-                ? completed
-                : guild.progression[currentRaidName][difficulty][
-                      currentLastBoss
-                  ].firstKill;
+            if (completion.completed) {
+                completion.completed =
+                    completion.completed < firstKill
+                        ? completion.completed
+                        : firstKill;
+            } else {
+                completion.completed = firstKill;
+            }
         }
+
+        if (completion.bossesDefeated < completion[difficulty].progress)
+            completion.bossesDefeated = completion[difficulty].progress;
     }
 
-    guild.progression.completed = completed;
-
-    guild.progression.currentBossesDefeated = currentBossesDefeated;
-
+    guild.progression.completion = { ...completion };
     return guild;
 }
 
