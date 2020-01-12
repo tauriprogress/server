@@ -37,7 +37,6 @@ const { minutesAgo, secsAgo } = require("./helpers");
         })
     );
     app.use(bodyParser.json());
-    app.use(collectStats(db));
     app.use(updateDatabase(db));
 
     app.get("/getguildlist", async (req, res) => {
@@ -162,10 +161,9 @@ const { minutesAgo, secsAgo } = require("./helpers");
 
     app.post("/getlog", verifyGetLog, async (req, res) => {
         try {
-            let log = (await tauriApi.getRaidLog(
-                req.body.realm,
-                req.body.logId
-            )).response;
+            let log = (
+                await tauriApi.getRaidLog(req.body.realm, req.body.logId)
+            ).response;
             res.send({
                 success: true,
                 response: { ...log, realm: req.body.realm }
@@ -198,12 +196,14 @@ const { minutesAgo, secsAgo } = require("./helpers");
         try {
             res.send({
                 success: true,
-                response: (await tauriApi.getRaidPlayer(
-                    req.body.realm,
-                    req.body.playerName,
-                    req.body.logId,
-                    req.body.limit
-                )).response
+                response: (
+                    await tauriApi.getRaidPlayer(
+                        req.body.realm,
+                        req.body.playerName,
+                        req.body.logId,
+                        req.body.limit
+                    )
+                ).response
             });
         } catch (err) {
             res.send({
