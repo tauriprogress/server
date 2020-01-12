@@ -696,6 +696,10 @@ class Database {
                                 [...objectKeys, specVariant, variant],
                                 {
                                     ...noSpecData[variant],
+                                    rank:
+                                        specVariant === "class"
+                                            ? noSpecData[variant].classRank
+                                            : noSpecData[variant].rank,
                                     topPercent:
                                         noSpecData[variant][variant] &&
                                         calcTopPercentOfPerformance(

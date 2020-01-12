@@ -710,6 +710,9 @@ function applyPlayerPerformanceRanks(raidBoss) {
     let hpsArr = [];
     let dpsSpecs = {};
     let hpsSpecs = {};
+    let dpsClasses = {}
+    let hpsClasses = {}
+
 
     for (let dpsKey in raidBoss.dps) {
         dpsArr.push({ ...raidBoss.dps[dpsKey], key: dpsKey });
@@ -726,16 +729,25 @@ function applyPlayerPerformanceRanks(raidBoss) {
         dpsSpecs[dpsArr[i].spec] = dpsSpecs[dpsArr[i].spec]
             ? dpsSpecs[dpsArr[i].spec] + 1
             : 1;
+        dpsClasses[dpsArr[i].class] = dpsClasses[dpsArr[i].class]
+            ? dpsClasses[dpsArr[i].class] + 1
+            : 1;
+
         raidBoss.dps[dpsArr[i].key].rank = i + 1;
         raidBoss.dps[dpsArr[i].key].specRank = dpsSpecs[dpsArr[i].spec];
+        raidBoss.dps[dpsArr[i].key].classRank = dpsClasses[dpsArr[i].class] 
     }
 
     for (let i = 0; i < hpsArr.length; i++) {
         hpsSpecs[hpsArr[i].spec] = hpsSpecs[hpsArr[i].spec]
             ? hpsSpecs[hpsArr[i].spec] + 1
             : 1;
+            hpsClasses[hpsArr[i].class] = hpsClasses[hpsArr[i].class]
+            ? hpsClasses[hpsArr[i].class] + 1
+            : 1;
         raidBoss.hps[hpsArr[i].key].rank = i + 1;
         raidBoss.hps[hpsArr[i].key].specRank = hpsSpecs[hpsArr[i].spec];
+        raidBoss.hps[hpsArr[i].key].classRank = hpsClasses[hpsArr[i].class] 
     }
 
     return raidBoss;
