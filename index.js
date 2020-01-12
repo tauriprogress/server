@@ -1,5 +1,4 @@
 require("dotenv").config();
-const { classToSpec } = require("tauriprogress-constants");
 const app = require("express")();
 const cors = require("cors");
 const bodyParser = require("body-parser");
@@ -94,7 +93,7 @@ const { minutesAgo, secsAgo } = require("./helpers");
             try {
                 let performance = await db.getPlayerPerformance({
                     playerName: req.body.playerName,
-                    playerSpecs: classToSpec[req.body.characterClass],
+                    characterClass: req.body.characterClass,
                     realm: req.body.realm,
                     raidName: req.body.raidName
                 });

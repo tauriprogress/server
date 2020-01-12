@@ -3,6 +3,7 @@ const {
     lastBoss,
     raids
 } = require("tauriprogress-constants/currentContent.json");
+const classToSpec = require("tauriprogress-constants/classToSpec.json");
 const fs = require("fs");
 const { specs, tauriLogBugs } = require("tauriprogress-constants");
 const dbUser = process.env.MONGODB_USER;
@@ -560,12 +561,18 @@ class Database {
         });
     }
 
-    async getPlayerPerformance({ playerName, playerSpecs, realm, raidName }) {
+    async getPlayerPerformance({
+        playerName,
+        characterClass,
+        realm,
+        raidName
+    }) {
         return new Promise(async (resolve, reject) => {
             try {
                 const {
                     totalBosses
                 } = require(`tauriprogress-constants/${raidName}`);
+                let playerSpecs = classToSpec[characterClass];
 
                 let playerPerformance = {};
 
@@ -635,7 +642,7 @@ class Database {
                                                     `best${capitalize(variant)}`
                                                 ],
                                                 variant,
-                                                specId
+                                                { spec: specId }
                                             )
                                         ),
                                         rank: playerData.specRank
@@ -676,56 +683,68 @@ class Database {
                                     getBestPerformance(
                                         boss[`best${capitalize(variant)}`],
                                         variant,
-                                        specId
+                                        { spec: specId }
                                     )
                             );
                         }
                     }
 
-                    for (let variant of ["dps", "hps"]) {
-                        playerPerformance = addNestedObjectValue(
-                            playerPerformance,
-                            [...objectKeys, "noSpec", variant],
-                            {
-                                ...noSpecData[variant],
-                                topPercent:
-                                    noSpecData[variant][variant] &&
-                                    calcTopPercentOfPerformance(
-                                        noSpecData[variant][variant],
-                                        getBestPerformance(
-                                            boss[`best${capitalize(variant)}`],
-                                            variant
+                    for (let specVariant of ["noSpec", "class"]) {
+                        for (let variant of ["dps", "hps"]) {
+                            playerPerformance = addNestedObjectValue(
+                                playerPerformance,
+                                [...objectKeys, specVariant, variant],
+                                {
+                                    ...noSpecData[variant],
+                                    topPercent:
+                                        noSpecData[variant][variant] &&
+                                        calcTopPercentOfPerformance(
+                                            noSpecData[variant][variant],
+                                            getBestPerformance(
+                                                boss[
+                                                    `best${capitalize(variant)}`
+                                                ],
+                                                variant,
+                                                specVariant === "class"
+                                                    ? {
+                                                          characterClass: characterClass
+                                                      }
+                                                    : {}
+                                            )
                                         )
+                                }
+                            );
+
+                            totalPlayerPerformance = addNestedObjectValue(
+                                totalPlayerPerformance,
+                                [boss.difficulty, variant, specVariant],
+                                getNestedObjectValue(totalPlayerPerformance, [
+                                    boss.difficulty,
+                                    variant,
+                                    specVariant
+                                ]) +
+                                    (noSpecData[variant][variant]
+                                        ? noSpecData[variant][variant]
+                                        : 0)
+                            );
+
+                            totalBestPerformance = addNestedObjectValue(
+                                totalBestPerformance,
+                                [boss.difficulty, variant, specVariant],
+                                getNestedObjectValue(totalBestPerformance, [
+                                    boss.difficulty,
+                                    variant,
+                                    specVariant
+                                ]) +
+                                    getBestPerformance(
+                                        boss[`best${capitalize(variant)}`],
+                                        variant,
+                                        specVariant === "class"
+                                            ? { characterClass: characterClass }
+                                            : {}
                                     )
-                            }
-                        );
-
-                        totalPlayerPerformance = addNestedObjectValue(
-                            totalPlayerPerformance,
-                            [boss.difficulty, variant, "noSpec"],
-                            getNestedObjectValue(totalPlayerPerformance, [
-                                boss.difficulty,
-                                variant,
-                                "noSpec"
-                            ]) +
-                                (noSpecData[variant][variant]
-                                    ? noSpecData[variant][variant]
-                                    : 0)
-                        );
-
-                        totalBestPerformance = addNestedObjectValue(
-                            totalBestPerformance,
-                            [boss.difficulty, variant, "noSpec"],
-                            getNestedObjectValue(totalBestPerformance, [
-                                boss.difficulty,
-                                variant,
-                                "noSpec"
-                            ]) +
-                                getBestPerformance(
-                                    boss[`best${capitalize(variant)}`],
-                                    variant
-                                )
-                        );
+                            );
+                        }
                     }
                 }
 

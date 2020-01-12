@@ -795,13 +795,19 @@ function getNestedObjectValue(obj, keys) {
     }
 }
 
-function getBestPerformance(bestPerformances, type, spec) {
+function getBestPerformance(
+    bestPerformances,
+    type,
+    { characterClass, spec } = {}
+) {
     let bestPerformance = 0;
 
     let perfSpecs = {};
 
     if (spec) {
         perfSpecs[specToClass[spec]] = [spec];
+    } else if (characterClass) {
+        perfSpecs[characterClass] = classToSpec[characterClass];
     } else {
         for (let characterClass in classToSpec) {
             perfSpecs[characterClass] = classToSpec[characterClass];
