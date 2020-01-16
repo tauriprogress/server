@@ -158,6 +158,22 @@ function verifyPlayerBossKills(req, res, next) {
     }
 }
 
+function verifyGetItem(req, res, next) {
+    try {
+        if (req.body.realm)
+            req.body.realm = req.body.realm.trim().replace(/\s+/g, " ");
+
+        if (!validRealm(req.body.realm)) throw new Error("Invalid raid name.");
+
+        if (!req.body.logId || typeof req.body.logId !== "number")
+            throw new Error("Invalid item id");
+
+        next();
+    } catch (err) {
+        res.send({ success: false, errorstring: err.message });
+    }
+}
+
 function validBossName(raidName, bossName) {
     let { encounters } = require(`tauriprogress-constants/${raidName}`);
     for (let encounter of encounters) {
@@ -210,7 +226,11 @@ function collectStats(db) {
 function updateDatabase(db) {
     return (req, res, next) => {
         if (minutesAgo(db.lastUpdated) > 5) {
-            db.update();
+            try {
+                db.update();
+            } catch (err) {
+                console.error(err);
+            }
         }
         next();
     };
@@ -225,5 +245,6 @@ module.exports = {
     verifyPlayerBossKills,
     verifyGetPlayerPerformance,
     collectStats,
-    updateDatabase
+    updateDatabase,
+    verifyGetItem
 };
