@@ -177,7 +177,9 @@ const { minutesAgo, secsAgo } = require("./helpers");
 
     app.post("/getitem", async (req, res) => {
         try {
-            let item = (await tauriApi.getItem(req.body.id)).response;
+            let item = (
+                await tauriApi.getItemByGuid(req.body.id, req.body.realm)
+            ).response;
 
             res.send({
                 success: true,
