@@ -214,15 +214,6 @@ function validClass(characterClass) {
     return false;
 }
 
-function collectStats(db) {
-    return (req, res, next) => {
-        let ip = req.headers["x-forwarded-for"] || req.connection.remoteAddress;
-
-        db.saveReqStats(req.url, ip.split(",")[0], new Date());
-        next();
-    };
-}
-
 function updateDatabase(db) {
     return (req, res, next) => {
         if (minutesAgo(db.lastUpdated) > 5) {
@@ -244,7 +235,6 @@ module.exports = {
     verifyGetLog,
     verifyPlayerBossKills,
     verifyGetPlayerPerformance,
-    collectStats,
     updateDatabase,
     verifyGetItem
 };

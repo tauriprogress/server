@@ -79,11 +79,6 @@ class Database {
                 if (await maintence.findOne()) await maintence.deleteMany({});
                 maintence.insertOne({});
 
-                console.log("db: Creating stats collection");
-                let stats = await this.db.collection("stats");
-                if (await stats.findOne()) await stats.deleteMany({});
-                stats.insertOne({});
-
                 for (let raid of raids) {
                     let raidName = raid.raidName;
                     console.log(`db: Creating ${raidName} collection`);
@@ -365,33 +360,6 @@ class Database {
                         }
                     );
                 }
-                resolve("Done");
-            } catch (err) {
-                reject(err);
-            }
-        });
-    }
-
-    async saveReqStats(url, ip, date) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                let stats = await this.db.collection("stats");
-                const today = `${date.getFullYear()}:${date.getMonth() +
-                    1}:${date.getDate()}`;
-                const time = date.toLocaleString();
-                const replaceReg = /\./gi;
-
-                await stats.updateOne(
-                    {},
-                    {
-                        $set: {
-                            [`${today}.${ip.replace(
-                                replaceReg,
-                                "-"
-                            )}.${time}`]: url
-                        }
-                    }
-                );
                 resolve("Done");
             } catch (err) {
                 reject(err);

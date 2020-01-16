@@ -12,7 +12,6 @@ const {
     verifyGetLog,
     verifyPlayerBossKills,
     verifyGetPlayerPerformance,
-    collectStats,
     updateDatabase
 } = require("./middlewares");
 const tauriApi = require("./tauriApi");
