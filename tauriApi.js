@@ -217,6 +217,22 @@ class TauriApi {
             )
         });
     }
+
+    getItemByGuid(guid, realm) {
+        return this.request({
+            method: "POST",
+            body: encodeURIComponent(
+                JSON.stringify({
+                    secret: this.apisecret,
+                    url: "item-tooltip",
+                    params: {
+                        r: realm || "[HU] Tauri WoW Server",
+                        i: guid
+                    }
+                })
+            )
+        });
+    }
 }
 
 module.exports = new TauriApi();
