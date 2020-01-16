@@ -12,6 +12,7 @@ const {
     verifyGetLog,
     verifyPlayerBossKills,
     verifyGetPlayerPerformance,
+    verifyGetItem,
     updateDatabase
 } = require("./middlewares");
 const tauriApi = require("./tauriApi");
@@ -174,9 +175,9 @@ const { minutesAgo, secsAgo } = require("./helpers");
         }
     });
 
-    app.post("/getitem", async (req, res) => {
+    app.post("/getitem", verifyGetItem, async (req, res) => {
         try {
-            let item = (
+            const item = (
                 await tauriApi.getItemByGuid(req.body.id, req.body.realm)
             ).response;
 
