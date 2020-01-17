@@ -191,10 +191,12 @@ const { minutesAgo, secsAgo } = require("./helpers");
                         data = err.message;
                     }
                 } while (!data.success && data === "request timed out");
-                if (!data.success) throw new Error(data.errorstring);
 
                 if (data.success) items[guid] = { ...data.response, guid };
             }
+
+            if (!Object.keys(items).length)
+                throw new Error("Something went wrong...");
 
             res.send({
                 success: true,
