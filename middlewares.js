@@ -158,15 +158,14 @@ function verifyPlayerBossKills(req, res, next) {
     }
 }
 
-function verifyGetItem(req, res, next) {
+function verifyGetItems(req, res, next) {
     try {
         if (req.body.realm)
             req.body.realm = req.body.realm.trim().replace(/\s+/g, " ");
 
-        if (!validRealm(req.body.realm)) throw new Error("Invalid raid name.");
-
-        if (!req.body.logId || typeof req.body.logId !== "number")
-            throw new Error("Invalid item id");
+        if (!validRealm(req.body.realm)) throw new Error("Invalid realm name.");
+        if (!req.body.ids || !Array.isArray(req.body.ids))
+            throw new Error("Invalid item ids");
 
         next();
     } catch (err) {
@@ -236,5 +235,5 @@ module.exports = {
     verifyPlayerBossKills,
     verifyGetPlayerPerformance,
     updateDatabase,
-    verifyGetItem
+    verifyGetItems
 };
