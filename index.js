@@ -12,7 +12,7 @@ const {
     verifyGetLog,
     verifyPlayerBossKills,
     verifyGetPlayerPerformance,
-    verifyGetItem,
+    verifyGetItems,
     updateDatabase
 } = require("./middlewares");
 const tauriApi = require("./tauriApi");
@@ -175,15 +175,30 @@ const { minutesAgo, secsAgo } = require("./helpers");
         }
     });
 
-    app.post("/getitem", verifyGetItem, async (req, res) => {
+    app.post("/getitems", verifyGetItems, async (req, res) => {
         try {
-            const item = (
-                await tauriApi.getItemByGuid(req.body.id, req.body.realm)
-            ).response;
+            let items = {};
+            for (let guid of req.body.ids) {
+                let data;
+
+                do {
+                    try {
+                        data = await tauriApi.getItemByGuid(
+                            guid,
+                            req.body.realm
+                        );
+                    } catch (err) {
+                        data = err.message;
+                    }
+                } while (!data.success && data === "request timed out");
+                if (!data.success) throw new Error(data.errorstring);
+
+                if (data.success) items[guid] = { ...data.response, guid };
+            }
 
             res.send({
                 success: true,
-                response: item
+                response: items
             });
         } catch (err) {
             res.send({
