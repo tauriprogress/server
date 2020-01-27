@@ -14,6 +14,7 @@ const {
 } = require("tauriprogress-constants/currentContent");
 const tauriApi = require("./tauriApi");
 
+const week = 1000 * 60 * 60 * 24 * 7;
 let raidNames = {};
 let difficulties = {};
 for (let raid of raids) {
@@ -221,8 +222,12 @@ function processLogs(logs) {
 
             guildData[guildId].progression.latestKills.unshift({
                 log_id: log.log_id,
-                mapentry: log.mapentry,
-                encounter_data: log.encounter_data,
+                mapentry: {
+                    name: log.mapentry.name
+                },
+                encounter_data: {
+                    encounter_name: log.encounter_data.encounter_name
+                },
                 difficulty: log.difficulty,
                 fight_time: log.fight_time,
                 killtime: log.killtime
@@ -406,11 +411,11 @@ function processLogs(logs) {
         }
     }
 
-    /* guilds: cut latestKills to 50, cut fastestKills to 10 */
+    /* guilds: cut latestKills, cut fastestKills to 10 */
     for (let guildId in guildData) {
-        guildData[guildId].progression.latestKills = guildData[
-            guildId
-        ].progression.latestKills.slice(0, 50);
+        guildData[guildId].progression.latestKills = cutLatestKills(
+            guildData[guildId].progression.latestKills
+        );
 
         for (let raidName in guildData[guildId].progression) {
             if (validRaidName(raidName)) {
@@ -578,10 +583,10 @@ function updateGuildData(oldGuild, newGuild) {
     }
 
     if (newGuild.progression) {
-        updatedGuild.progression.latestKills = [
+        updatedGuild.progression.latestKills = cutLatestKills([
             ...newGuild.progression.latestKills,
             ...oldGuild.progression.latestKills
-        ].slice(0, 50);
+        ]);
     }
 
     return updatedGuild;
@@ -915,6 +920,43 @@ function logBugHandler(log, bug) {
     }
 
     return log;
+}
+
+function cutLatestKills(kills) {
+    const timeBoundary = getLatestWednesday(new Date().getTime() - week * 2);
+
+    let latestKills = [];
+
+    for (let log of kills) {
+        if (log.killtime * 1000 > timeBoundary) {
+            latestKills.push(log);
+        } else if (latestKills.length < 50) {
+            latestKills.push(log);
+        } else {
+            break;
+        }
+    }
+
+    return latestKills;
+}
+
+export function getLatestWednesday(date) {
+    const currentDate = date ? date : new Date();
+    const currentDay = currentDate.getDay();
+
+    const wednesdayDaysAgo = (currentDay < 3 ? currentDay + 7 : currentDay) - 3;
+
+    let lastWednesdayDate = currentDate.getDate() - wednesdayDaysAgo;
+    if (currentDay === 3 && currentDate.getHours() < 9) {
+        lastWednesdayDate -= 7;
+    }
+
+    return new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth(),
+        lastWednesdayDate,
+        10
+    );
 }
 
 module.exports = {
