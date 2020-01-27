@@ -410,6 +410,7 @@ class Database {
                             guildName: 1,
                             gFaction: 1,
                             realm: 1,
+                            activity: 1,
                             ["progression.completion"]: 1
                         })
                         .toArray()

@@ -115,6 +115,7 @@ function processLogs(logs) {
         guildName: undefined,
         realm: undefined,
         faction: undefined,
+        activity: {},
         progression: {
             latestKills: [],
             currentBossesDefeated: 0,
@@ -216,6 +217,8 @@ function processLogs(logs) {
             }
 
             /* update guild data */
+            guildData[guildId].activity[difficulty] = log.killtime;
+
             guildData[guildId].progression.latestKills.unshift({
                 log_id: log.log_id,
                 mapentry: log.mapentry,
@@ -710,9 +713,8 @@ function applyPlayerPerformanceRanks(raidBoss) {
     let hpsArr = [];
     let dpsSpecs = {};
     let hpsSpecs = {};
-    let dpsClasses = {}
-    let hpsClasses = {}
-
+    let dpsClasses = {};
+    let hpsClasses = {};
 
     for (let dpsKey in raidBoss.dps) {
         dpsArr.push({ ...raidBoss.dps[dpsKey], key: dpsKey });
@@ -735,19 +737,19 @@ function applyPlayerPerformanceRanks(raidBoss) {
 
         raidBoss.dps[dpsArr[i].key].rank = i + 1;
         raidBoss.dps[dpsArr[i].key].specRank = dpsSpecs[dpsArr[i].spec];
-        raidBoss.dps[dpsArr[i].key].classRank = dpsClasses[dpsArr[i].class] 
+        raidBoss.dps[dpsArr[i].key].classRank = dpsClasses[dpsArr[i].class];
     }
 
     for (let i = 0; i < hpsArr.length; i++) {
         hpsSpecs[hpsArr[i].spec] = hpsSpecs[hpsArr[i].spec]
             ? hpsSpecs[hpsArr[i].spec] + 1
             : 1;
-            hpsClasses[hpsArr[i].class] = hpsClasses[hpsArr[i].class]
+        hpsClasses[hpsArr[i].class] = hpsClasses[hpsArr[i].class]
             ? hpsClasses[hpsArr[i].class] + 1
             : 1;
         raidBoss.hps[hpsArr[i].key].rank = i + 1;
         raidBoss.hps[hpsArr[i].key].specRank = hpsSpecs[hpsArr[i].spec];
-        raidBoss.hps[hpsArr[i].key].classRank = hpsClasses[hpsArr[i].class] 
+        raidBoss.hps[hpsArr[i].key].classRank = hpsClasses[hpsArr[i].class];
     }
 
     return raidBoss;
