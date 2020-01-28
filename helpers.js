@@ -517,7 +517,7 @@ async function requestGuildData(guildName, realm) {
 function updateGuildData(oldGuild, newGuild) {
     let updatedGuild = {
         ...JSON.parse(JSON.stringify(oldGuild)),
-        ...(({ progression, raidDays, ...others }) => ({
+        ...(({ progression, raidDays, activity, ...others }) => ({
             ...JSON.parse(JSON.stringify(others))
         }))(newGuild)
     };
@@ -601,6 +601,8 @@ function updateGuildData(oldGuild, newGuild) {
             updatedGuild.raidDays.total[day][hour] += killCount;
         }
     }
+
+    updatedGuild.activity = { ...updatedGuild.activity, ...newGuild.activity };
 
     return updatedGuild;
 }
