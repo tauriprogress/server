@@ -596,7 +596,7 @@ function updateGuildData(oldGuild, newGuild) {
         ]);
     }
 
-    for (let [day, hours] of raidDays.total.entries()) {
+    for (let [day, hours] of newGuild.raidDays.total.entries()) {
         for (let [hour, killCount] of hours.entries()) {
             updatedGuild.raidDays.total[day][hour] += killCount;
         }
@@ -938,7 +938,7 @@ function logBugHandler(log, bug) {
 function cutLatestKills(kills) {
     const timeBoundary = getLatestWednesday(
         new Date(new Date().getTime() - week * 2)
-    );
+    ).getTime();
 
     let latestKills = [];
 
@@ -981,6 +981,27 @@ function defaultGuildRaidDays() {
     };
 }
 
+function recentGuildRaidDays(guild) {
+    let { recent } = JSON.parse(JSON.stringify(defaultGuildRaidDays()));
+
+    const timeBoundary = getLatestWednesday(
+        new Date(new Date().getTime() - week * 2)
+    ).getTime();
+
+    for (let log of guild.progression.latestKills) {
+        if (log.killtime * 1000 > timeBoundary) {
+            let logDate = new Date(log.killtime * 1000);
+
+            recent[unshiftDateDay(logDate.getDay())][logDate.getHours()] += 1;
+        } else {
+            break;
+        }
+    }
+    guild.raidDays.recent = recent;
+
+    return guild;
+}
+
 function unshiftDateDay(day) {
     return day - 1 >= 0 ? day - 1 : 6;
 }
@@ -1005,5 +1026,6 @@ module.exports = {
     capitalize,
     validRaidName,
     validDifficulty,
-    logBugHandler
+    logBugHandler,
+    recentGuildRaidDays
 };

@@ -27,7 +27,8 @@ const {
     getBestPerformance,
     calcTopPercentOfPerformance,
     capitalize,
-    logBugHandler
+    logBugHandler,
+    recentGuildRaidDays
 } = require("./helpers");
 
 class Database {
@@ -329,10 +330,12 @@ class Database {
                             newGuild.realm
                         );
                         await this.db.collection("guilds").insertOne(
-                            calcGuildContentCompletion({
-                                ...guildData,
-                                ...newGuild
-                            })
+                            recentGuildRaidDays(
+                                calcGuildContentCompletion({
+                                    ...guildData,
+                                    ...newGuild
+                                })
+                            )
                         );
                     } catch (err) {
                         console.error(
@@ -352,8 +355,10 @@ class Database {
                         },
                         {
                             $set: {
-                                ...calcGuildContentCompletion(
-                                    updateGuildData(oldGuild, newGuild)
+                                ...recentGuildRaidDays(
+                                    calcGuildContentCompletion(
+                                        updateGuildData(oldGuild, newGuild)
+                                    )
                                 ),
                                 _id: oldGuild["_id"]
                             }
