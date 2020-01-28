@@ -121,7 +121,8 @@ function processLogs(logs) {
             latestKills: [],
             currentBossesDefeated: 0,
             completed: false
-        }
+        },
+        raidDays: defaultGuildRaidDays()
     };
 
     let newGuildBoss = {
@@ -206,6 +207,8 @@ function processLogs(logs) {
 
         /* create / update guild data */
         if (guildName) {
+            const logDate = new Date(log.killtime * 1000);
+
             if (!guildData[guildId]) {
                 guildData[guildId] = JSON.parse(
                     JSON.stringify({
@@ -219,6 +222,10 @@ function processLogs(logs) {
 
             /* update guild data */
             guildData[guildId].activity[difficulty] = log.killtime;
+
+            guildData[guildId].raidDays.total[unshiftDateDay(logDate.getDay())][
+                logDate.getHours()
+            ] += 1;
 
             guildData[guildId].progression.latestKills.unshift({
                 log_id: log.log_id,
@@ -510,7 +517,7 @@ async function requestGuildData(guildName, realm) {
 function updateGuildData(oldGuild, newGuild) {
     let updatedGuild = {
         ...JSON.parse(JSON.stringify(oldGuild)),
-        ...(({ progression, ...others }) => ({
+        ...(({ progression, raidDays, ...others }) => ({
             ...JSON.parse(JSON.stringify(others))
         }))(newGuild)
     };
@@ -587,6 +594,12 @@ function updateGuildData(oldGuild, newGuild) {
             ...newGuild.progression.latestKills,
             ...oldGuild.progression.latestKills
         ]);
+    }
+
+    for (let [day, hours] of raidDays.total.entries()) {
+        for (let [hour, killCount] of hours.entries()) {
+            updatedGuild.raidDays.total[day][hour] += killCount;
+        }
     }
 
     return updatedGuild;
@@ -923,7 +936,9 @@ function logBugHandler(log, bug) {
 }
 
 function cutLatestKills(kills) {
-    const timeBoundary = getLatestWednesday(new Date().getTime() - week * 2);
+    const timeBoundary = getLatestWednesday(
+        new Date(new Date().getTime() - week * 2)
+    );
 
     let latestKills = [];
 
@@ -940,7 +955,7 @@ function cutLatestKills(kills) {
     return latestKills;
 }
 
-export function getLatestWednesday(date) {
+function getLatestWednesday(date) {
     const currentDate = date ? date : new Date();
     const currentDay = currentDate.getDay();
 
@@ -957,6 +972,17 @@ export function getLatestWednesday(date) {
         lastWednesdayDate,
         10
     );
+}
+
+function defaultGuildRaidDays() {
+    return {
+        total: new Array(7).fill(new Array(24).fill(0)),
+        recent: new Array(7).fill(new Array(24).fill(0))
+    };
+}
+
+function unshiftDateDay(day) {
+    return day - 1 >= 0 ? day - 1 : 6;
 }
 
 module.exports = {
