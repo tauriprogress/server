@@ -595,10 +595,11 @@ function updateGuildData(oldGuild, newGuild) {
             ...oldGuild.progression.latestKills
         ]);
     }
-
-    for (let [day, hours] of newGuild.raidDays.total.entries()) {
-        for (let [hour, killCount] of hours.entries()) {
-            updatedGuild.raidDays.total[day][hour] += killCount;
+    if (newGuild.raidDays) {
+        for (let [day, hours] of newGuild.raidDays.total.entries()) {
+            for (let [hour, killCount] of hours.entries()) {
+                updatedGuild.raidDays.total[day][hour] += killCount;
+            }
         }
     }
 
@@ -999,6 +1000,7 @@ function recentGuildRaidDays(guild) {
             break;
         }
     }
+
     guild.raidDays.recent = recent;
 
     return guild;
