@@ -226,8 +226,7 @@ const { minutesAgo, secsAgo } = require("./helpers");
         } catch (err) {
             res.send({
                 success: false,
-                errorstring: err.message,
-                lastUpdated: secsAgo(lastUpdateTime)
+                errorstring: err.message
             });
         }
     });
