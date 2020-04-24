@@ -37,6 +37,7 @@ class Database {
         this.lastUpdated = null;
         this.isUpdating = false;
         this.updateStatus = "";
+        this.lastGuildsUpdate = 0;
     }
 
     async connect() {
@@ -51,6 +52,7 @@ class Database {
 
             this.db = client.db("tauriprogress");
             this.lastUpdated = await this.getLastUpdated();
+            this.lastGuildsUpdate = await this.getLastGuildsUpdate();
         } catch (err) {
             throw err;
         }
@@ -188,19 +190,25 @@ class Database {
                     await this.saveGuild(guildData[guildId]);
                 }
 
+                if (
+                    !isInitalization &&
+                    minutesAgo(this.lastGuildsUpdate) > 720
+                ) {
+                    await this.updateGuilds();
+                    this.lastGuildsUpdate = updateStarted;
+                }
+
                 await maintence.updateOne(
                     {},
                     {
                         $set: {
                             lastUpdated: updateStarted,
+                            lastGuildsUpdate: this.lastGuildsUpdate,
                             lastLogIds: newLastLogIds,
                             isInitalized: true
                         }
                     }
                 );
-
-                if (!isInitalization && minutesAgo(this.lastUpdated) > 720)
-                    await this.updateGuilds();
 
                 this.isUpdating = false;
                 this.updateStatus = "";
@@ -392,12 +400,7 @@ class Database {
     async getGuilds() {
         return new Promise(async (resolve, reject) => {
             try {
-                resolve(
-                    this.db
-                        .collection("guilds")
-                        .find()
-                        .toArray()
-                );
+                resolve(this.db.collection("guilds").find().toArray());
             } catch (err) {
                 reject(err);
             }
@@ -776,6 +779,22 @@ class Database {
 
                 let lastUpdated = maintence ? maintence.lastUpdated : null;
                 resolve(lastUpdated);
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+
+    async getLastGuildsUpdate() {
+        return new Promise(async (resolve, reject) => {
+            try {
+                let maintence = await this.db.collection("maintence").findOne();
+
+                let lastGuildsUpdate = maintence
+                    ? maintence.lastGuildsUpdate || 0
+                    : 0;
+
+                resolve(lastGuildsUpdate);
             } catch (err) {
                 reject(err);
             }
