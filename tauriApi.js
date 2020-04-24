@@ -26,7 +26,11 @@ class TauriApi {
                     })
                 );
             } catch (err) {
-                reject(err);
+                if (err.message === "request timed out") {
+                    reject(err);
+                } else {
+                    reject(new Error("Api request failed."));
+                }
             }
         });
     }
