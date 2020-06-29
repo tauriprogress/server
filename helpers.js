@@ -4,7 +4,8 @@ const {
     specToClass,
     shortRealms,
     raceToFaction,
-    classToSpec
+    classToSpec,
+    guildFactionBugs
 } = require("tauriprogress-constants");
 const {
     raidName: currentRaidName,
@@ -510,6 +511,15 @@ async function requestGuildData(guildName, realm) {
         ...guild,
         guildList: guildList
     };
+
+    for (let guild in guildFactionBugs) {
+        if (
+            guild.guildName === newGuild.guildName &&
+            guild.realm === newGuild.realm
+        ) {
+            newGuild.faction = guild.faction;
+        }
+    }
 
     return newGuild;
 }
