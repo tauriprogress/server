@@ -512,7 +512,7 @@ async function requestGuildData(guildName, realm) {
         guildList: guildList
     };
 
-    for (let guild in guildFactionBugs) {
+    for (let guild of guildFactionBugs) {
         if (
             guild.guildName === newGuild.guildName &&
             guild.realm === newGuild.realm
