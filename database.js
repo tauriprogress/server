@@ -416,7 +416,7 @@ class Database {
                         .find()
                         .project({
                             guildName: 1,
-                            gFaction: 1,
+                            faction: 1,
                             realm: 1,
                             activity: 1,
                             ["progression.completion"]: 1
