@@ -9,13 +9,16 @@ const classToSpec = require("tauriprogress-constants/classToSpec.json");
 const fs = require("fs");
 const { specs, tauriLogBugs } = require("tauriprogress-constants");
 */
+const { currentContent } = require("./expansionData");
 const dbUser = process.env.MONGODB_USER;
 const dbPassword = process.env.MONGODB_PASSWORD;
 const dbAddress = process.env.MONGODB_ADDRESS;
 const mongoUri = `mongodb+srv://${dbUser}:${dbPassword}@${dbAddress}`;
 const MongoClient = require("mongodb").MongoClient;
+
 /*
 const {
+
     getLogs,
     processLogs,
     updateGuildData,
@@ -33,8 +36,10 @@ const {
     capitalize,
     logBugHandler,
     recentGuildRaidDays
+    bossCollectionName
 } = require("./helpers");
 */
+
 class Database {
     constructor() {
         this.db = {};
@@ -54,8 +59,6 @@ class Database {
 
             this.db = client.db("tauriprogress");
 
-            console.log(this.db);
-
             /*
             this.lastUpdated = await this.getLastUpdated();
             this.lastGuildsUpdate = await this.getLastGuildsUpdate();
@@ -64,7 +67,6 @@ class Database {
             throw err;
         }
     }
-    /*
     async disconnect() {
         return new Promise(async (resolve, reject) => {
             try {
@@ -85,24 +87,57 @@ class Database {
             try {
                 console.log("db: Initalizing database");
                 console.log("db: Creating maintence collection");
-                let maintence = await this.db.collection("maintence");
-                if (await maintence.findOne()) await maintence.deleteMany({});
-                maintence.insertOne({});
+                const maintenceCollection = await this.db.collection(
+                    "maintence"
+                );
+                if (await maintenceCollection.findOne())
+                    await maintenceCollection.deleteMany({});
 
-                for (let raid of raids) {
-                    let raidName = raid.raidName;
-                    console.log(`db: Creating ${raidName} collection`);
-                    let raidCollection = await this.db.collection(raidName);
-                    if (await raidCollection.findOne())
-                        await raidCollection.deleteMany({});
-                }
+                maintenceCollection.insertOne({
+                    lastUpdated: 0,
+                    lastGuildsUpdate: 0,
+                    lastLogIds: {},
+                    isInitalized: true
+                });
 
                 console.log("db: Creating guilds collection");
                 let guildsCollection = await this.db.collection("guilds");
                 if (await guildsCollection.findOne())
                     await guildsCollection.deleteMany({});
 
-                await this.update(true);
+                console.log(`db: Creating collections for raids and bosses`);
+                for (const raid of currentContent.raids) {
+                    const raidCollection = await this.db.collection(raid.name);
+
+                    if (await raidCollection.findOne())
+                        await raidCollection.deleteMany({});
+
+                    for (const difficulty of raid.difficulties) {
+                        for (const boss of raid.bosses) {
+                            if (
+                                boss.difficulty !== undefined &&
+                                boss.difficulty !== difficulty
+                            ) {
+                                continue;
+                            }
+                            for (const combatMetric of ["dps", "hps"]) {
+                                const collectionName = bossCollectionName(
+                                    boss.id,
+                                    difficulty,
+                                    combatMetric
+                                );
+                                const bossCollection = await this.db.collection(
+                                    collectionName
+                                );
+
+                                if (await bossCollection.findOne())
+                                    await bossCollection.deleteMany({});
+                            }
+                        }
+                    }
+                }
+
+                //await this.update(true);
                 console.log("db: initalization done.");
                 resolve("Done");
             } catch (err) {
@@ -115,14 +150,17 @@ class Database {
     async isInitalized() {
         return new Promise(async (resolve, reject) => {
             try {
-                let maintence = await this.db.collection("maintence").findOne();
-                if (!maintence) resolve(false);
-                resolve(maintence.isInitalized);
+                const maintenceCollection = await this.db
+                    .collection("maintence")
+                    .findOne();
+                if (!maintenceCollection) resolve(false);
+                resolve(maintenceCollection.isInitalized);
             } catch (err) {
                 reject(err);
             }
         });
     }
+    /*
 
     async update(isInitalization) {
         return new Promise(async (resolve, reject) => {
