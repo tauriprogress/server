@@ -7,21 +7,20 @@ const {
     classToSpec,
     guildFactionBugs
 } = require("tauriprogress-constants");
+
+const expansionData = require("./expansionData");
+
+/*
 const {
     raidName: currentRaidName,
     totalBosses: currentTotalBosses,
     raids,
     lastBoss: currentLastBoss
 } = require("tauriprogress-constants/currentContent");
+*/
 const tauriApi = require("./tauriApi");
 
 const week = 1000 * 60 * 60 * 24 * 7;
-let raidNames = {};
-let difficulties = {};
-for (let raid of raids) {
-    raidNames[raid.raidName] = true;
-    difficulties[raid.raidName] = raid.difficulties;
-}
 
 async function getLogs(lastLogIds = {}) {
     return new Promise(async (resolve, reject) => {
@@ -899,11 +898,27 @@ function capitalize(str) {
 }
 
 function validRaidName(raidName) {
-    return raidNames[raidName] ? true : false;
+    for (const raid of currentContent.raids) {
+        if (raid.name === raidName) {
+            return true;
+        }
+    }
+    return false;
 }
 
 function validDifficulty(raidName, difficulty) {
-    return difficulties[raidName][difficulty] ? true : false;
+    for (const raid of currentContent.raids) {
+        if (raid.name === raidName) {
+            for (const raidDifficulty of raid.difficulties) {
+                if (difficulty === raidDifficulty) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+    }
+    return false;
 }
 
 function logBugHandler(log, bug) {
@@ -1020,6 +1035,10 @@ function unshiftDateDay(day) {
     return day - 1 >= 0 ? day - 1 : 6;
 }
 
+function bossCollectionName(id, difficulty, combatMetric) {
+    return `${id} ${difficulty} ${combatMetric}`;
+}
+
 module.exports = {
     getLogs,
     processLogs,
@@ -1041,5 +1060,6 @@ module.exports = {
     validRaidName,
     validDifficulty,
     logBugHandler,
-    recentGuildRaidDays
+    recentGuildRaidDays,
+    bossCollectionName
 };
