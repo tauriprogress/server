@@ -1,25 +1,14 @@
 const {
-    realms,
-    specs,
-    specToClass,
+    characterSpecToClass,
     shortRealms,
-    raceToFaction,
-    classToSpec,
-    guildFactionBugs
+    characterRaceToFaction,
+    characterClassToSpec
 } = require("tauriprogress-constants");
 
 const expansionData = require("./expansionData");
+const { currentContent } = expansionData;
 
-/*
-const {
-    raidName: currentRaidName,
-    totalBosses: currentTotalBosses,
-    raids,
-    lastBoss: currentLastBoss
-} = require("tauriprogress-constants/currentContent");
-*/
 const tauriApi = require("./tauriApi");
-
 const week = 1000 * 60 * 60 * 24 * 7;
 
 async function getLogs(lastLogIds = {}) {
@@ -28,13 +17,14 @@ async function getLogs(lastLogIds = {}) {
             let unfilteredLogs = [];
             let logs = [];
             let newLastLogIds = {};
+            const realms = expansionData.realms;
 
-            for (let key in realms) {
-                let lastLogId = lastLogIds[realms[key]];
+            for (let realmKey in realms) {
+                const lastLogId = lastLogIds[realms[realmKey]];
                 do {
                     try {
                         data = await tauriApi.getRaidLast(
-                            realms[key],
+                            realms[realmKey],
                             lastLogId
                         );
                     } catch (err) {
@@ -46,7 +36,7 @@ async function getLogs(lastLogIds = {}) {
                 unfilteredLogs = unfilteredLogs.concat(
                     data.response.logs.map(log => ({
                         ...log,
-                        realm: realms[key]
+                        realm: realms[realmKey]
                     }))
                 );
             }
@@ -298,7 +288,7 @@ function processLogs(logs) {
             );
             for (let variant of ["dps", "hps"]) {
                 if (
-                    specs[character.spec][
+                    expansionData.specs[character.spec][
                         `is${capitalize(
                             variant === "dps" ? variant : "healer"
                         )}`
@@ -307,12 +297,12 @@ function processLogs(logs) {
                     let characterData = {
                         name: character.name,
                         spec: character.spec,
-                        class: specToClass[character.spec],
+                        class: characterSpecToClass[character.spec],
                         realm: realm,
                         ilvl: character.ilvl,
                         date: log.killtime,
                         logId: log.log_id,
-                        faction: raceToFaction[character.race]
+                        faction: characterRaceToFaction[character.race]
                     };
 
                     if (variant === "dps") {
@@ -469,7 +459,7 @@ function determineLogFaction(log) {
     let alliance = 0;
     let horde = 0;
     for (let member of log.members) {
-        if (raceToFaction[member.race] === 0) {
+        if (characterRaceToFaction[member.race] === 0) {
             alliance++;
         } else {
             horde++;
@@ -511,7 +501,7 @@ async function requestGuildData(guildName, realm) {
         guildList: guildList
     };
 
-    for (let guild of guildFactionBugs) {
+    for (let guild of expansionData.guildFactionBugs) {
         if (
             guild.guildName === newGuild.guildName &&
             guild.realm === newGuild.realm
@@ -632,10 +622,11 @@ function calcGuildContentCompletion(guild) {
             completion[difficulty].progress++;
         }
 
-        if (completion[difficulty].progress === currentTotalBosses) {
+        if (completion[difficulty].progress === currentContent.totalBosses) {
             const firstKill =
-                guild.progression[currentRaidName][difficulty][currentLastBoss]
-                    .firstKill;
+                guild.progression[currentRaidName][difficulty][
+                    currentContent.lastBoss
+                ].firstKill;
             completion[difficulty].completed = firstKill;
 
             if (completion.completed) {
@@ -849,17 +840,17 @@ function getBestPerformance(
     let perfSpecs = {};
 
     if (spec) {
-        perfSpecs[specToClass[spec]] = [spec];
+        perfSpecs[characterSpecToClass[spec]] = [spec];
     } else if (characterClass) {
-        perfSpecs[characterClass] = classToSpec[characterClass];
+        perfSpecs[characterClass] = characterClassToSpec[characterClass];
     } else {
-        for (let characterClass in classToSpec) {
-            perfSpecs[characterClass] = classToSpec[characterClass];
+        for (let characterClass in characterClassToSpec) {
+            perfSpecs[characterClass] = characterClassToSpec[characterClass];
         }
     }
 
-    for (const realmId in realms) {
-        const realm = realms[realmId];
+    for (const realmKey in expansionData.realms) {
+        const realm = realms[realmKey];
         for (let faction of [0, 1]) {
             for (let characterClass in perfSpecs) {
                 for (let currentSpec of perfSpecs[characterClass]) {
