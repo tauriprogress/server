@@ -4,6 +4,7 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 const db = require("./database");
 const port = process.env.PORT || 3001;
+/*
 const {
     verifyGetGuild,
     verifyGetPlayer,
@@ -16,28 +17,35 @@ const {
     updateDatabase
 } = require("./middlewares");
 const tauriApi = require("./tauriApi");
+*/
+/*
 const { minutesAgo, secsAgo } = require("./helpers");
-
-(async function() {
+*/
+(async function () {
     try {
         await db.connect();
+        /*
         if (!(await db.isInitalized())) {
             await db.initalizeDatabase();
         }
+        */
     } catch (err) {
         console.error(err);
+        /*
         db.disconnect().catch(err => console.error(err));
+        */
         process.exit(1);
     }
     app.use(
         cors({
-            origin: "https://tauriprogress.github.io",
+            origin: "http://localhost:3000",
             optionsSuccessStatus: 200
         })
     );
     app.use(bodyParser.json());
-    app.use(updateDatabase(db));
+    //app.use(updateDatabase(db));
 
+    /*
     app.get("/getguildlist", async (req, res) => {
         try {
             res.send({
@@ -230,6 +238,7 @@ const { minutesAgo, secsAgo } = require("./helpers");
             });
         }
     });
+    */
 
     app.listen(port, () => console.log(`Server running on port ${port}`));
 })();
