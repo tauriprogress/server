@@ -1,16 +1,20 @@
+/*
 const {
     raidName,
     lastBoss,
     raids
 } = require("tauriprogress-constants/currentContent.json");
 const classToSpec = require("tauriprogress-constants/classToSpec.json");
+
 const fs = require("fs");
 const { specs, tauriLogBugs } = require("tauriprogress-constants");
+*/
 const dbUser = process.env.MONGODB_USER;
 const dbPassword = process.env.MONGODB_PASSWORD;
 const dbAddress = process.env.MONGODB_ADDRESS;
-const mongoUrl = `mongodb://${dbUser}:${dbPassword}@${dbAddress}`;
+const mongoUri = `mongodb+srv://${dbUser}:${dbPassword}@${dbAddress}`;
 const MongoClient = require("mongodb").MongoClient;
+/*
 const {
     getLogs,
     processLogs,
@@ -30,7 +34,7 @@ const {
     logBugHandler,
     recentGuildRaidDays
 } = require("./helpers");
-
+*/
 class Database {
     constructor() {
         this.db = {};
@@ -43,21 +47,24 @@ class Database {
     async connect() {
         try {
             console.log("Connecting to database");
-            let client = await MongoClient.connect(mongoUrl, {
-                useNewUrlParser: true,
-                autoReconnect: true,
-                reconnectTries: Number.MAX_SAFE_INTEGER,
-                reconnectInterval: 2000
+            let client = await MongoClient.connect(mongoUri, {
+                useUnifiedTopology: true,
+                useNewUrlParser: true
             });
 
             this.db = client.db("tauriprogress");
+
+            console.log(this.db);
+
+            /*
             this.lastUpdated = await this.getLastUpdated();
             this.lastGuildsUpdate = await this.getLastGuildsUpdate();
+            */
         } catch (err) {
             throw err;
         }
     }
-
+    /*
     async disconnect() {
         return new Promise(async (resolve, reject) => {
             try {
@@ -800,6 +807,7 @@ class Database {
             }
         });
     }
+    */
 }
 
 module.exports = new Database();
