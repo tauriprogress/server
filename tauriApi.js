@@ -51,7 +51,7 @@ class TauriApi {
         });
     }
 
-    getGuild(realm, name) {
+    getGuild(name, realm) {
         return this.request({
             method: "POST",
             body: encodeURIComponent(
@@ -232,6 +232,22 @@ class TauriApi {
                     params: {
                         r: realm || "[HU] Tauri WoW Server",
                         i: guid
+                    }
+                })
+            )
+        });
+    }
+
+    getCharacterTalents(name, realm) {
+        return this.request({
+            method: "POST",
+            body: encodeURIComponent(
+                JSON.stringify({
+                    secret: this.apisecret,
+                    url: "character-talents",
+                    params: {
+                        r: realm || "[HU] Tauri WoW Server",
+                        n: name
                     }
                 })
             )
