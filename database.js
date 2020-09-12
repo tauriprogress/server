@@ -1,26 +1,13 @@
-/*
-const {
-    raidName,
-    lastBoss,
-    raids
-} = require("tauriprogress-constants/currentContent.json");
-const classToSpec = require("tauriprogress-constants/classToSpec.json");
-
 const fs = require("fs");
-const { specs, tauriLogBugs } = require("tauriprogress-constants");
-*/
-const { currentContent } = require("./expansionData");
+const { currentContent, logBugs } = require("./expansionData");
 const dbUser = process.env.MONGODB_USER;
 const dbPassword = process.env.MONGODB_PASSWORD;
 const dbAddress = process.env.MONGODB_ADDRESS;
 const mongoUri = `mongodb+srv://${dbUser}:${dbPassword}@${dbAddress}`;
 const MongoClient = require("mongodb").MongoClient;
 
-/*
 const {
-
     getLogs,
-    processLogs,
     updateGuildData,
     requestGuildData,
     updateRaidBoss,
@@ -34,15 +21,19 @@ const {
     getBestPerformance,
     calcTopPercentOfPerformance,
     capitalize,
+    recentGuildRaidDays,
     logBugHandler,
-    recentGuildRaidDays
-    bossCollectionName
+    processLogs,
+    bossCollectionName,
+    getLastLogIds
 } = require("./helpers");
-*/
+
+const importedLogs = require("./newlogdata.json");
 
 class Database {
     constructor() {
         this.db = {};
+        this.client = undefined;
         this.lastUpdated = null;
         this.isUpdating = false;
         this.updateStatus = "";
@@ -52,17 +43,15 @@ class Database {
     async connect() {
         try {
             console.log("Connecting to database");
-            let client = await MongoClient.connect(mongoUri, {
+            this.client = await MongoClient.connect(mongoUri, {
                 useUnifiedTopology: true,
                 useNewUrlParser: true
             });
 
-            this.db = client.db("tauriprogress");
+            this.db = this.client.db("tauriprogress");
 
-            /*
             this.lastUpdated = await this.getLastUpdated();
             this.lastGuildsUpdate = await this.getLastGuildsUpdate();
-            */
         } catch (err) {
             throw err;
         }
@@ -86,14 +75,14 @@ class Database {
         return new Promise(async (resolve, reject) => {
             try {
                 console.log("db: Initalizing database");
-                console.log("db: Creating maintence collection");
-                const maintenceCollection = await this.db.collection(
-                    "maintence"
+                console.log("db: Creating maintenance collection");
+                const maintenanceCollection = await this.db.collection(
+                    "maintenance"
                 );
-                if (await maintenceCollection.findOne())
-                    await maintenceCollection.deleteMany({});
+                if (await maintenanceCollection.findOne())
+                    await maintenanceCollection.deleteMany({});
 
-                maintenceCollection.insertOne({
+                maintenanceCollection.insertOne({
                     lastUpdated: 0,
                     lastGuildsUpdate: 0,
                     lastLogIds: {},
@@ -137,7 +126,7 @@ class Database {
                     }
                 }
 
-                //await this.update(true);
+                await this.update(true);
                 console.log("db: initalization done.");
                 resolve("Done");
             } catch (err) {
@@ -150,17 +139,16 @@ class Database {
     async isInitalized() {
         return new Promise(async (resolve, reject) => {
             try {
-                const maintenceCollection = await this.db
-                    .collection("maintence")
+                const maintenanceCollection = await this.db
+                    .collection("maintenance")
                     .findOne();
-                if (!maintenceCollection) resolve(false);
-                resolve(maintenceCollection.isInitalized);
+                if (!maintenanceCollection) resolve(false);
+                resolve(maintenanceCollection.isInitalized);
             } catch (err) {
                 reject(err);
             }
         });
     }
-    /*
 
     async update(isInitalization) {
         return new Promise(async (resolve, reject) => {
@@ -172,11 +160,13 @@ class Database {
                 this.updateStatus = "Database is already updating";
 
                 const updateStarted = new Date().getTime() / 1000;
-                const maintence = await this.db.collection("maintence");
+                const maintenanceCollection = await this.db.collection(
+                    "maintenance"
+                );
 
                 const lastLogIds = isInitalization
                     ? {}
-                    : (await maintence.findOne()).lastLogIds;
+                    : (await maintenanceCollection.findOne()).lastLogIds;
 
                 if (!lastLogIds)
                     throw new Error(
@@ -184,21 +174,24 @@ class Database {
                     );
 
                 console.log("db: Requesting logs");
-                let { logs, lastLogIds: newLastLogIds } = await getLogs(
+                let { logs, lastLogIds: newLastLogIds } = importedLogs;
+                /*await getLogs(
                     lastLogIds
                 );
-
+*/
                 if (isInitalization) {
                     console.log(
-                        "db: Saving logs in case something goes wrong in the initalization process as logData.json in this directory."
+                        "db: Saving logs in case something goes wrong in the initalization process to",
+                        __dirname
                     );
+                    /*
                     fs.writeFileSync(
                         "logData.json",
                         JSON.stringify({ logs, lastLogIds: newLastLogIds })
                     );
-
+*/
                     logs = logs.reduce((acc, log) => {
-                        for (let bug of tauriLogBugs) {
+                        for (const bug of logBugs) {
                             log = logBugHandler(log, bug);
                         }
 
@@ -208,52 +201,112 @@ class Database {
 
                         return acc;
                     }, []);
-                }
-                console.log("db: Processing logs");
-                let { bossData, guildData } = processLogs(logs);
 
-                console.log("db: Saving raid bosses");
-                for (let raidName in bossData) {
-                    for (let bossId in bossData[raidName]) {
-                        const { bossName, difficulty } = bossData[raidName][
-                            bossId
-                        ];
-                        console.log(
-                            `db: Saving ${bossName} difficulty: ${difficulty}`
-                        );
+                    console.log("db: Processing logs");
+                    const { bosses, guilds, combatMetrics } = processLogs(logs);
 
-                        await this.saveRaidBoss({
-                            raidName,
-                            raidBoss: bossData[raidName][bossId]
-                        });
+                    console.log("db: Saving raid bosses");
+                    for (const bossId in bosses) {
+                        await this.saveRaidBoss(bosses[bossId]);
                     }
-                }
 
-                console.log("db: Saving guilds");
-                for (let guildId in guildData) {
-                    console.log(`db: Saving: ${guildId}`);
-                    await this.saveGuild(guildData[guildId]);
-                }
+                    console.log("db: Saving guilds");
+                    for (const guildId in guilds) {
+                        await this.saveGuild(guilds[guildId]);
+                    }
 
-                if (
-                    !isInitalization &&
-                    minutesAgo(this.lastGuildsUpdate) > 720
-                ) {
-                    await this.updateGuilds();
-                    this.lastGuildsUpdate = updateStarted;
-                }
+                    console.log("db: Saving chars");
+                    for (const bossId in combatMetrics) {
+                        console.log(`db: to ${bossId}`);
 
-                await maintence.updateOne(
-                    {},
-                    {
-                        $set: {
-                            lastUpdated: updateStarted,
-                            lastGuildsUpdate: this.lastGuildsUpdate,
-                            lastLogIds: newLastLogIds,
-                            isInitalized: true
+                        for (const combatMetric in combatMetrics[bossId]) {
+                            let characters = [];
+                            for (const charId in combatMetrics[bossId][
+                                combatMetric
+                            ]) {
+                                characters.push(
+                                    combatMetrics[bossId][combatMetric][charId]
+                                );
+                            }
+
+                            const bossCollection = await this.db.collection(
+                                `${bossId} ${combatMetric}`
+                            );
+
+                            try {
+                                await bossCollection.insertMany(characters);
+                            } catch (err) {
+                                console.error(
+                                    `Error while tring to save to ${bossId} ${combatMetric}`
+                                );
+                            }
                         }
                     }
-                );
+                    console.log("db: Saving chars done");
+
+                    await maintenanceCollection.updateOne(
+                        {},
+                        {
+                            $set: {
+                                lastUpdated: updateStarted,
+                                lastLogIds: newLastLogIds,
+                                isInitalized: true
+                            }
+                        }
+                    );
+                } else {
+                    console.log("db: Opening new transaction session");
+                    newLastLogIds = {};
+                    const loopSteps = 10;
+                    for (let i = 0; i < Math.ceil(logs.length); i++) {
+                        const start = i * loopSteps;
+                        const chunkOfLogs = logs.slice(
+                            start,
+                            start + loopSteps
+                        );
+                        const processedLogs = processLogs(chunkOfLogs);
+                        newLastLogIds = {
+                            ...newLastLogIds,
+                            ...getLastLogIds(chunkOfLogs)
+                        };
+                        const session = this.client.startSession();
+
+                        try {
+                            await session.withTransaction(async () => {
+                                await this.saveLogs(
+                                    processedLogs,
+                                    {
+                                        lastLogIds: newLastLogIds,
+                                        updateStarted
+                                    },
+                                    session
+                                );
+                            });
+                        } catch (err) {
+                            console.log("transaction error");
+                            console.error(err);
+                            throw err;
+                        } finally {
+                            session.endSession();
+                            console.log("db: Transaction session closed");
+                        }
+                    }
+                }
+
+                if (minutesAgo(this.lastGuildsUpdate) > 720) {
+                    console.log("db: Updating guilds");
+                    this.lastGuildsUpdate = updateStarted;
+                    await maintenanceCollection.updateOne(
+                        {},
+                        {
+                            $set: {
+                                lastGuildsUpdate: this.lastGuildsUpdate
+                            }
+                        }
+                    );
+
+                    await this.updateGuilds();
+                }
 
                 this.isUpdating = false;
                 this.updateStatus = "";
@@ -267,6 +320,96 @@ class Database {
                     this.isUpdating = false;
                     this.updateStatus = "";
                 }
+                reject(err);
+            }
+        });
+    }
+
+    async saveLogs(
+        { bosses, guilds, combatMetrics },
+        { lastLogIds, updateStarted },
+        session = null
+    ) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const maintenanceCollection = this.db.collection("maintenance");
+                console.log("db: Saving raid bosses");
+                for (const bossId in bosses) {
+                    await this.saveRaidBoss(bosses[bossId], session);
+                }
+
+                console.log("db: Saving guilds");
+                for (const guildId in guilds) {
+                    await this.saveGuild(guilds[guildId], session);
+                }
+
+                console.log("db: Saving chars");
+                for (const bossId in combatMetrics) {
+                    console.log(`db: to ${bossId}`);
+                    for (const combatMetric in combatMetrics[bossId]) {
+                        for (const charId in combatMetrics[bossId][
+                            combatMetric
+                        ]) {
+                            await this.saveChar(
+                                bossId,
+                                combatMetric,
+                                combatMetrics[bossId][combatMetric][charId],
+                                session
+                            );
+                        }
+                    }
+                }
+                console.log("db: Saving chars done");
+
+                await maintenanceCollection.updateOne(
+                    {},
+                    {
+                        $set: {
+                            lastUpdated: updateStarted,
+                            lastLogIds: lastLogIds,
+                            isInitalized: true
+                        }
+                    },
+                    session
+                );
+            } catch (err) {
+                reject(err);
+            }
+            resolve("Done");
+        });
+    }
+
+    async saveRaidBoss(boss, session = null) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const raidCollection = this.db.collection(boss.raidName);
+                const oldBoss = await raidCollection.findOne(
+                    {
+                        _id: boss._id
+                    },
+                    { session }
+                );
+
+                if (!oldBoss) {
+                    await raidCollection.insertOne(boss, {
+                        session
+                    });
+                } else {
+                    await raidCollection.updateOne(
+                        {
+                            _id: boss._id
+                        },
+                        {
+                            $set: updateRaidBoss(oldBoss, boss)
+                        },
+                        {
+                            session
+                        }
+                    );
+                }
+
+                resolve("Done");
+            } catch (err) {
                 reject(err);
             }
         });
@@ -289,23 +432,24 @@ class Database {
                     try {
                         current++;
                         console.log(
-                            `db: Updating ${guild.guildName} ${current}/${total}`
+                            `db: Updating ${guild.name} ${current}/${total}`
                         );
                         let newGuild = await requestGuildData(
-                            guild.guildName,
+                            guild.name,
                             guild.realm
                         );
 
                         if (newGuild) {
-                            await this.saveGuild(newGuild);
+                            await this.saveGuild({
+                                ...newGuild,
+                                _id: guild._id
+                            });
                         }
                     } catch (err) {
                         if (err.message === "guild not found") {
                             this.removeGuild(guild);
                         } else {
-                            console.log(
-                                `Error with updating ${guild.guildName}:`
-                            );
+                            console.log(`Error with updating ${guild.name}:`);
                             console.error(err);
                         }
                     }
@@ -318,93 +462,31 @@ class Database {
         });
     }
 
-    async saveRaidBoss({ raidName, raidBoss }) {
+    async saveGuild(newGuild, session = null) {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!raidName)
-                    throw new Error(
-                        "Need to specify which raid the boss belongs to."
-                    );
-                let raidCollection = this.db.collection(raidName);
-                let oldRaidBoss = await raidCollection.findOne({
-                    bossName: new RegExp(
-                        "^" + escapeRegex(raidBoss.bossName) + "$",
-                        "i"
-                    ),
-                    difficulty: Number(raidBoss.difficulty)
-                });
-
-                if (!oldRaidBoss) {
-                    raidCollection.insertOne(
-                        applyPlayerPerformanceRanks(raidBoss)
-                    );
-                } else {
-                    await raidCollection.updateOne(
-                        {
-                            bossName: new RegExp(
-                                "^" + escapeRegex(raidBoss.bossName) + "$",
-                                "i"
-                            ),
-                            difficulty: raidBoss.difficulty
-                        },
-                        {
-                            $set: {
-                                ...applyPlayerPerformanceRanks(
-                                    updateRaidBoss(oldRaidBoss, raidBoss)
-                                ),
-                                _id: oldRaidBoss["_id"]
-                            }
-                        }
-                    );
-                }
-
-                resolve("Done");
-            } catch (err) {
-                reject(err);
-            }
-        });
-    }
-
-    async saveGuild(newGuild) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                let oldGuild = await this.db.collection("guilds").findOne({
-                    guildName: new RegExp(
-                        "^" + escapeRegex(newGuild.guildName) + "$",
-                        "i"
-                    ),
-                    realm: newGuild.realm
-                });
+                let oldGuild = await this.db.collection("guilds").findOne(
+                    {
+                        _id: newGuild._id
+                    },
+                    { session }
+                );
 
                 if (!oldGuild) {
                     try {
-                        let guildData = await requestGuildData(
-                            newGuild.guildName,
-                            newGuild.realm
-                        );
                         await this.db.collection("guilds").insertOne(
                             recentGuildRaidDays(
                                 calcGuildContentCompletion({
-                                    ...guildData,
                                     ...newGuild
                                 })
-                            )
+                            ),
+                            { session }
                         );
-                    } catch (err) {
-                        console.error(
-                            `Error while tring to save guild ${newGuild.guildName} ${newGuild.realm},
-                            this error may safely be ignored.
-                            \n ${err.message}`
-                        );
-                    }
+                    } catch (err) {}
                 } else {
                     await this.db.collection("guilds").updateOne(
                         {
-                            guildName: new RegExp(
-                                "^" + escapeRegex(newGuild.guildName) + "$",
-                                "i"
-                            ),
-                            realm: newGuild.realm
+                            _id: newGuild._id
                         },
                         {
                             $set: {
@@ -412,11 +494,55 @@ class Database {
                                     calcGuildContentCompletion(
                                         updateGuildData(oldGuild, newGuild)
                                     )
-                                ),
-                                _id: oldGuild["_id"]
+                                )
                             }
-                        }
+                        },
+                        { session }
                     );
+                }
+                resolve("Done");
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+
+    async saveChar(bossId, combatMetric, char, session = null) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const bossCollection = await this.db.collection(
+                    `${bossId} ${combatMetric}`
+                );
+
+                let oldChar = await bossCollection.findOne(
+                    {
+                        _id: char._id
+                    },
+                    { session }
+                );
+
+                if (!oldChar) {
+                    try {
+                        await bossCollection.insertOne(char, { session });
+                    } catch (err) {
+                        console.error(
+                            `Error while tring to save ${char._id} \n ${err.message}`
+                        );
+                    }
+                } else {
+                    if (oldChar[combatMetric < char[combatMetric]]) {
+                        await bossCollection.updateOne(
+                            {
+                                _id: char._id
+                            },
+                            {
+                                $set: {
+                                    char
+                                }
+                            },
+                            { session }
+                        );
+                    }
                 }
                 resolve("Done");
             } catch (err) {
@@ -429,11 +555,7 @@ class Database {
         return new Promise(async (resolve, reject) => {
             try {
                 await this.db.collection("guilds").deleteOne({
-                    guildName: new RegExp(
-                        "^" + escapeRegex(guild.guildName) + "$",
-                        "i"
-                    ),
-                    realm: guild.realm
+                    _id: guild._id
                 });
                 resolve("Done");
             } catch (err) {
@@ -474,7 +596,7 @@ class Database {
         });
     }
 
-    async getGuild(realm, guildName) {
+    async getGuild(guildName, realm) {
         return new Promise(async (resolve, reject) => {
             try {
                 let guild = await this.db.collection("guilds").findOne({
@@ -820,9 +942,13 @@ class Database {
     async getLastUpdated() {
         return new Promise(async (resolve, reject) => {
             try {
-                let maintence = await this.db.collection("maintence").findOne();
+                let maintenanceCollection = await this.db
+                    .collection("maintenance")
+                    .findOne();
 
-                let lastUpdated = maintence ? maintence.lastUpdated : null;
+                let lastUpdated = maintenanceCollection
+                    ? maintenanceCollection.lastUpdated
+                    : null;
                 resolve(lastUpdated);
             } catch (err) {
                 reject(err);
@@ -833,10 +959,12 @@ class Database {
     async getLastGuildsUpdate() {
         return new Promise(async (resolve, reject) => {
             try {
-                let maintence = await this.db.collection("maintence").findOne();
+                let maintenanceCollection = await this.db
+                    .collection("maintenance")
+                    .findOne();
 
-                let lastGuildsUpdate = maintence
-                    ? maintence.lastGuildsUpdate || 0
+                let lastGuildsUpdate = maintenanceCollection
+                    ? maintenanceCollection.lastGuildsUpdate || 0
                     : 0;
 
                 resolve(lastGuildsUpdate);
@@ -845,7 +973,6 @@ class Database {
             }
         });
     }
-    */
 }
 
 module.exports = new Database();
