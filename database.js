@@ -11,11 +11,9 @@ const {
     updateGuildData,
     requestGuildData,
     updateRaidBoss,
-    applyPlayerPerformanceRanks,
     minutesAgo,
     calcGuildContentCompletion,
     createCharacterId,
-    escapeRegex,
     addNestedObjectValue,
     getNestedObjectValue,
     getBestPerformance,
@@ -25,10 +23,9 @@ const {
     logBugHandler,
     processLogs,
     bossCollectionName,
-    getLastLogIds
+    getLastLogIds,
+    raidInfoFromBossId
 } = require("./helpers");
-
-const importedLogs = require("./newlogdata.json");
 
 class Database {
     constructor() {
@@ -96,7 +93,9 @@ class Database {
 
                 console.log(`db: Creating collections for raids and bosses`);
                 for (const raid of currentContent.raids) {
-                    const raidCollection = await this.db.collection(raid.name);
+                    const raidCollection = await this.db.collection(
+                        String(raid.id)
+                    );
 
                     if (await raidCollection.findOne())
                         await raidCollection.deleteMany({});
@@ -174,22 +173,17 @@ class Database {
                     );
 
                 console.log("db: Requesting logs");
-                let { logs, lastLogIds: newLastLogIds } = importedLogs;
-                /*await getLogs(
-                    lastLogIds
-                );
-*/
+                let { logs, lastLogIds: newLastLogIds } = getLogs(lastLogIds);
                 if (isInitalization) {
                     console.log(
                         "db: Saving logs in case something goes wrong in the initalization process to",
                         __dirname
                     );
-                    /*
                     fs.writeFileSync(
                         "logData.json",
                         JSON.stringify({ logs, lastLogIds: newLastLogIds })
                     );
-*/
+
                     logs = logs.reduce((acc, log) => {
                         for (const bug of logBugs) {
                             log = logBugHandler(log, bug);
@@ -257,7 +251,7 @@ class Database {
                 } else {
                     console.log("db: Opening new transaction session");
                     newLastLogIds = {};
-                    const loopSteps = 10;
+                    const loopSteps = 20;
                     for (let i = 0; i < Math.ceil(logs.length); i++) {
                         const start = i * loopSteps;
                         const chunkOfLogs = logs.slice(
@@ -293,7 +287,10 @@ class Database {
                     }
                 }
 
-                if (minutesAgo(this.lastGuildsUpdate) > 720) {
+                if (
+                    !isInitalization &&
+                    minutesAgo(this.lastGuildsUpdate) > 720
+                ) {
                     console.log("db: Updating guilds");
                     this.lastGuildsUpdate = updateStarted;
                     await maintenanceCollection.updateOne(
@@ -315,8 +312,8 @@ class Database {
                 console.log("db: Database update finished");
                 resolve(minutesAgo(updateStarted));
             } catch (err) {
-                console.error(`Database update error: ${err.message}`);
                 if (err.message !== "Database is already updating") {
+                    console.error(`Database update error: ${err.message}`);
                     this.isUpdating = false;
                     this.updateStatus = "";
                 }
@@ -446,7 +443,10 @@ class Database {
                             });
                         }
                     } catch (err) {
-                        if (err.message === "guild not found") {
+                        if (
+                            err.message &&
+                            err.message.includes("guild not found")
+                        ) {
                             this.removeGuild(guild);
                         } else {
                             console.log(`Error with updating ${guild.name}:`);
@@ -474,15 +474,25 @@ class Database {
 
                 if (!oldGuild) {
                     try {
-                        await this.db.collection("guilds").insertOne(
-                            recentGuildRaidDays(
-                                calcGuildContentCompletion({
-                                    ...newGuild
-                                })
-                            ),
-                            { session }
+                        let guildData = await requestGuildData(
+                            newGuild.name,
+                            newGuild.realm
                         );
-                    } catch (err) {}
+
+                        if (guildData) {
+                            await this.db.collection("guilds").insertOne(
+                                recentGuildRaidDays(
+                                    calcGuildContentCompletion({
+                                        ...guildData,
+                                        ...newGuild
+                                    })
+                                ),
+                                { session }
+                            );
+                        }
+                    } catch (err) {
+                        console.error(err);
+                    }
                 } else {
                     await this.db.collection("guilds").updateOne(
                         {
@@ -582,8 +592,8 @@ class Database {
                         .collection("guilds")
                         .find()
                         .project({
-                            guildName: 1,
-                            faction: 1,
+                            name: 1,
+                            f: 1,
                             realm: 1,
                             activity: 1,
                             ["progression.completion"]: 1
@@ -596,15 +606,11 @@ class Database {
         });
     }
 
-    async getGuild(guildName, realm) {
+    async getGuild(id) {
         return new Promise(async (resolve, reject) => {
             try {
                 let guild = await this.db.collection("guilds").findOne({
-                    guildName: new RegExp(
-                        "^" + escapeRegex(guildName) + "$",
-                        "i"
-                    ),
-                    realm: realm
+                    _id: id
                 });
 
                 if (!guild) throw new Error("guild not found");
@@ -616,29 +622,31 @@ class Database {
         });
     }
 
-    async getRaid(raidName) {
+    async getRaid(id) {
         return new Promise(async (resolve, reject) => {
             try {
                 let raidData = {};
                 let bosses = await this.db
-                    .collection(raidName)
-                    .find()
-                    .project({
-                        ["dps"]: 0,
-                        ["hps"]: 0,
-                        ["latestKills"]: 0
-                    })
+                    .collection(id)
+                    .find(
+                        {},
+                        {
+                            ["dps"]: 0,
+                            ["hps"]: 0,
+                            ["recentKills"]: 0
+                        }
+                    )
                     .toArray();
 
                 for (let boss of bosses) {
-                    for (let realm in boss.fastestKills) {
-                        for (let faction in boss.fastestKills[realm]) {
+                    for (let realm in boss.ranking) {
+                        for (let faction in boss.ranking[realm]) {
                             let objectKeys = [realm, faction];
-                            boss.fastestKills = addNestedObjectValue(
-                                boss.fastestKills,
+                            boss.ranking = addNestedObjectValue(
+                                boss.ranking,
                                 objectKeys,
                                 getNestedObjectValue(
-                                    boss.fastestKills,
+                                    boss.ranking,
                                     objectKeys
                                 ).slice(0, 1)
                             );
@@ -658,21 +666,21 @@ class Database {
         });
     }
 
-    async getRaidBoss(raidName, bossName) {
+    async getRaidBoss(id) {
         return new Promise(async (resolve, reject) => {
             try {
-                let raidCollection = this.db.collection(raidName);
+                const raid = raidInfoFromBossId(id);
+                let raidCollection = this.db.collection(raid.name);
                 let raidBoss = await raidCollection
-                    .find({
-                        bossName: new RegExp(
-                            "^" + escapeRegex(bossName) + "$",
-                            "i"
-                        )
-                    })
-                    .project({
-                        ["bestDps"]: 0,
-                        ["bestHps"]: 0
-                    })
+                    .find(
+                        {
+                            _id: id
+                        },
+                        {
+                            ["bestDps"]: 0,
+                            ["bestHps"]: 0
+                        }
+                    )
                     .toArray();
                 if (!raidBoss) throw new Error("Boss not found");
 
