@@ -104,6 +104,7 @@ function processLogs(logs) {
         _id: undefined,
         f: undefined,
         realm: undefined,
+        name: undefined,
         members: [],
         ranks: [],
         activity: {},
@@ -717,18 +718,6 @@ function escapeRegex(s) {
     return String(s).replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
 }
 
-function getBossId(raidData, bossName, difficulty = 0) {
-    return raidData.encounters.reduce((acc, boss) => {
-        if (
-            boss.encounter_name === bossName &&
-            (boss.encounter_difficulty === 0 ||
-                boss.encounter_difficulty === Number(difficulty))
-        )
-            acc = boss.encounter_id;
-        return acc;
-    }, null);
-}
-
 function addNestedObjectValue(obj, keys, value) {
     let currentKey = keys[0];
     if (currentKey !== undefined) {
@@ -965,6 +954,18 @@ function getLastLogIds(logs) {
     return lastLogIds;
 }
 
+function raidInfoFromBossId(id) {
+    for (const raid of currentContent.raids) {
+        for (const boss of raid.bosses) {
+            if (boss.id === id) {
+                return raid;
+            }
+        }
+    }
+
+    return false;
+}
+
 module.exports = {
     getLogs,
     processLogs,
@@ -976,7 +977,6 @@ module.exports = {
     calcGuildContentCompletion,
     createCharacterId,
     escapeRegex,
-    getBossId,
     secsAgo,
     addNestedObjectValue,
     getNestedObjectValue,
@@ -988,5 +988,6 @@ module.exports = {
     logBugHandler,
     recentGuildRaidDays,
     bossCollectionName,
-    getLastLogIds
+    getLastLogIds,
+    raidInfoFromBossId
 };
