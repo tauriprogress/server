@@ -94,7 +94,7 @@ function processLogs(logs) {
         difficulty: undefined,
         killCount: 0,
         recentKills: [],
-        ranking: {},
+        fastestKills: {},
         bestDps: {},
         bestHps: {}
     };
@@ -116,7 +116,7 @@ function processLogs(logs) {
     };
     let defaultGuildBoss = {
         killCount: 0,
-        ranking: [],
+        fastestKills: [],
         firstKill: false,
         dps: {},
         hps: {}
@@ -178,21 +178,21 @@ function processLogs(logs) {
         bosses[bossId].recentKills.unshift(trimmedLog);
 
         const logCategorization = [realm, faction];
-        const categorizedRanking = getNestedObjectValue(
-            bosses[bossId].ranking,
+        const categorizedFastestKills = getNestedObjectValue(
+            bosses[bossId].fastestKills,
             logCategorization
         );
-        if (!categorizedRanking) {
-            bosses[bossId].ranking = addNestedObjectValue(
-                bosses[bossId].ranking,
+        if (!categorizedFastestKills) {
+            bosses[bossId].fastestKills = addNestedObjectValue(
+                bosses[bossId].fastestKills,
                 logCategorization,
                 [trimmedLog]
             );
         } else {
-            bosses[bossId].ranking = addNestedObjectValue(
-                bosses[bossId].ranking,
+            bosses[bossId].fastestKills = addNestedObjectValue(
+                bosses[bossId].fastestKills,
                 logCategorization,
-                categorizedRanking.concat(trimmedLog)
+                categorizedFastestKills.concat(trimmedLog)
             );
         }
 
@@ -255,8 +255,8 @@ function processLogs(logs) {
                             : date < oldGuildBoss.firstKill
                             ? date
                             : oldGuildBoss.firstKill,
-                    ranking: [
-                        ...oldGuildBoss.ranking,
+                    fastestKills: [
+                        ...oldGuildBoss.fastestKills,
                         {
                             id: logId,
                             fightLength: fightLength,
@@ -375,13 +375,16 @@ function processLogs(logs) {
     for (const bossId in bosses) {
         bosses[bossId].recentKills = bosses[bossId].recentKills.slice(0, 50);
 
-        for (const realm in bosses[bossId].ranking) {
-            for (const faction in bosses[bossId].ranking[realm]) {
+        for (const realm in bosses[bossId].fastestKills) {
+            for (const faction in bosses[bossId].fastestKills[realm]) {
                 const categorization = [realm, faction];
-                bosses[bossId].ranking = addNestedObjectValue(
-                    bosses[bossId].ranking,
+                bosses[bossId].fastestKills = addNestedObjectValue(
+                    bosses[bossId].fastestKills,
                     categorization,
-                    getNestedObjectValue(bosses[bossId].ranking, categorization)
+                    getNestedObjectValue(
+                        bosses[bossId].fastestKills,
+                        categorization
+                    )
                         .sort((a, b) => a.fightLength - b.fightLength)
                         .slice(0, 50)
                 );
@@ -405,9 +408,9 @@ function processLogs(logs) {
                     ][difficulty]) {
                         guilds[guildId].progression[raidName][difficulty][
                             bossName
-                        ].ranking = guilds[guildId].progression[raidName][
+                        ].fastestKills = guilds[guildId].progression[raidName][
                             difficulty
-                        ][bossName].ranking
+                        ][bossName].fastestKills
                             .sort((a, b) => a.fightLength - b.fightLength)
                             .slice(0, 10);
                     }
@@ -529,7 +532,10 @@ function updateGuildData(oldGuild, newGuild) {
                         updatedBoss = {
                             ...oldBoss,
                             killCount: oldBoss.killCount + newBoss.killCount,
-                            ranking: [...oldBoss.ranking, ...newBoss.ranking]
+                            fastestKills: [
+                                ...oldBoss.fastestKills,
+                                ...newBoss.fastestKills
+                            ]
                                 .sort((a, b) => a.fightLength - b.fightLength)
                                 .slice(0, 10)
                         };
@@ -630,22 +636,26 @@ function updateRaidBoss(oldBoss, boss) {
         killCount: oldBoss.killCount + boss.killCount
     };
 
-    for (const realm in boss.ranking) {
-        for (const faction in boss.ranking[realm]) {
+    for (const realm in boss.fastestKills) {
+        for (const faction in boss.fastestKills[realm]) {
             const categorization = [realm, faction];
 
             const oldLogs =
-                getNestedObjectValue(oldBoss.ranking, categorization) || [];
+                getNestedObjectValue(oldBoss.fastestKills, categorization) ||
+                [];
 
-            const newLogs = getNestedObjectValue(boss.ranking, categorization);
+            const newLogs = getNestedObjectValue(
+                boss.fastestKills,
+                categorization
+            );
 
             const updatedLogs = oldLogs
                 .concat(newLogs)
                 .sort((a, b) => a.fightLength - b.fightLength)
                 .slice(0, 50);
 
-            updatedRaidBoss.ranking = addNestedObjectValue(
-                updatedRaidBoss.ranking,
+            updatedRaidBoss.fastestKills = addNestedObjectValue(
+                updatedRaidBoss.fastestKills,
                 categorization,
                 updatedLogs
             );
