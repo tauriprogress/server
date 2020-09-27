@@ -89,7 +89,7 @@ function processLogs(logs) {
     let bosses = {};
     let defaultBoss = {
         _id: undefined,
-        raidName: undefined,
+        raidId: undefined,
         name: undefined,
         difficulty: undefined,
         killCount: 0,
@@ -129,6 +129,7 @@ function processLogs(logs) {
     for (const log of logs) {
         const logId = log.log_id;
         const raidName = log.mapentry.name;
+        const raidId = log.mapentry.id;
         const bossName = log.encounter_data.encounter_name;
         const difficulty = Number(log.difficulty);
         const bossId = `${log.encounter_data.encounter_id} ${difficulty}`;
@@ -167,7 +168,7 @@ function processLogs(logs) {
             bosses[bossId] = {
                 ...JSON.parse(JSON.stringify(defaultBoss)),
                 _id: bossId,
-                raidName: raidName,
+                raidId: raidId,
                 name: bossName,
                 difficulty: difficulty
             };
@@ -343,20 +344,63 @@ function processLogs(logs) {
                         characterData.spec
                     ];
 
-                    if (
-                        characterData[combatMetric] >
-                        getNestedObjectValue(
-                            bosses[bossId][`best${capitalize(combatMetric)}`],
-                            [...characterCategorization, combatMetric]
-                        )
-                    ) {
+                    const bestsOfCombatMetric = getNestedObjectValue(
+                        bosses[bossId][`best${capitalize(combatMetric)}`],
+                        characterCategorization
+                    );
+
+                    if (!bestsOfCombatMetric) {
                         bosses[bossId][
                             `best${capitalize(combatMetric)}`
                         ] = addNestedObjectValue(
                             bosses[bossId][`best${capitalize(combatMetric)}`],
                             characterCategorization,
-                            characterData
+                            [characterData]
                         );
+                    } else if (
+                        characterData[combatMetric] >
+                        bestsOfCombatMetric[bestsOfCombatMetric.length - 1][
+                            combatMetric
+                        ]
+                    ) {
+                        const indexOfSameChar = bestsOfCombatMetric.findIndex(
+                            data => data._id === characterData._id
+                        );
+
+                        if (indexOfSameChar >= 0) {
+                            if (
+                                characterData[combatMetric] >
+                                bestsOfCombatMetric[indexOfSameChar][
+                                    combatMetric
+                                ]
+                            ) {
+                                bestsOfCombatMetric[
+                                    indexOfSameChar
+                                ] = characterData;
+                                bestsOfCombatMetric
+                                    .sort(
+                                        (a, b) =>
+                                            b[combatMetric] - a[combatMetric]
+                                    )
+                                    .slice(0, 10);
+                            }
+                        } else {
+                            bosses[bossId][
+                                `best${capitalize(combatMetric)}`
+                            ] = addNestedObjectValue(
+                                bosses[bossId][
+                                    `best${capitalize(combatMetric)}`
+                                ],
+                                characterCategorization,
+                                bestsOfCombatMetric
+                                    .concat(characterData)
+                                    .sort(
+                                        (a, b) =>
+                                            b[combatMetric] - a[combatMetric]
+                                    )
+                                    .slice(0, 10)
+                            );
+                        }
                     }
 
                     if (guildId) {
@@ -446,7 +490,7 @@ function processLogs(logs) {
                         ].fastestKills = guilds[guildId].progression[raidName][
                             difficulty
                         ][bossName].fastestKills
-                            .sort((a, b) => a.fightLength - b.fightLength)
+                            .sort((a, b) => b.fightLength - a.fightLength)
                             .slice(0, 10);
                     }
                 }
@@ -670,7 +714,6 @@ function updateRaidBoss(oldBoss, boss) {
         recentKills: boss.recentKills.concat(oldBoss.recentKills).slice(0, 50),
         killCount: oldBoss.killCount + boss.killCount
     };
-
     for (const realm in boss.fastestKills) {
         for (const faction in boss.fastestKills[realm]) {
             const categorization = [realm, faction];
@@ -719,6 +762,71 @@ function updateRaidBoss(oldBoss, boss) {
                 categorization,
                 updatedLogs
             );
+        }
+    }
+
+    for (const combatMetric of ["dps", "hps"]) {
+        for (const realm in updatedRaidBoss[
+            `best${capitalize(combatMetric)}`
+        ]) {
+            for (const faction in updatedRaidBoss[
+                `best${capitalize(combatMetric)}`
+            ][realm]) {
+                for (const characterClass in updatedRaidBoss[
+                    `best${capitalize(combatMetric)}`
+                ][realm][faction]) {
+                    for (const characterSpec in updatedRaidBoss[
+                        `best${capitalize(combatMetric)}`
+                    ][realm][faction][characterClass]) {
+                        const oldBestsOfCombatMetric =
+                            oldBoss[`best${capitalize(combatMetric)}`][realm][
+                                faction
+                            ][characterClass][characterSpec];
+
+                        const newBestsOfCombatMetric =
+                            boss[`best${capitalize(combatMetric)}`][realm][
+                                faction
+                            ][characterClass][characterSpec];
+
+                        const bestCharacters = {};
+
+                        for (const bests of [
+                            oldBestsOfCombatMetric,
+                            newBestsOfCombatMetric
+                        ]) {
+                            for (const bestCharacter of bests) {
+                                if (
+                                    bestCharacters[bestCharacter._id] &&
+                                    bestCharacter[combatMetric] >
+                                        bestCharacters[bestCharacter._id][
+                                            combatMetric
+                                        ]
+                                ) {
+                                    bestCharacters[
+                                        bestCharacter._id
+                                    ] = bestCharacter;
+                                }
+                            }
+                        }
+
+                        const updatedBestsOfCombatMetric = [];
+
+                        for (const charId in bestCharacters) {
+                            updatedBestsOfCombatMetric.push(
+                                bestCharacters[charId]
+                            );
+                        }
+
+                        updatedRaidBoss[`best${capitalize(combatMetric)}`][
+                            realm
+                        ][faction][characterClass][
+                            characterSpec
+                        ] = updatedBestsOfCombatMetric
+                            .sort((a, b) => b[combatMetric] - a[combatMetric])
+                            .slice(0, 10);
+                    }
+                }
+            }
         }
     }
 
