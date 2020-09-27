@@ -7,7 +7,7 @@ const port = process.env.PORT || 3001;
 const {
     verifyGetGuild,
     verifyGetPlayer,
-    verifyGetRaid,
+    verifyGetRaidSummary,
     verifyGetboss,
     verifyGetLog,
     verifyPlayerBossKills,
@@ -111,11 +111,11 @@ const { minutesAgo, secsAgo } = require("./helpers");
         }
     );
 
-    app.post("/getraid", verifyGetRaid, async (req, res) => {
+    app.post("/getraidsummary", verifyGetRaidSummary, async (req, res) => {
         try {
             res.send({
                 success: true,
-                response: await db.getRaid(req.body.raidName)
+                response: await db.getRaidSummary(req.body.raidId)
             });
         } catch (err) {
             res.send({

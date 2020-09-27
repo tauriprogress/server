@@ -622,44 +622,20 @@ class Database {
         });
     }
 
-    async getRaid(id) {
+    async getRaidSummary(id) {
         return new Promise(async (resolve, reject) => {
             try {
-                let raidData = {};
                 let bosses = await this.db
-                    .collection(id)
+                    .collection(String(id))
                     .find(
                         {},
                         {
-                            ["dps"]: 0,
-                            ["hps"]: 0,
                             ["recentKills"]: 0
                         }
                     )
                     .toArray();
 
-                for (let boss of bosses) {
-                    for (let realm in boss.ranking) {
-                        for (let faction in boss.ranking[realm]) {
-                            let objectKeys = [realm, faction];
-                            boss.ranking = addNestedObjectValue(
-                                boss.ranking,
-                                objectKeys,
-                                getNestedObjectValue(
-                                    boss.ranking,
-                                    objectKeys
-                                ).slice(0, 1)
-                            );
-                        }
-                    }
-
-                    if (!raidData[boss.difficulty])
-                        raidData[boss.difficulty] = {};
-
-                    raidData[boss.difficulty][boss.bossName] = boss;
-                }
-
-                resolve(raidData);
+                resolve(bosses);
             } catch (err) {
                 reject(err);
             }
