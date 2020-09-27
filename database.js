@@ -635,6 +635,20 @@ class Database {
                     )
                     .toArray();
 
+                bosses = bosses.map(boss => {
+                    for (const realmName in boss.fastestKills) {
+                        for (const faction in boss.fastestKills[realmName]) {
+                            boss.fastestKills[realmName][
+                                faction
+                            ] = boss.fastestKills[realmName][faction].slice(
+                                0,
+                                10
+                            );
+                        }
+                    }
+                    return boss;
+                });
+
                 resolve(bosses);
             } catch (err) {
                 reject(err);
