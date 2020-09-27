@@ -435,7 +435,7 @@ function processLogs(logs) {
         }
     }
 
-    /* bosses: cut latestKills to 50, cut fastestKills/firstKills of each category to 50 */
+    /* bosses: cut latestKills to 50, cut fastestKills of each category to 50, cut firstkills to 3 */
     for (const bossId in bosses) {
         bosses[bossId].recentKills = bosses[bossId].recentKills.slice(0, 50);
 
@@ -466,7 +466,7 @@ function processLogs(logs) {
                         categorization
                     )
                         .sort((a, b) => a.date - b.date)
-                        .slice(0, 50)
+                        .slice(0, 3)
                 );
             }
         }
@@ -756,7 +756,7 @@ function updateRaidBoss(oldBoss, boss) {
             const updatedLogs = oldLogs
                 .concat(newLogs)
                 .sort((a, b) => a.date - b.date)
-                .slice(0, 50);
+                .slice(0, 3);
 
             updatedRaidBoss.firstKills = addNestedObjectValue(
                 updatedRaidBoss.firstKills,
