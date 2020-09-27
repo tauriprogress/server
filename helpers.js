@@ -290,7 +290,8 @@ function processLogs(logs) {
         // process data of characters and save it to boss and guild data
         for (let character of log.members) {
             const characterId = createCharacterId(
-                character.guid,
+                character.name,
+                realm,
                 character.spec
             );
 
@@ -888,8 +889,8 @@ function secsAgo(time) {
     return Math.round(new Date().getTime() / 1000 - time);
 }
 
-function createCharacterId(guid, spec) {
-    return `${guid},${spec}`;
+function createCharacterId(name, realm, spec) {
+    return `${name},${shortRealms[realm]},${spec}`;
 }
 
 function escapeRegex(s) {
