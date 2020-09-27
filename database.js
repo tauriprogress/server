@@ -174,6 +174,7 @@ class Database {
 
                 console.log("db: Requesting logs");
                 let { logs, lastLogIds: newLastLogIds } = getLogs(lastLogIds);
+
                 if (isInitalization) {
                     console.log(
                         "db: Saving logs in case something goes wrong in the initalization process to",
@@ -183,7 +184,6 @@ class Database {
                         "logData.json",
                         JSON.stringify({ logs, lastLogIds: newLastLogIds })
                     );
-
                     logs = logs.reduce((acc, log) => {
                         for (const bug of logBugs) {
                             log = logBugHandler(log, bug);
@@ -379,7 +379,7 @@ class Database {
     async saveRaidBoss(boss, session = null) {
         return new Promise(async (resolve, reject) => {
             try {
-                const raidCollection = this.db.collection(boss.raidName);
+                const raidCollection = this.db.collection(String(boss.raidId));
                 const oldBoss = await raidCollection.findOne(
                     {
                         _id: boss._id
