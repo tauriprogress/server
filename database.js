@@ -621,12 +621,8 @@ class Database {
             try {
                 let bosses = await this.db
                     .collection(String(id))
-                    .find(
-                        {},
-                        {
-                            ["recentKills"]: 0
-                        }
-                    )
+                    .find({})
+                    .project({ recentKills: 0 })
                     .toArray();
 
                 let raidSummary = {};
