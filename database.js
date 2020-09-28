@@ -100,17 +100,11 @@ class Database {
                     if (await raidCollection.findOne())
                         await raidCollection.deleteMany({});
 
-                    for (const difficulty of raid.difficulties) {
-                        for (const boss of raid.bosses) {
-                            if (
-                                boss.difficulty !== undefined &&
-                                boss.difficulty !== difficulty
-                            ) {
-                                continue;
-                            }
+                    for (const boss of raid.bosses) {
+                        for (const difficulty in boss.difficultyIds) {
                             for (const combatMetric of ["dps", "hps"]) {
                                 const collectionName = bossCollectionName(
-                                    boss.id,
+                                    boss.difficultyIds[difficulty],
                                     difficulty,
                                     combatMetric
                                 );
@@ -659,8 +653,6 @@ class Database {
     async getRaidBoss(id) {
         return new Promise(async (resolve, reject) => {
             try {
-                const raid = raidInfoFromBossId(id);
-                let raidCollection = this.db.collection(raid.name);
                 let raidBoss = await raidCollection
                     .find(
                         {
