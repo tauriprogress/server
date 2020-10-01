@@ -1,5 +1,4 @@
-const { raids } = require("tauriprogress-constants/currentContent");
-const { realms, characterClasses } = require("tauriprogress-constants");
+const { currentContent, realms } = require("./expansionData");
 const { capitalize, validRaidName, minutesAgo } = require("./helpers");
 
 function verifyGetGuild(req, res, next) {
@@ -80,13 +79,10 @@ function verifyGetPlayerPerformance(req, res, next) {
     }
 }
 
-function verifyGetRaid(req, res, next) {
+function verifyGetRaidSummary(req, res, next) {
     try {
-        if (req.body.raidName)
-            req.body.raidName = req.body.raidName.trim().replace(/\s+/g, " ");
-
-        if (!validRaidName(req.body.raidName))
-            throw new Error("Invalid raid name.");
+        if (!req.body.raidId || !validRaidId(req.body.raidId))
+            throw new Error(`${req.body.raidId} is not a valid raid id.`);
 
         next();
     } catch (err) {
@@ -173,6 +169,15 @@ function verifyGetItems(req, res, next) {
     }
 }
 
+function validRaidId(raidId) {
+    for (const raid of currentContent.raids) {
+        if (raid.id === raidId) {
+            return true;
+        }
+    }
+    return false;
+}
+
 function validBossName(raidName, bossName) {
     let { encounters } = require(`tauriprogress-constants/${raidName}`);
     for (let encounter of encounters) {
@@ -219,7 +224,7 @@ function updateDatabase(db) {
             try {
                 db.update();
             } catch (err) {
-                console.error(err);
+                console.log(err);
             }
         }
         next();
@@ -229,7 +234,7 @@ function updateDatabase(db) {
 module.exports = {
     verifyGetGuild,
     verifyGetPlayer,
-    verifyGetRaid,
+    verifyGetRaidSummary,
     verifyGetboss,
     verifyGetLog,
     verifyPlayerBossKills,
