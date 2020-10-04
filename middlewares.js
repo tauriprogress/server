@@ -93,19 +93,13 @@ function verifyGetRaidSummary(req, res, next) {
     }
 }
 
-function verifyGetboss(req, res, next) {
+function verifyGetBoss(req, res, next) {
     try {
-        if (req.body.raidName)
-            req.body.raidName = req.body.raidName.trim().replace(/\s+/g, " ");
+        if (!req.body.raidId || !validRaidId(req.body.raidId))
+            throw new Error(`${req.body.raidId} is not a valid raid id.`);
 
-        if (!validRaidName(req.body.raidName))
-            throw new Error("Invalid raid name.");
-
-        if (!req.body.bossName) throw new Error("Invalid boss name.");
-        req.body.bossName = req.body.bossName.trim().replace(/\s+/g, " ");
-
-        if (!validBossName(req.body.raidName, req.body.bossName))
-            throw new Error("Invalid boss name.");
+        if (!req.body.bossName || !validBossName(req.body.raidId, bossName))
+            throw new Error(`${req.body.bossName} is not a valid boss name.`);
 
         next();
     } catch (err) {
@@ -178,11 +172,14 @@ function validRaidId(raidId) {
     return false;
 }
 
-function validBossName(raidName, bossName) {
-    let { encounters } = require(`tauriprogress-constants/${raidName}`);
-    for (let encounter of encounters) {
-        if (encounter.encounter_name === bossName) {
-            return true;
+function validBossName(raidId, bossName) {
+    for (const raid of currentContent.raids) {
+        if (raid.id === raidId) {
+            for (const boss of raid.bosses) {
+                if (boss.name === bossName) {
+                    return true;
+                }
+            }
         }
     }
     return false;
@@ -235,7 +232,7 @@ module.exports = {
     verifyGetGuild,
     verifyGetPlayer,
     verifyGetRaidSummary,
-    verifyGetboss,
+    verifyGetBoss,
     verifyGetLog,
     verifyPlayerBossKills,
     verifyGetPlayerPerformance,

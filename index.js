@@ -8,7 +8,7 @@ const {
     verifyGetGuild,
     verifyGetPlayer,
     verifyGetRaidSummary,
-    verifyGetboss,
+    verifyGetBoss,
     verifyGetLog,
     verifyPlayerBossKills,
     verifyGetPlayerPerformance,
@@ -125,12 +125,12 @@ const { minutesAgo, secsAgo } = require("./helpers");
         }
     });
 
-    app.post("/getboss", verifyGetboss, async (req, res) => {
+    app.post("/getboss", verifyGetBoss, async (req, res) => {
         try {
             res.send({
                 success: true,
                 response: await db.getRaidBoss(
-                    req.body.raidName,
+                    req.body.raidId,
                     req.body.bossName
                 )
             });
