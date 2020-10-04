@@ -1119,7 +1119,7 @@ function unshiftDateDay(day) {
     return day - 1 >= 0 ? day - 1 : 6;
 }
 
-function bossCollectionName(id, difficulty, combatMetric) {
+function getBossCollectionName(id, difficulty, combatMetric) {
     return `${id} ${difficulty} ${combatMetric}`;
 }
 
@@ -1145,6 +1145,19 @@ function raidInfoFromBossId(id) {
     return false;
 }
 
+function getBossInfo(raidId, bossName) {
+    for (const raid of currentContent.raids) {
+        if (raid.id === raidId) {
+            for (const boss of raid.bosses) {
+                if (boss.name === bossName) {
+                    return boss;
+                }
+            }
+        }
+    }
+    return false;
+}
+
 module.exports = {
     getLogs,
     processLogs,
@@ -1166,7 +1179,8 @@ module.exports = {
     validDifficulty,
     logBugHandler,
     recentGuildRaidDays,
-    bossCollectionName,
+    getBossCollectionName,
     getLastLogIds,
-    raidInfoFromBossId
+    raidInfoFromBossId,
+    getBossInfo
 };

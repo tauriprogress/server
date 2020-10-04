@@ -22,9 +22,10 @@ const {
     recentGuildRaidDays,
     logBugHandler,
     processLogs,
-    bossCollectionName,
+    getBossCollectionName,
     getLastLogIds,
-    raidInfoFromBossId
+    raidInfoFromBossId,
+    getBossInfo
 } = require("./helpers");
 
 class Database {
@@ -103,7 +104,7 @@ class Database {
                     for (const boss of raid.bosses) {
                         for (const difficulty in boss.difficultyIds) {
                             for (const combatMetric of ["dps", "hps"]) {
-                                const collectionName = bossCollectionName(
+                                const collectionName = getBossCollectionName(
                                     boss.difficultyIds[difficulty],
                                     difficulty,
                                     combatMetric
@@ -649,45 +650,77 @@ class Database {
         });
     }
 
-    async getRaidBoss(id) {
+    async getRaidBoss(raidId, bossName) {
         return new Promise(async (resolve, reject) => {
             try {
-                let raidBoss = await raidCollection
-                    .find(
-                        {
-                            _id: id
-                        },
-                        {
-                            ["bestDps"]: 0,
-                            ["bestHps"]: 0
-                        }
-                    )
+                let data = {};
+                const bossInfo = getBossInfo(raidId, bossName);
+                const raidCollection = await this.db.collection(String(raidId));
+                const bosses = await raidCollection
+                    .find({
+                        name: bossName
+                    })
+                    .project({
+                        ["bestDps"]: 0,
+                        ["bestHps"]: 0,
+                        ["firstKills"]: 0
+                    })
                     .toArray();
-                if (!raidBoss) throw new Error("Boss not found");
 
-                let raidBosses = {};
+                for (const difficulty in bossInfo.difficultyIds) {
+                    const bossId = bossInfo.difficultyIds[difficulty];
 
-                for (let boss of raidBoss) {
-                    raidBosses[boss.difficulty] = boss;
-                    let fastestKills = [];
-                    for (let realm in boss.fastestKills) {
-                        for (let faction in boss.fastestKills[realm]) {
-                            let objectKeys = [realm, faction];
-                            fastestKills = fastestKills.concat(
-                                getNestedObjectValue(
-                                    boss.fastestKills,
-                                    objectKeys
-                                )
-                            );
+                    const boss = bosses.reduce((acc, boss) => {
+                        if (boss._id === `${bossId} ${difficulty}`) {
+                            acc = boss;
                         }
+                        return acc;
+                    }, {});
+
+                    for (const combatMetric of ["dps", "hps"]) {
+                        const bossCollectionName = getBossCollectionName(
+                            bossId,
+                            difficulty,
+                            combatMetric
+                        );
+
+                        const combatMetricData = await this.db
+                            .collection(bossCollectionName)
+                            .find({})
+                            .toArray();
+
+                        boss[combatMetric] = combatMetricData;
                     }
 
-                    boss.fastestKills = fastestKills
-                        .sort((a, b) => a.fight_time - b.fight_time)
-                        .slice(0, 50);
+                    for (const property of ["fastestKills", "recentKills"]) {
+                        let data = [];
+                        for (const realm in boss[property]) {
+                            for (const faction in boss[property][realm]) {
+                                const objectKeys = [realm, faction];
+                                data = data.concat(
+                                    getNestedObjectValue(
+                                        boss[property],
+                                        objectKeys
+                                    )
+                                );
+                            }
+                        }
+
+                        boss[property] = data
+                            .sort((a, b) => {
+                                if (property === "fastestKills") {
+                                    return a.fight_time - b.fight_time;
+                                } else {
+                                    return a.date - b.date;
+                                }
+                            })
+                            .slice(0, 50);
+                    }
+
+                    data[difficulty] = boss;
                 }
 
-                resolve(raidBosses);
+                resolve(data);
             } catch (err) {
                 reject(err);
             }
