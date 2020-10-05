@@ -98,7 +98,10 @@ function verifyGetBoss(req, res, next) {
         if (!req.body.raidId || !validRaidId(req.body.raidId))
             throw new Error(`${req.body.raidId} is not a valid raid id.`);
 
-        if (!req.body.bossName || !validBossName(req.body.raidId, bossName))
+        if (
+            !req.body.bossName ||
+            !validBossName(req.body.raidId, req.body.bossName)
+        )
             throw new Error(`${req.body.bossName} is not a valid boss name.`);
 
         next();
