@@ -692,30 +692,25 @@ class Database {
                         boss[combatMetric] = combatMetricData;
                     }
 
-                    for (const property of ["fastestKills", "recentKills"]) {
-                        let data = [];
-                        for (const realm in boss[property]) {
-                            for (const faction in boss[property][realm]) {
-                                const objectKeys = [realm, faction];
-                                data = data.concat(
-                                    getNestedObjectValue(
-                                        boss[property],
-                                        objectKeys
-                                    )
-                                );
-                            }
-                        }
+                    let fastestKills = [];
+                    for (const realm in boss.fastestKills) {
+                        for (const faction in boss.fastestKills[realm]) {
+                            const objectKeys = [realm, faction];
 
-                        boss[property] = data
-                            .sort((a, b) => {
-                                if (property === "fastestKills") {
-                                    return a.fight_time - b.fight_time;
-                                } else {
-                                    return a.date - b.date;
-                                }
-                            })
-                            .slice(0, 50);
+                            fastestKills = fastestKills.concat(
+                                getNestedObjectValue(
+                                    boss.fastestKills,
+                                    objectKeys
+                                )
+                            );
+                        }
                     }
+
+                    boss.fastestKills = fastestKills
+                        .sort((a, b) => {
+                            return a.fightLength - b.fightLength;
+                        })
+                        .slice(0, 50);
 
                     data[difficulty] = boss;
                 }
