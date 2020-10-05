@@ -688,8 +688,9 @@ class Database {
                             .collection(bossCollectionName)
                             .find({})
                             .toArray();
-
-                        boss[combatMetric] = combatMetricData;
+                        boss[combatMetric] = combatMetricData.sort(
+                            (a, b) => b[combatMetric] - a[combatMetric]
+                        );
                     }
 
                     let fastestKills = [];
