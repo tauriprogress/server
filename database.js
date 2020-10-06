@@ -704,7 +704,13 @@ class Database {
                         lookUps.push({
                             $lookup: {
                                 from: bossCollectionName,
-                                pipeline: [],
+                                pipeline: [
+                                    {
+                                        $sort: {
+                                            [combatMetric]: -1
+                                        }
+                                    }
+                                ],
                                 as: `${difficulty}.${combatMetric}`
                             }
                         });
