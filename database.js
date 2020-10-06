@@ -25,7 +25,8 @@ const {
     getBossCollectionName,
     getLastLogIds,
     raidInfoFromBossId,
-    getBossInfo
+    getBossInfo,
+    getRaidInfo
 } = require("./helpers");
 
 class Database {
@@ -634,27 +635,37 @@ class Database {
     async getRaidSummary(id) {
         return new Promise(async (resolve, reject) => {
             try {
+                const difficulties = getRaidInfo(id).difficulties;
+
+                const projection = difficulties.reduce((acc, difficulty) => {
+                    return { ...acc, [`${difficulty}.recentKills`]: 0 };
+                }, {});
+
                 let bosses = await this.db
                     .collection(String(id))
                     .find({})
-                    .project({ recentKills: 0 })
+                    .project(projection)
                     .toArray();
 
                 let raidSummary = {};
-
-                for (const boss of bosses) {
-                    for (const realmName in boss.fastestKills) {
-                        for (const faction in boss.fastestKills[realmName]) {
-                            boss.fastestKills[realmName][
-                                faction
-                            ] = boss.fastestKills[realmName][faction].slice(
-                                0,
-                                10
-                            );
+                for (const difficulty of difficulties) {
+                    for (const bossData of bosses) {
+                        const boss = bossData[difficulty];
+                        for (const realmName in boss.fastestKills) {
+                            for (const faction in boss.fastestKills[
+                                realmName
+                            ]) {
+                                boss.fastestKills[realmName][
+                                    faction
+                                ] = boss.fastestKills[realmName][faction].slice(
+                                    0,
+                                    10
+                                );
+                            }
                         }
-                    }
 
-                    raidSummary[boss._id] = boss;
+                        raidSummary[boss._id] = boss;
+                    }
                 }
 
                 resolve(raidSummary);
