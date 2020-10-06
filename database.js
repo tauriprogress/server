@@ -375,24 +375,38 @@ class Database {
         return new Promise(async (resolve, reject) => {
             try {
                 const raidCollection = this.db.collection(String(boss.raidId));
-                const oldBoss = await raidCollection.findOne(
+                const oldData = await raidCollection.findOne(
                     {
-                        _id: boss._id
+                        name: boss.name
                     },
                     { session }
                 );
 
-                if (!oldBoss) {
-                    await raidCollection.insertOne(boss, {
-                        session
-                    });
-                } else {
-                    await raidCollection.updateOne(
+                if (!oldData) {
+                    await raidCollection.insertOne(
                         {
-                            _id: boss._id
+                            name: boss.name,
+                            [boss.difficulty]: boss
                         },
                         {
-                            $set: updateRaidBoss(oldBoss, boss)
+                            session
+                        }
+                    );
+                } else {
+                    let updatedBoss = oldData[boss.difficulty]
+                        ? updateRaidBoss(oldData[boss.difficulty], boss)
+                        : boss;
+
+                    await raidCollection.updateOne(
+                        {
+                            name: boss.name
+                        },
+                        {
+                            $set: {
+                                ...oldData,
+                                _id: oldData._id,
+                                [boss.difficulty]: updatedBoss
+                            }
                         },
                         {
                             session
@@ -653,20 +667,49 @@ class Database {
     async getRaidBoss(raidId, bossName) {
         return new Promise(async (resolve, reject) => {
             try {
+                /*
                 let data = {};
                 const bossInfo = getBossInfo(raidId, bossName);
-                const raidCollection = await this.db.collection(String(raidId));
-                const bosses = await raidCollection
-                    .find({
-                        name: bossName
-                    })
+
+                let lookUps = [];
+                for (const difficulty in bossInfo.difficultyIds) {
+                    const bossId = bossInfo.difficultyIds[difficulty];
+                    for (const combatMetric of ["dps", "hps"]) {
+                        const bossCollectionName = getBossCollectionName(
+                            bossId,
+                            difficulty,
+                            combatMetric
+                        );
+
+                        lookUps.push({
+                            $lookup: {
+                                from: bossCollectionName,
+                                pipeline: [],
+                                as: bossCollectionName
+                            }
+                        });
+                    }
+                }
+
+                const bosses = await this.db
+                    .collection(String(raidId))
+
+                    .aggregate([
+                        {
+                            $match: {
+                                name: bossName
+                            }
+                        },
+                        ...lookUps
+                    ])
                     .project({
                         ["bestDps"]: 0,
                         ["bestHps"]: 0,
                         ["firstKills"]: 0
                     })
                     .toArray();
-
+                */
+                /*
                 for (const difficulty in bossInfo.difficultyIds) {
                     const bossId = bossInfo.difficultyIds[difficulty];
 
@@ -715,8 +758,9 @@ class Database {
 
                     data[difficulty] = boss;
                 }
+                */
 
-                resolve(data);
+                resolve({});
             } catch (err) {
                 reject(err);
             }
