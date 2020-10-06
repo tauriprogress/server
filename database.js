@@ -448,6 +448,7 @@ class Database {
 
                         if (newGuild) {
                             await this.saveGuild({
+                                ...guild,
                                 ...newGuild,
                                 _id: guild._id
                             });
@@ -493,8 +494,8 @@ class Database {
                             await this.db.collection("guilds").insertOne(
                                 recentGuildRaidDays(
                                     calcGuildContentCompletion({
-                                        ...guildData,
-                                        ...newGuild
+                                        ...newGuild,
+                                        ...guildData
                                     })
                                 ),
                                 { session }
@@ -616,11 +617,12 @@ class Database {
         });
     }
 
-    async getGuild(id) {
+    async getGuild(realm, guildName) {
         return new Promise(async (resolve, reject) => {
             try {
                 let guild = await this.db.collection("guilds").findOne({
-                    _id: id
+                    name: guildName,
+                    realm: realm
                 });
 
                 if (!guild) throw new Error("guild not found");
