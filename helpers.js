@@ -1158,6 +1158,15 @@ function getBossInfo(raidId, bossName) {
     return false;
 }
 
+function getRaidInfo(raidId) {
+    for (const raid of currentContent.raids) {
+        if (raid.id === raidId) {
+            return raid;
+        }
+    }
+    return false;
+}
+
 module.exports = {
     getLogs,
     processLogs,
@@ -1182,5 +1191,6 @@ module.exports = {
     getBossCollectionName,
     getLastLogIds,
     raidInfoFromBossId,
-    getBossInfo
+    getBossInfo,
+    getRaidInfo
 };

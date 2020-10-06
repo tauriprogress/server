@@ -678,8 +678,17 @@ class Database {
     async getRaidBoss(raidId, bossName) {
         return new Promise(async (resolve, reject) => {
             try {
-                /*
-                let data = {};
+                const difficulties = getRaidInfo(raidId).difficulties;
+
+                const projection = difficulties.reduce((acc, difficulty) => {
+                    return {
+                        ...acc,
+                        [`${difficulty}.bestDps`]: 0,
+                        [`${difficulty}.bestHps`]: 0,
+                        [`${difficulty}.firstKills`]: 0
+                    };
+                }, {});
+
                 const bossInfo = getBossInfo(raidId, bossName);
 
                 let lookUps = [];
@@ -696,57 +705,29 @@ class Database {
                             $lookup: {
                                 from: bossCollectionName,
                                 pipeline: [],
-                                as: bossCollectionName
+                                as: `${difficulty}.${combatMetric}`
                             }
                         });
                     }
                 }
 
-                const bosses = await this.db
-                    .collection(String(raidId))
+                const bossData = (
+                    await this.db
+                        .collection(String(raidId))
+                        .aggregate([
+                            {
+                                $match: {
+                                    name: bossName
+                                }
+                            },
+                            ...lookUps
+                        ])
+                        .project(projection)
+                        .toArray()
+                )[0];
 
-                    .aggregate([
-                        {
-                            $match: {
-                                name: bossName
-                            }
-                        },
-                        ...lookUps
-                    ])
-                    .project({
-                        ["bestDps"]: 0,
-                        ["bestHps"]: 0,
-                        ["firstKills"]: 0
-                    })
-                    .toArray();
-                */
-                /*
-                for (const difficulty in bossInfo.difficultyIds) {
-                    const bossId = bossInfo.difficultyIds[difficulty];
-
-                    const boss = bosses.reduce((acc, boss) => {
-                        if (boss._id === `${bossId} ${difficulty}`) {
-                            acc = boss;
-                        }
-                        return acc;
-                    }, {});
-
-                    for (const combatMetric of ["dps", "hps"]) {
-                        const bossCollectionName = getBossCollectionName(
-                            bossId,
-                            difficulty,
-                            combatMetric
-                        );
-
-                        const combatMetricData = await this.db
-                            .collection(bossCollectionName)
-                            .find({})
-                            .toArray();
-                        boss[combatMetric] = combatMetricData.sort(
-                            (a, b) => b[combatMetric] - a[combatMetric]
-                        );
-                    }
-
+                for (const difficulty of difficulties) {
+                    const boss = bossData[difficulty];
                     let fastestKills = [];
                     for (const realm in boss.fastestKills) {
                         for (const faction in boss.fastestKills[realm]) {
@@ -767,11 +748,10 @@ class Database {
                         })
                         .slice(0, 50);
 
-                    data[difficulty] = boss;
+                    bossData[difficulty] = boss;
                 }
-                */
 
-                resolve({});
+                resolve(bossData);
             } catch (err) {
                 reject(err);
             }
