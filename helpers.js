@@ -491,7 +491,7 @@ function processLogs(logs) {
                         ].fastestKills = guilds[guildId].progression[raidName][
                             difficulty
                         ][bossName].fastestKills
-                            .sort((a, b) => b.fightLength - a.fightLength)
+                            .sort((a, b) => a.fightLength - b.fightLength)
                             .slice(0, 10);
                     }
                 }
@@ -612,10 +612,10 @@ function updateGuildData(oldGuild, newGuild) {
                         updatedBoss = {
                             ...oldBoss,
                             killCount: oldBoss.killCount + newBoss.killCount,
-                            fastestKills: [
+                            fastestKills: uniqueLogs([
                                 ...oldBoss.fastestKills,
                                 ...newBoss.fastestKills
-                            ]
+                            ])
                                 .sort((a, b) => a.fightLength - b.fightLength)
                                 .slice(0, 10)
                         };
@@ -652,10 +652,12 @@ function updateGuildData(oldGuild, newGuild) {
     }
 
     if (newGuild.progression) {
-        updatedGuild.progression.recentKills = cutRecentKills([
-            ...newGuild.progression.recentKills,
-            ...oldGuild.progression.recentKills
-        ]);
+        updatedGuild.progression.recentKills = cutRecentKills(
+            uniqueLogs([
+                ...newGuild.progression.recentKills,
+                ...oldGuild.progression.recentKills
+            ])
+        );
     }
     if (newGuild.raidDays) {
         for (let [day, hours] of newGuild.raidDays.total.entries()) {
@@ -1065,6 +1067,18 @@ function cutRecentKills(kills) {
     }
 
     return recentKills;
+}
+
+function uniqueLogs(logs) {
+    let logIds = {};
+    const uniqueLogs = [];
+    for (const log of logs) {
+        if (!logIds[log.id]) {
+            logIds[log.id] = true;
+            uniqueLogs.push(log);
+        }
+    }
+    return uniqueLogs;
 }
 
 function getLatestWednesday(date) {
