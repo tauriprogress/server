@@ -6,12 +6,12 @@ const db = require("./database");
 const port = process.env.PORT || 3001;
 const {
     verifyGetGuild,
-    verifyGetPlayer,
+    verifyGetCharacter,
     verifyGetRaidSummary,
     verifyGetBoss,
     verifyGetLog,
-    verifyPlayerBossKills,
-    verifyGetPlayerPerformance,
+    verifyCharacterRecentKills,
+    verifyGetCharacterPerformance,
     verifyGetItems,
     updateDatabase
 } = require("./middlewares");
@@ -30,6 +30,7 @@ const { minutesAgo, secsAgo } = require("./helpers");
         db.disconnect().catch(err => console.error(err));
         process.exit(1);
     }
+
     app.use(
         cors({
             origin: "http://localhost:3000",
@@ -67,17 +68,17 @@ const { minutesAgo, secsAgo } = require("./helpers");
         }
     });
 
-    app.post("/getplayer", verifyGetPlayer, async (req, res) => {
+    app.post("/getcharacter", verifyGetCharacter, async (req, res) => {
         try {
-            let player = await tauriApi.getCharacter(
+            let character = await tauriApi.getCharacter(
                 req.body.realm,
-                req.body.playerName
+                req.body.characterName
             );
-            if (!player.success) throw new Error(player.errorstring);
+            if (!character.success) throw new Error(character.errorstring);
 
             res.send({
                 success: true,
-                response: { ...player.response }
+                response: { ...character.response }
             });
         } catch (err) {
             res.send({
@@ -88,8 +89,8 @@ const { minutesAgo, secsAgo } = require("./helpers");
     });
 
     app.post(
-        "/getplayerperformance",
-        verifyGetPlayerPerformance,
+        "/getcharacterperformance",
+        verifyGetCharacterPerformance,
         async (req, res) => {
             try {
                 let performance = await db.getPlayerPerformance({
@@ -211,26 +212,30 @@ const { minutesAgo, secsAgo } = require("./helpers");
         }
     });
 
-    app.post("/playerBossKills", verifyPlayerBossKills, async (req, res) => {
-        try {
-            res.send({
-                success: true,
-                response: (
-                    await tauriApi.getRaidPlayer(
-                        req.body.realm,
-                        req.body.playerName,
-                        req.body.logId,
-                        req.body.limit
-                    )
-                ).response
-            });
-        } catch (err) {
-            res.send({
-                success: false,
-                errorstring: err.message
-            });
+    app.post(
+        "/characterrecentkills",
+        verifyCharacterRecentKills,
+        async (req, res) => {
+            try {
+                res.send({
+                    success: true,
+                    response: (
+                        await tauriApi.getRaidPlayer(
+                            req.body.realm,
+                            req.body.characterName,
+                            req.body.logId,
+                            req.body.limit
+                        )
+                    ).response
+                });
+            } catch (err) {
+                res.send({
+                    success: false,
+                    errorstring: err.message
+                });
+            }
         }
-    });
+    );
 
     app.listen(port, () => console.log(`Server running on port ${port}`));
 })();
