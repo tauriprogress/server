@@ -1,6 +1,8 @@
 const { currentContent, realms } = require("./expansionData");
 const { capitalize, validRaidName, minutesAgo } = require("./helpers");
 
+const { characterClassNames } = require("./expansionData");
+
 function verifyGetGuild(req, res, next) {
     try {
         if (!req.body.guildName) throw new Error("Invalid guild name.");
@@ -19,11 +21,11 @@ function verifyGetGuild(req, res, next) {
     }
 }
 
-function verifyGetPlayer(req, res, next) {
+function verifyGetCharacter(req, res, next) {
     try {
-        if (!req.body.playerName) throw new Error("Invalid player name.");
-        req.body.playerName = capitalize(
-            req.body.playerName.trim().replace(/\s+/g, " ")
+        if (!req.body.characterName) throw new Error("Invalid player name.");
+        req.body.characterName = capitalize(
+            req.body.characterName.trim().replace(/\s+/g, " ")
         );
 
         if (!req.body.realm) {
@@ -37,11 +39,11 @@ function verifyGetPlayer(req, res, next) {
     }
 }
 
-function verifyGetPlayerPerformance(req, res, next) {
+function verifyGetCharacterPerformance(req, res, next) {
     try {
-        if (!req.body.playerName) throw new Error("Invalid player name.");
-        req.body.playerName = capitalize(
-            req.body.playerName.trim().replace(/\s+/g, " ")
+        if (!req.body.characterName) throw new Error("Invalid player name.");
+        req.body.characterName = capitalize(
+            req.body.characterName.trim().replace(/\s+/g, " ")
         );
 
         if (req.body.raidName)
@@ -125,15 +127,17 @@ function verifyGetLog(req, res, next) {
     }
 }
 
-function verifyPlayerBossKills(req, res, next) {
+function verifyCharacterRecentKills(req, res, next) {
     try {
         if (req.body.realm)
             req.body.realm = req.body.realm.trim().replace(/\s+/g, " ");
 
         if (!validRealm(req.body.realm)) throw new Error("Invalid raid name.");
 
-        if (!req.body.playerName) throw new Error("Invalid player name.");
-        req.body.playerName = req.body.playerName.trim().replace(/\s+/g, " ");
+        if (!req.body.characterName) throw new Error("Invalid player name.");
+        req.body.characterName = req.body.characterName
+            .trim()
+            .replace(/\s+/g, " ");
 
         if (req.body.logId) {
             if (typeof req.body.logId !== "number")
@@ -212,7 +216,7 @@ function validDifficulty(raidName, difficulty) {
 }
 
 function validClass(characterClass) {
-    for (let validClass in characterClasses) {
+    for (let validClass in characterClassNames) {
         if (validClass == characterClass) return true;
     }
     return false;
@@ -233,12 +237,12 @@ function updateDatabase(db) {
 
 module.exports = {
     verifyGetGuild,
-    verifyGetPlayer,
+    verifyGetCharacter,
     verifyGetRaidSummary,
     verifyGetBoss,
     verifyGetLog,
-    verifyPlayerBossKills,
-    verifyGetPlayerPerformance,
+    verifyCharacterRecentKills,
+    verifyGetCharacterPerformance,
     updateDatabase,
     verifyGetItems
 };
