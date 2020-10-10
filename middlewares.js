@@ -1,7 +1,9 @@
-const { currentContent, realms } = require("./expansionData");
+const {
+    currentContent,
+    realms,
+    characterClassNames
+} = require("./expansionData");
 const { capitalize, validRaidName, minutesAgo } = require("./helpers");
-
-const { characterClassNames } = require("./expansionData");
 
 function verifyGetGuild(req, res, next) {
     try {
@@ -23,7 +25,7 @@ function verifyGetGuild(req, res, next) {
 
 function verifyGetCharacter(req, res, next) {
     try {
-        if (!req.body.characterName) throw new Error("Invalid player name.");
+        if (!req.body.characterName) throw new Error("Invalid character name.");
         req.body.characterName = capitalize(
             req.body.characterName.trim().replace(/\s+/g, " ")
         );
@@ -41,7 +43,7 @@ function verifyGetCharacter(req, res, next) {
 
 function verifyGetCharacterPerformance(req, res, next) {
     try {
-        if (!req.body.characterName) throw new Error("Invalid player name.");
+        if (!req.body.characterName) throw new Error("Invalid character name.");
         req.body.characterName = capitalize(
             req.body.characterName.trim().replace(/\s+/g, " ")
         );
@@ -50,25 +52,10 @@ function verifyGetCharacterPerformance(req, res, next) {
             req.body.raidName = req.body.raidName.trim().replace(/\s+/g, " ");
 
         if (!req.body.characterClass || !validClass(req.body.characterClass))
-            throw new Error("Invalid player class");
+            throw new Error("Invalid character class");
 
         if (!validRaidName(req.body.raidName))
             throw new Error("Invalid raid name.");
-
-        if (req.body.bossName)
-            req.body.bossName = req.body.bossName.trim().replace(/\s+/g, " ");
-
-        if (
-            req.body.bossName &&
-            !validBossName(req.body.raidName, req.body.bossName)
-        )
-            throw new Error("Invalid boss name.");
-
-        if (
-            req.body.difficulty &&
-            validDifficulty(req.body.raidName, req.body.difficulty)
-        )
-            throw new Error("Invalid difficulty option.");
 
         if (!req.body.realm) {
             req.body.realm = realms["tauri"];
@@ -134,7 +121,7 @@ function verifyCharacterRecentKills(req, res, next) {
 
         if (!validRealm(req.body.realm)) throw new Error("Invalid raid name.");
 
-        if (!req.body.characterName) throw new Error("Invalid player name.");
+        if (!req.body.characterName) throw new Error("Invalid character name.");
         req.body.characterName = req.body.characterName
             .trim()
             .replace(/\s+/g, " ");
@@ -216,8 +203,8 @@ function validDifficulty(raidName, difficulty) {
 }
 
 function validClass(characterClass) {
-    for (let validClass in characterClassNames) {
-        if (validClass == characterClass) return true;
+    for (let classId in characterClassNames) {
+        if (classId == characterClass) return true;
     }
     return false;
 }

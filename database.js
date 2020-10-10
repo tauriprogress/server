@@ -1,5 +1,6 @@
 const fs = require("fs");
-const { currentContent, logBugs } = require("./expansionData");
+const { currentContent, logBugs, realms, specs } = require("./expansionData");
+const { characterClassToSpec } = require("tauriprogress-constants");
 const dbUser = process.env.MONGODB_USER;
 const dbPassword = process.env.MONGODB_PASSWORD;
 const dbAddress = process.env.MONGODB_ADDRESS;
@@ -26,7 +27,8 @@ const {
     getLastLogIds,
     raidInfoFromBossId,
     getBossInfo,
-    getRaidInfo
+    getRaidInfoFromId,
+    getRaidInfoFromName
 } = require("./helpers");
 
 class Database {
@@ -637,7 +639,7 @@ class Database {
     async getRaidSummary(id) {
         return new Promise(async (resolve, reject) => {
             try {
-                const difficulties = getRaidInfo(id).difficulties;
+                const difficulties = getRaidInfoFromId(id).difficulties;
 
                 const projection = difficulties.reduce((acc, difficulty) => {
                     return { ...acc, [`${difficulty}.recentKills`]: 0 };
@@ -680,7 +682,7 @@ class Database {
     async getRaidBoss(raidId, bossName) {
         return new Promise(async (resolve, reject) => {
             try {
-                const difficulties = getRaidInfo(raidId).difficulties;
+                const difficulties = getRaidInfoFromId(raidId).difficulties;
 
                 const projection = difficulties.reduce((acc, difficulty) => {
                     return {
@@ -766,25 +768,118 @@ class Database {
         });
     }
 
-    async getPlayerPerformance({
-        playerName,
+    async getCharacterPerformance({
+        characterName,
         characterClass,
         realm,
         raidName
     }) {
         return new Promise(async (resolve, reject) => {
             try {
-                const {
-                    totalBosses
-                } = require(`tauriprogress-constants/${raidName}`);
-                let playerSpecs = classToSpec[characterClass];
+                const { bossCount, bosses, id: raidId } = getRaidInfoFromName(
+                    raidName
+                );
+                const characterSpecs = characterClassToSpec[characterClass];
 
-                let playerPerformance = {};
+                let aggregations = {};
 
-                let totalBestPerformance = {};
-                let totalPlayerPerformance = {};
+                for (const bossInfo of bosses) {
+                    let projection = {};
+                    for (const difficulty in bossInfo.difficultyIds) {
+                        let currentProjection = {
+                            [`${difficulty}.characterData`]: 1
+                        };
+                        for (const combatMetric of ["dps", "hps"]) {
+                            if (!aggregations[bossInfo.name]) {
+                                aggregations[bossInfo.name] = [];
+                            }
+                            const bossCollectionName = getBossCollectionName(
+                                bossInfo.difficultyIds[difficulty],
+                                difficulty,
+                                combatMetric
+                            );
+                            const ids = [];
+                            for (const specId of characterSpecs) {
+                                if (
+                                    specs[specId][
+                                        combatMetric === "dps"
+                                            ? "isDps"
+                                            : "isHealer"
+                                    ]
+                                ) {
+                                    const characterId = createCharacterId(
+                                        characterName,
+                                        realm,
+                                        specId
+                                    );
 
-                let raidCollection = await this.db.collection(raidName);
+                                    ids.push(characterId);
+
+                                    for (const realmName of Object.values(
+                                        realms
+                                    )) {
+                                        for (const faction of [0, 1]) {
+                                            currentProjection = {
+                                                ...currentProjection,
+                                                [`${difficulty}.best${capitalize(
+                                                    combatMetric
+                                                )}.${realmName}.${faction}.${specId}`]: {
+                                                    $arrayElemAt: [
+                                                        `$${difficulty}.best${capitalize(
+                                                            combatMetric
+                                                        )}.${realmName}.${faction}.${characterClass}.${specId}`,
+                                                        0
+                                                    ]
+                                                }
+                                            };
+                                        }
+                                    }
+                                }
+                            }
+                            projection = {
+                                ...projection,
+                                ...currentProjection
+                            };
+
+                            aggregations[bossInfo.name].unshift({
+                                $lookup: {
+                                    from: bossCollectionName,
+                                    pipeline: [
+                                        {
+                                            $match: {
+                                                _id: { $in: ids }
+                                            }
+                                        }
+                                    ],
+                                    as: `characterData.${difficulty}.${combatMetric}`
+                                }
+                            });
+                        }
+                    }
+                    aggregations[bossInfo.name].unshift(
+                        {
+                            $match: {
+                                name: bossInfo.name
+                            }
+                        },
+                        {
+                            $project: projection
+                        }
+                    );
+                }
+
+                let data = (
+                    await this.db
+                        .collection(String(raidId))
+                        .aggregate([
+                            {
+                                $facet: aggregations
+                            }
+                        ])
+                        .toArray()
+                )[0];
+                resolve(data);
+                /*
 
                 let projection = {
                     bossName: 1,
@@ -796,7 +891,7 @@ class Database {
                 for (let specId of playerSpecs) {
                     const characterId = createCharacterId(
                         realm,
-                        playerName,
+                        characterName,
                         specId
                     );
 
@@ -825,7 +920,7 @@ class Database {
                     for (let specId of playerSpecs) {
                         let characterId = createCharacterId(
                             realm,
-                            playerName,
+                            characterName,
                             specId
                         );
 
@@ -982,7 +1077,7 @@ class Database {
                                     variant
                                 ],
                                 {
-                                    [variant]: playerTotal / totalBosses,
+                                    [variant]: playerTotal / bossCount,
                                     topPercent: calcTopPercentOfPerformance(
                                         playerTotal,
                                         bestTotal
@@ -994,7 +1089,9 @@ class Database {
                 }
 
                 resolve(playerPerformance);
+                */
             } catch (err) {
+                console.error(err);
                 reject(err);
             }
         });
