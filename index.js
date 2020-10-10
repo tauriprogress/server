@@ -93,8 +93,8 @@ const { minutesAgo, secsAgo } = require("./helpers");
         verifyGetCharacterPerformance,
         async (req, res) => {
             try {
-                let performance = await db.getPlayerPerformance({
-                    playerName: req.body.playerName,
+                let performance = await db.getCharacterPerformance({
+                    characterName: req.body.characterName,
                     characterClass: req.body.characterClass,
                     realm: req.body.realm,
                     raidName: req.body.raidName
