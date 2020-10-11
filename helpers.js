@@ -97,7 +97,9 @@ function processLogs(logs) {
         fastestKills: {},
         firstKills: {},
         bestDps: {},
-        bestHps: {}
+        bestHps: {},
+        bestDpsNoCat: {},
+        bestHpsNoCat: {}
     };
 
     let guilds = {};
@@ -345,12 +347,27 @@ function processLogs(logs) {
                         characterData.spec
                     ];
 
-                    const bestsOfCombatMetric = getNestedObjectValue(
+                    const bestOf =
+                        bosses[bossId][`best${capitalize(combatMetric)}NoCat`];
+
+                    if (!bestOf[combatMetric]) {
+                        bosses[bossId][
+                            `best${capitalize(combatMetric)}NoCat`
+                        ] = characterData;
+                    }
+
+                    if (characterData[combatMetric] > bestOf[combatMetric]) {
+                        bosses[bossId][
+                            `best${capitalize(combatMetric)}NoCat`
+                        ] = characterData;
+                    }
+
+                    const categorizedBestOf = getNestedObjectValue(
                         bosses[bossId][`best${capitalize(combatMetric)}`],
                         characterCategorization
                     );
 
-                    if (!bestsOfCombatMetric) {
+                    if (!categorizedBestOf) {
                         bosses[bossId][
                             `best${capitalize(combatMetric)}`
                         ] = addNestedObjectValue(
@@ -360,25 +377,23 @@ function processLogs(logs) {
                         );
                     } else if (
                         characterData[combatMetric] >
-                        bestsOfCombatMetric[bestsOfCombatMetric.length - 1][
+                        categorizedBestOf[categorizedBestOf.length - 1][
                             combatMetric
                         ]
                     ) {
-                        const indexOfSameChar = bestsOfCombatMetric.findIndex(
+                        const indexOfSameChar = categorizedBestOf.findIndex(
                             data => data._id === characterData._id
                         );
 
                         if (indexOfSameChar >= 0) {
                             if (
                                 characterData[combatMetric] >
-                                bestsOfCombatMetric[indexOfSameChar][
-                                    combatMetric
-                                ]
+                                categorizedBestOf[indexOfSameChar][combatMetric]
                             ) {
-                                bestsOfCombatMetric[
+                                categorizedBestOf[
                                     indexOfSameChar
                                 ] = characterData;
-                                bestsOfCombatMetric
+                                categorizedBestOf
                                     .sort(
                                         (a, b) =>
                                             b[combatMetric] - a[combatMetric]
@@ -393,7 +408,7 @@ function processLogs(logs) {
                                     `best${capitalize(combatMetric)}`
                                 ],
                                 characterCategorization,
-                                bestsOfCombatMetric
+                                categorizedBestOf
                                     .concat(characterData)
                                     .sort(
                                         (a, b) =>
@@ -769,6 +784,14 @@ function updateRaidBoss(oldBoss, boss) {
     }
 
     for (const combatMetric of ["dps", "hps"]) {
+        if (
+            oldBoss[`best${capitalize(combatMetric)}NoCat`] >
+            updatedRaidBoss[`best${capitalize(combatMetric)}NoCat`]
+        ) {
+            updatedRaidBoss[`best${capitalize(combatMetric)}NoCat`] =
+                oldBoss[`best${capitalize(combatMetric)}NoCat`];
+        }
+
         for (const realm in updatedRaidBoss[
             `best${capitalize(combatMetric)}`
         ]) {
