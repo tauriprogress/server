@@ -28,7 +28,8 @@ const {
     raidInfoFromBossId,
     getBossInfo,
     getRaidInfoFromId,
-    getRaidInfoFromName
+    getRaidInfoFromName,
+    addToTotalPerformance
 } = require("./helpers");
 
 class Database {
@@ -776,12 +777,17 @@ class Database {
     }) {
         return new Promise(async (resolve, reject) => {
             try {
-                const { bossCount, bosses, id: raidId } = getRaidInfoFromName(
-                    raidName
-                );
+                const {
+                    bossCount,
+                    bosses,
+                    id: raidId,
+                    difficulties
+                } = getRaidInfoFromName(raidName);
                 const characterSpecs = characterClassToSpec[characterClass];
 
                 let aggregations = {};
+
+                let characterPerformance = {};
 
                 for (const bossInfo of bosses) {
                     let projection = {};
@@ -790,6 +796,12 @@ class Database {
                             [`${difficulty}.characterData`]: 1
                         };
                         for (const combatMetric of ["dps", "hps"]) {
+                            currentProjection[
+                                `${difficulty}.best${capitalize(
+                                    combatMetric
+                                )}NoCat`
+                            ] = 1;
+
                             if (!aggregations[bossInfo.name]) {
                                 aggregations[bossInfo.name] = [];
                             }
@@ -878,209 +890,191 @@ class Database {
                         ])
                         .toArray()
                 )[0];
-                resolve(data);
-                /*
 
-                let projection = {
-                    bossName: 1,
-                    difficulty: 1,
-                    bestDps: 1,
-                    bestHps: 1
-                };
+                for (const difficulty of difficulties) {
+                    let characterTotal = {};
+                    let bestTotal = {};
 
-                for (let specId of playerSpecs) {
-                    const characterId = createCharacterId(
-                        realm,
-                        characterName,
-                        specId
-                    );
+                    for (const boss of bosses) {
+                        const currentBoss = data[boss.name][0];
 
-                    if (specs[specId].isDps) {
-                        projection[`dps.${characterId}`] = 1;
-                    }
+                        for (const combatMetric of ["dps", "hps"]) {
+                            const bestCombatMetricOfBoss =
+                                currentBoss[difficulty][
+                                    `best${capitalize(combatMetric)}`
+                                ];
+                            const bestOverall =
+                                currentBoss[difficulty][
+                                    `best${capitalize(combatMetric)}NoCat`
+                                ];
 
-                    if (specs[specId].isHealer) {
-                        projection[`hps.${characterId}`] = 1;
-                    }
-                }
+                            let bestOfClass = {};
+                            let bestOfCharacter = {
+                                [combatMetric]: false
+                            };
 
-                let bosses = await raidCollection
-                    .find()
-                    .project(projection)
-                    .toArray();
+                            for (const specId of characterSpecs) {
+                                let bestOfSpec = {};
+                                let characterSpecData = {
+                                    [combatMetric]: false
+                                };
 
-                for (let boss of bosses) {
-                    let objectKeys = [raidName, boss.difficulty, boss.bossName];
+                                for (const realmName in bestCombatMetricOfBoss) {
+                                    for (const faction in bestCombatMetricOfBoss[
+                                        realmName
+                                    ]) {
+                                        const currentBest =
+                                            bestCombatMetricOfBoss[realmName][
+                                                faction
+                                            ][specId];
 
-                    let noSpecData = {
-                        dps: { dps: false },
-                        hps: { hps: false }
-                    };
-
-                    for (let specId of playerSpecs) {
-                        let characterId = createCharacterId(
-                            realm,
-                            characterName,
-                            specId
-                        );
-
-                        for (let variant of ["dps", "hps"]) {
-                            let playerData = boss[variant]
-                                ? boss[variant][characterId]
-                                : null;
-
-                            if (playerData) {
-                                playerPerformance = addNestedObjectValue(
-                                    playerPerformance,
-                                    [...objectKeys, specId, variant],
-                                    {
-                                        ...playerData,
-                                        topPercent: calcTopPercentOfPerformance(
-                                            playerData[variant],
-                                            getBestPerformance(
-                                                boss[
-                                                    `best${capitalize(variant)}`
-                                                ],
-                                                variant,
-                                                { spec: specId }
-                                            )
-                                        ),
-                                        rank: playerData.specRank
+                                        if (currentBest) {
+                                            if (
+                                                !bestOfSpec[combatMetric] ||
+                                                bestOfSpec[combatMetric] <
+                                                    currentBest[combatMetric]
+                                            ) {
+                                                bestOfSpec = currentBest;
+                                            }
+                                            if (
+                                                !bestOfClass[combatMetric] ||
+                                                bestOfClass[combatMetric] <
+                                                    currentBest[combatMetric]
+                                            ) {
+                                                bestOfClass = currentBest;
+                                            }
+                                        }
                                     }
-                                );
-
-                                totalPlayerPerformance = addNestedObjectValue(
-                                    totalPlayerPerformance,
-                                    [boss.difficulty, variant, specId],
-                                    getNestedObjectValue(
-                                        totalPlayerPerformance,
-                                        [boss.difficulty, variant, specId]
-                                    ) + playerData[variant]
-                                );
-
-                                if (
-                                    noSpecData[variant][variant] <
-                                    playerData[variant]
-                                ) {
-                                    noSpecData[variant] = playerData;
                                 }
-                            } else {
-                                playerPerformance = addNestedObjectValue(
-                                    playerPerformance,
-                                    [...objectKeys, specId, [variant]],
-                                    { [variant]: false }
+
+                                for (const charData of currentBoss
+                                    .characterData[difficulty][combatMetric]) {
+                                    if (charData.spec === specId) {
+                                        if (
+                                            bestOfCharacter[combatMetric] <
+                                            charData[combatMetric]
+                                        ) {
+                                            bestOfCharacter = charData;
+                                        }
+
+                                        characterSpecData = {
+                                            ...charData,
+                                            topPercent: calcTopPercentOfPerformance(
+                                                charData[combatMetric],
+                                                bestOfSpec[combatMetric]
+                                            )
+                                        };
+                                    }
+                                }
+
+                                bestTotal = addToTotalPerformance(
+                                    bestTotal,
+                                    [specId, combatMetric],
+                                    bestOfSpec[combatMetric]
+                                );
+
+                                const categorization = [
+                                    raidName,
+                                    difficulty,
+                                    boss.name,
+                                    specId,
+                                    combatMetric
+                                ];
+                                characterPerformance = addNestedObjectValue(
+                                    characterPerformance,
+                                    categorization,
+                                    characterSpecData
+                                );
+
+                                characterTotal = addToTotalPerformance(
+                                    characterTotal,
+                                    [specId, combatMetric],
+                                    characterSpecData[combatMetric]
                                 );
                             }
 
-                            totalBestPerformance = addNestedObjectValue(
-                                totalBestPerformance,
-                                [boss.difficulty, variant, specId],
-                                getNestedObjectValue(totalBestPerformance, [
-                                    boss.difficulty,
-                                    variant,
-                                    specId
-                                ]) +
-                                    getBestPerformance(
-                                        boss[`best${capitalize(variant)}`],
-                                        variant,
-                                        { spec: specId }
-                                    )
-                            );
-                        }
-                    }
+                            const categorization = [
+                                raidName,
+                                difficulty,
+                                boss.name
+                            ];
 
-                    for (let specVariant of ["noSpec", "class"]) {
-                        for (let variant of ["dps", "hps"]) {
-                            playerPerformance = addNestedObjectValue(
-                                playerPerformance,
-                                [...objectKeys, specVariant, variant],
+                            characterPerformance = addNestedObjectValue(
+                                characterPerformance,
+                                [...categorization, "class", combatMetric],
                                 {
-                                    ...noSpecData[variant],
-                                    rank:
-                                        specVariant === "class"
-                                            ? noSpecData[variant].classRank
-                                            : noSpecData[variant].rank,
-                                    topPercent:
-                                        noSpecData[variant][variant] &&
-                                        calcTopPercentOfPerformance(
-                                            noSpecData[variant][variant],
-                                            getBestPerformance(
-                                                boss[
-                                                    `best${capitalize(variant)}`
-                                                ],
-                                                variant,
-                                                specVariant === "class"
-                                                    ? {
-                                                          characterClass: characterClass
-                                                      }
-                                                    : {}
-                                            )
-                                        )
-                                }
-                            );
-
-                            totalPlayerPerformance = addNestedObjectValue(
-                                totalPlayerPerformance,
-                                [boss.difficulty, variant, specVariant],
-                                getNestedObjectValue(totalPlayerPerformance, [
-                                    boss.difficulty,
-                                    variant,
-                                    specVariant
-                                ]) +
-                                    (noSpecData[variant][variant]
-                                        ? noSpecData[variant][variant]
-                                        : 0)
-                            );
-
-                            totalBestPerformance = addNestedObjectValue(
-                                totalBestPerformance,
-                                [boss.difficulty, variant, specVariant],
-                                getNestedObjectValue(totalBestPerformance, [
-                                    boss.difficulty,
-                                    variant,
-                                    specVariant
-                                ]) +
-                                    getBestPerformance(
-                                        boss[`best${capitalize(variant)}`],
-                                        variant,
-                                        specVariant === "class"
-                                            ? { characterClass: characterClass }
-                                            : {}
-                                    )
-                            );
-                        }
-                    }
-                }
-
-                for (let difficulty in playerPerformance[raidName]) {
-                    difficulty = Number(difficulty);
-                    for (let variant of ["dps", "hps"]) {
-                        for (let specId in totalPlayerPerformance[difficulty][
-                            variant
-                        ]) {
-                            let playerTotal = getNestedObjectValue(
-                                totalPlayerPerformance,
-                                [difficulty, variant, specId]
-                            );
-                            let bestTotal = getNestedObjectValue(
-                                totalBestPerformance,
-                                [difficulty, variant, specId]
-                            );
-
-                            playerPerformance = addNestedObjectValue(
-                                playerPerformance,
-                                [
-                                    raidName,
-                                    difficulty,
-                                    "total",
-                                    specId,
-                                    variant
-                                ],
-                                {
-                                    [variant]: playerTotal / bossCount,
+                                    ...bestOfCharacter,
                                     topPercent: calcTopPercentOfPerformance(
-                                        playerTotal,
-                                        bestTotal
+                                        bestOfCharacter[combatMetric],
+                                        bestOfClass[combatMetric]
+                                    )
+                                }
+                            );
+
+                            bestTotal = addToTotalPerformance(
+                                bestTotal,
+                                ["class", combatMetric],
+                                bestOfClass[combatMetric]
+                            );
+
+                            characterTotal = addToTotalPerformance(
+                                characterTotal,
+                                ["class", combatMetric],
+                                bestOfCharacter[combatMetric]
+                            );
+
+                            characterPerformance = addNestedObjectValue(
+                                characterPerformance,
+                                [...categorization, "noSpec", combatMetric],
+                                {
+                                    ...bestOfCharacter,
+                                    topPercent: calcTopPercentOfPerformance(
+                                        bestOfCharacter[combatMetric],
+                                        bestOverall[combatMetric]
+                                    )
+                                }
+                            );
+                            bestTotal = addToTotalPerformance(
+                                bestTotal,
+                                ["noSpec", combatMetric],
+                                bestOverall[combatMetric]
+                            );
+
+                            characterTotal = addToTotalPerformance(
+                                characterTotal,
+                                ["noSpec", combatMetric],
+                                bestOfCharacter[combatMetric]
+                            );
+                        }
+                    }
+
+                    for (const specId in characterTotal) {
+                        for (const combatMetric in characterTotal[specId]) {
+                            const categorization = [specId, combatMetric];
+                            const bestCombatMetricOfTotal = getNestedObjectValue(
+                                bestTotal,
+                                categorization
+                            );
+                            const characterCombatMetricOfTotal = getNestedObjectValue(
+                                characterTotal,
+                                categorization
+                            );
+                            const characterPerformanceTotal =
+                                characterPerformance[raidName][difficulty]
+                                    .total;
+
+                            characterPerformance[raidName][
+                                difficulty
+                            ].total = addNestedObjectValue(
+                                characterPerformanceTotal || {},
+                                categorization,
+                                {
+                                    [combatMetric]:
+                                        characterCombatMetricOfTotal /
+                                        bossCount,
+                                    topPercent: calcTopPercentOfPerformance(
+                                        characterCombatMetricOfTotal,
+                                        bestCombatMetricOfTotal
                                     )
                                 }
                             );
@@ -1088,8 +1082,7 @@ class Database {
                     }
                 }
 
-                resolve(playerPerformance);
-                */
+                resolve(characterPerformance);
             } catch (err) {
                 console.error(err);
                 reject(err);

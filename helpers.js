@@ -1002,6 +1002,25 @@ function calcTopPercentOfPerformance(currentPerformance, bestPerformance) {
     return Math.round((currentPerformance / bestPerformance) * 1000) / 10;
 }
 
+function addToTotalPerformance(total, categorization, combatMetricValue) {
+    let prevTotalValue = getNestedObjectValue(total, categorization);
+    if (!combatMetricValue) {
+        return addNestedObjectValue(
+            total,
+            categorization,
+            prevTotalValue || false
+        );
+    }
+    if (!prevTotalValue) {
+        return addNestedObjectValue(total, categorization, combatMetricValue);
+    }
+    return addNestedObjectValue(
+        total,
+        categorization,
+        prevTotalValue + combatMetricValue
+    );
+}
+
 function capitalize(str) {
     return str.charAt(0).toUpperCase() + str.slice(1);
 }
@@ -1239,5 +1258,6 @@ module.exports = {
     raidInfoFromBossId,
     getBossInfo,
     getRaidInfoFromId,
-    getRaidInfoFromName
+    getRaidInfoFromName,
+    addToTotalPerformance
 };
