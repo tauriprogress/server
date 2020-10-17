@@ -5,6 +5,8 @@ const {
     characterClassToSpec
 } = require("tauriprogress-constants");
 
+const fs = require("fs");
+
 const expansionData = require("./expansionData");
 const { currentContent } = expansionData;
 
@@ -603,7 +605,11 @@ function updateGuildData(oldGuild, newGuild) {
     let updatedGuild = {
         ...JSON.parse(JSON.stringify(oldGuild)),
         ...(({ progression, raidDays, activity, ...others }) => ({
-            ...JSON.parse(JSON.stringify(others))
+            ...JSON.parse(JSON.stringify(others)),
+            members: newGuild.members.length
+                ? newGuild.members
+                : oldGuild.members,
+            ranks: newGuild.ranks.length ? newGuild.ranks : oldGuild.ranks
         }))(newGuild)
     };
 
@@ -732,6 +738,7 @@ function updateRaidBoss(oldBoss, boss) {
         recentKills: boss.recentKills.concat(oldBoss.recentKills).slice(0, 50),
         killCount: oldBoss.killCount + boss.killCount
     };
+
     for (const realm in boss.fastestKills) {
         for (const faction in boss.fastestKills[realm]) {
             const categorization = [realm, faction];
@@ -785,23 +792,21 @@ function updateRaidBoss(oldBoss, boss) {
 
     for (const combatMetric of ["dps", "hps"]) {
         if (
-            oldBoss[`best${capitalize(combatMetric)}NoCat`] >
+            boss[`best${capitalize(combatMetric)}NoCat`] >
             updatedRaidBoss[`best${capitalize(combatMetric)}NoCat`]
         ) {
             updatedRaidBoss[`best${capitalize(combatMetric)}NoCat`] =
-                oldBoss[`best${capitalize(combatMetric)}NoCat`];
+                boss[`best${capitalize(combatMetric)}NoCat`];
         }
 
-        for (const realm in updatedRaidBoss[
-            `best${capitalize(combatMetric)}`
-        ]) {
-            for (const faction in updatedRaidBoss[
-                `best${capitalize(combatMetric)}`
-            ][realm]) {
-                for (const characterClass in updatedRaidBoss[
+        for (const realm in boss[`best${capitalize(combatMetric)}`]) {
+            for (const faction in boss[`best${capitalize(combatMetric)}`][
+                realm
+            ]) {
+                for (const characterClass in boss[
                     `best${capitalize(combatMetric)}`
                 ][realm][faction]) {
-                    for (const characterSpec in updatedRaidBoss[
+                    for (const characterSpec in boss[
                         `best${capitalize(combatMetric)}`
                     ][realm][faction][characterClass]) {
                         const oldBestsOfCombatMetric =
@@ -816,22 +821,21 @@ function updateRaidBoss(oldBoss, boss) {
 
                         const bestCharacters = {};
 
-                        for (const bests of [
-                            oldBestsOfCombatMetric,
-                            newBestsOfCombatMetric
+                        for (const bestCharacter of [
+                            ...oldBestsOfCombatMetric,
+                            ...newBestsOfCombatMetric
                         ]) {
-                            for (const bestCharacter of bests) {
-                                if (
-                                    bestCharacters[bestCharacter._id] &&
+                            if (
+                                !bestCharacters[bestCharacter._id] ||
+                                (bestCharacters[bestCharacter._id] &&
                                     bestCharacter[combatMetric] >
                                         bestCharacters[bestCharacter._id][
                                             combatMetric
-                                        ]
-                                ) {
-                                    bestCharacters[
-                                        bestCharacter._id
-                                    ] = bestCharacter;
-                                }
+                                        ])
+                            ) {
+                                bestCharacters[
+                                    bestCharacter._id
+                                ] = bestCharacter;
                             }
                         }
 

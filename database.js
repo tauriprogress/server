@@ -172,7 +172,9 @@ class Database {
                     );
 
                 console.log("db: Requesting logs");
-                let { logs, lastLogIds: newLastLogIds } = getLogs(lastLogIds);
+                let { logs, lastLogIds: newLastLogIds } = await getLogs(
+                    lastLogIds
+                );
 
                 if (isInitalization) {
                     console.log(
@@ -248,10 +250,13 @@ class Database {
                         }
                     );
                 } else {
-                    console.log("db: Opening new transaction session");
                     newLastLogIds = {};
-                    const loopSteps = 20;
-                    for (let i = 0; i < Math.ceil(logs.length); i++) {
+                    const loopSteps = 10;
+                    for (
+                        let i = 0;
+                        i < Math.ceil(logs.length / loopSteps);
+                        i++
+                    ) {
                         const start = i * loopSteps;
                         const chunkOfLogs = logs.slice(
                             start,
@@ -265,6 +270,7 @@ class Database {
                         const session = this.client.startSession();
 
                         try {
+                            console.log("db: Opening new transaction session");
                             await session.withTransaction(async () => {
                                 await this.saveLogs(
                                     processedLogs,
@@ -278,7 +284,6 @@ class Database {
                         } catch (err) {
                             console.log("transaction error");
                             console.error(err);
-                            throw err;
                         } finally {
                             session.endSession();
                             console.log("db: Transaction session closed");
@@ -554,14 +559,14 @@ class Database {
                         );
                     }
                 } else {
-                    if (oldChar[combatMetric < char[combatMetric]]) {
+                    if (oldChar[combatMetric] < char[combatMetric]) {
                         await bossCollection.updateOne(
                             {
                                 _id: char._id
                             },
                             {
                                 $set: {
-                                    char
+                                    ...char
                                 }
                             },
                             { session }
