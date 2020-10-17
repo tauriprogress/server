@@ -17,7 +17,7 @@ const {
 } = require("./middlewares");
 
 const tauriApi = require("./tauriApi");
-const { minutesAgo, secsAgo } = require("./helpers");
+const { minutesAgo } = require("./helpers");
 
 (async function () {
     try {
