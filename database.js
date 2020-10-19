@@ -149,9 +149,10 @@ class Database {
     async update(isInitalization) {
         return new Promise(async (resolve, reject) => {
             try {
-                console.log("db: Updating database");
                 if (this.isUpdating)
                     throw new Error("Database is already updating");
+                console.log("db: Updating database");
+
                 this.isUpdating = true;
                 this.updateStatus = "Database is already updating";
 
@@ -247,7 +248,7 @@ class Database {
                         }
                     );
                 } else {
-                    newLastLogIds = {};
+                    newLastLogIds = { ...lastLogIds };
                     const loopSteps = 10;
                     for (
                         let i = 0;
