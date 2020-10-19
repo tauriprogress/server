@@ -282,6 +282,7 @@ class Database {
                         } catch (err) {
                             console.log("transaction error");
                             console.error(err);
+                            break;
                         } finally {
                             session.endSession();
                             console.log("db: Transaction session closed");
