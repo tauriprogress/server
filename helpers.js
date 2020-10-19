@@ -806,15 +806,18 @@ function updateRaidBoss(oldBoss, boss) {
                     for (const characterSpec in boss[
                         `best${capitalize(combatMetric)}`
                     ][realm][faction][characterClass]) {
+                        const categorization = [
+                            `best${capitalize(combatMetric)}`,
+                            realm,
+                            faction,
+                            characterClass,
+                            characterSpec
+                        ];
                         const oldBestsOfCombatMetric =
-                            oldBoss[`best${capitalize(combatMetric)}`][realm][
-                                faction
-                            ][characterClass][characterSpec];
+                            getNestedObjectValue(oldBoss, categorization) || [];
 
                         const newBestsOfCombatMetric =
-                            boss[`best${capitalize(combatMetric)}`][realm][
-                                faction
-                            ][characterClass][characterSpec];
+                            getNestedObjectValue(boss, categorization) || [];
 
                         const bestCharacters = {};
 
@@ -844,13 +847,15 @@ function updateRaidBoss(oldBoss, boss) {
                             );
                         }
 
-                        updatedRaidBoss[`best${capitalize(combatMetric)}`][
-                            realm
-                        ][faction][characterClass][
-                            characterSpec
-                        ] = updatedBestsOfCombatMetric
-                            .sort((a, b) => b[combatMetric] - a[combatMetric])
-                            .slice(0, 10);
+                        updatedRaidBoss = addNestedObjectValue(
+                            updatedRaidBoss,
+                            categorization,
+                            updatedBestsOfCombatMetric
+                                .sort(
+                                    (a, b) => b[combatMetric] - a[combatMetric]
+                                )
+                                .slice(0, 10)
+                        );
                     }
                 }
             }
