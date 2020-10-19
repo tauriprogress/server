@@ -1,11 +1,8 @@
 const {
     characterSpecToClass,
     shortRealms,
-    characterRaceToFaction,
-    characterClassToSpec
+    characterRaceToFaction
 } = require("tauriprogress-constants");
-
-const fs = require("fs");
 
 const expansionData = require("./expansionData");
 const { currentContent } = expansionData;
@@ -952,56 +949,6 @@ function getNestedObjectValue(obj, keys) {
     }
 }
 
-function getBestPerformance(
-    bestPerformances,
-    type,
-    { characterClass, spec } = {}
-) {
-    let bestPerformance = 0;
-
-    let perfSpecs = {};
-
-    if (spec) {
-        perfSpecs[characterSpecToClass[spec]] = [spec];
-    } else if (characterClass) {
-        perfSpecs[characterClass] = characterClassToSpec[characterClass];
-    } else {
-        for (let characterClass in characterClassToSpec) {
-            perfSpecs[characterClass] = characterClassToSpec[characterClass];
-        }
-    }
-
-    for (const realmKey in expansionData.realms) {
-        const realm = realms[realmKey];
-        for (let faction of [0, 1]) {
-            for (let characterClass in perfSpecs) {
-                for (let currentSpec of perfSpecs[characterClass]) {
-                    const objectKeys = [
-                        realm,
-                        faction,
-                        characterClass,
-                        currentSpec,
-                        type
-                    ];
-
-                    let currentBestPerformance = getNestedObjectValue(
-                        bestPerformances,
-                        objectKeys
-                    );
-
-                    if (
-                        currentBestPerformance &&
-                        currentBestPerformance > bestPerformance
-                    ) {
-                        bestPerformance = currentBestPerformance;
-                    }
-                }
-            }
-        }
-    }
-    return bestPerformance;
-}
-
 function calcTopPercentOfPerformance(currentPerformance, bestPerformance) {
     return Math.round((currentPerformance / bestPerformance) * 1000) / 10;
 }
@@ -1193,18 +1140,6 @@ function getLastLogIds(logs) {
     return lastLogIds;
 }
 
-function raidInfoFromBossId(id) {
-    for (const raid of currentContent.raids) {
-        for (const boss of raid.bosses) {
-            if (boss.id === id) {
-                return raid;
-            }
-        }
-    }
-
-    return false;
-}
-
 function getBossInfo(raidId, bossName) {
     for (const raid of currentContent.raids) {
         if (raid.id === raidId) {
@@ -1250,7 +1185,6 @@ module.exports = {
     secsAgo,
     addNestedObjectValue,
     getNestedObjectValue,
-    getBestPerformance,
     calcTopPercentOfPerformance,
     capitalize,
     validRaidName,
@@ -1259,7 +1193,6 @@ module.exports = {
     recentGuildRaidDays,
     getBossCollectionName,
     getLastLogIds,
-    raidInfoFromBossId,
     getBossInfo,
     getRaidInfoFromId,
     getRaidInfoFromName,
