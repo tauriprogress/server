@@ -189,19 +189,6 @@ function validRealm(realm) {
     return false;
 }
 
-function validDifficulty(raidName, difficulty) {
-    let raidDiffs = {};
-    for (let raid of raids) {
-        if (raid.raidName === raidName) {
-            raidDiffs = raid.difficulties;
-            break;
-        }
-    }
-    if (!raidDiffs[difficulty]) return false;
-
-    return true;
-}
-
 function validClass(characterClass) {
     for (let classId in characterClassNames) {
         if (classId == characterClass) return true;

@@ -33,12 +33,13 @@ const { minutesAgo } = require("./helpers");
 
     app.use(
         cors({
-            origin: "http://localhost:3000",
+            origin: "https://tauriprogress.github.io/",
             optionsSuccessStatus: 200
         })
     );
+
     app.use(bodyParser.json());
-    //app.use(updateDatabase(db));
+    app.use(updateDatabase(db));
 
     app.get("/getguildlist", async (req, res) => {
         try {

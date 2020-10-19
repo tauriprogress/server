@@ -17,7 +17,6 @@ const {
     createCharacterId,
     addNestedObjectValue,
     getNestedObjectValue,
-    getBestPerformance,
     calcTopPercentOfPerformance,
     capitalize,
     recentGuildRaidDays,
@@ -25,7 +24,6 @@ const {
     processLogs,
     getBossCollectionName,
     getLastLogIds,
-    raidInfoFromBossId,
     getBossInfo,
     getRaidInfoFromId,
     getRaidInfoFromName,
@@ -175,7 +173,6 @@ class Database {
                 let { logs, lastLogIds: newLastLogIds } = await getLogs(
                     lastLogIds
                 );
-
                 if (isInitalization) {
                     console.log(
                         "db: Saving logs in case something goes wrong in the initalization process to",
