@@ -3,7 +3,12 @@ const {
     realms,
     characterClassNames
 } = require("./expansionData");
-const { capitalize, validRaidName, minutesAgo } = require("./helpers");
+const {
+    capitalize,
+    validRaidName,
+    minutesAgo,
+    validBossName
+} = require("./helpers");
 
 function verifyGetGuild(req, res, next) {
     try {
@@ -161,19 +166,6 @@ function validRaidId(raidId) {
     for (const raid of currentContent.raids) {
         if (raid.id === raidId) {
             return true;
-        }
-    }
-    return false;
-}
-
-function validBossName(raidId, bossName) {
-    for (const raid of currentContent.raids) {
-        if (raid.id === raidId) {
-            for (const boss of raid.bosses) {
-                if (boss.name === bossName) {
-                    return true;
-                }
-            }
         }
     }
     return false;
