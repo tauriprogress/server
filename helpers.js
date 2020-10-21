@@ -46,6 +46,10 @@ async function getLogs(lastLogIds = {}) {
                 if (
                     validRaidName(log.mapentry.name) &&
                     validDifficulty(log.mapentry.name, log.difficulty) &&
+                    validBossName(
+                        log.mapentry.id,
+                        log.encounter_data.encounter_name
+                    ) &&
                     log.fight_time > 10000
                 ) {
                     let logData;
@@ -1176,6 +1180,19 @@ function getRaidInfoFromName(raidName) {
     return false;
 }
 
+function validBossName(raidId, bossName) {
+    for (const raid of currentContent.raids) {
+        if (raid.id === raidId) {
+            for (const boss of raid.bosses) {
+                if (boss.name === bossName) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
 module.exports = {
     getLogs,
     processLogs,
@@ -1193,6 +1210,7 @@ module.exports = {
     calcTopPercentOfPerformance,
     capitalize,
     validRaidName,
+    validBossName,
     validDifficulty,
     logBugHandler,
     recentGuildRaidDays,
