@@ -9,7 +9,7 @@
         "express": "^4.17.1",
         "mongodb": "^3.6.0",
         "node-fetch": "^2.6.0",
-        "tauriprogress-constants": "^3.0.5"
+        "tauriprogress-constants": "^3.0.6"
     },
     "scripts": {
         "start": "node index.js",
