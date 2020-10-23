@@ -145,6 +145,7 @@ function processLogs(logs) {
 
         const guildId = log.guildid;
         const guildName = log.guilddata.name;
+        const isGuildKill = guildId && guildName ? true : false;
         const guildFaction = log.guilddata.faction;
         const guildBossCategorization = [
             "progression",
@@ -155,7 +156,7 @@ function processLogs(logs) {
 
         const trimmedLog = {
             id: logId,
-            guild: guildId ? { name: guildName, f: faction } : null,
+            guild: isGuildKill ? { name: guildName, f: faction } : null,
             fightLength: fightLength,
             realm: realm,
             date: date
@@ -221,7 +222,7 @@ function processLogs(logs) {
             );
         }
 
-        if (guildId) {
+        if (isGuildKill) {
             // create guild
             if (!guilds[guildId]) {
                 guilds[guildId] = {
@@ -422,7 +423,7 @@ function processLogs(logs) {
                         }
                     }
 
-                    if (guildId) {
+                    if (isGuildKill) {
                         let oldCharacter = getNestedObjectValue(
                             guilds[guildId],
                             [
