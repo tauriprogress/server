@@ -1045,6 +1045,13 @@ function logBugHandler(log, bug) {
                 });
 
                 break;
+
+            case "guildData":
+                if (bug.guildIds[log.guildid]) {
+                    log[bug.changeKey.key] = bug.changeKey.value;
+                    log.guildid = bug.id;
+                }
+                break;
             default:
         }
     }
