@@ -35,7 +35,11 @@ async function getLogs(lastLogIds = {}) {
                 unfilteredLogs = unfilteredLogs.concat(
                     data.response.logs.map(log => ({
                         ...log,
-                        realm: realms[realmKey]
+                        realm: realms[realmKey],
+                        encounter_data: {
+                            ...log.encounter_data,
+                            encounter_name: log.encounter_data.encounter_name.trim()
+                        }
                     }))
                 );
             }
@@ -68,7 +72,14 @@ async function getLogs(lastLogIds = {}) {
                     );
                     if (!logData.success) throw new Error(logData.errorstring);
 
-                    logs.push({ ...logData.response, realm: log.realm });
+                    logs.push({
+                        ...logData.response,
+                        realm: log.realm,
+                        encounter_data: {
+                            ...logData.response.encounter_data,
+                            encounter_name: logData.response.encounter_data.encounter_name.trim()
+                        }
+                    });
 
                     newLastLogIds = addNestedObjectValue(
                         newLastLogIds,
