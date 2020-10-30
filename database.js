@@ -550,13 +550,7 @@ class Database {
                 );
 
                 if (!oldChar) {
-                    try {
-                        await bossCollection.insertOne(char, { session });
-                    } catch (err) {
-                        console.error(
-                            `Error while tring to save ${char._id} \n ${err.message}`
-                        );
-                    }
+                    await bossCollection.insertOne(char, { session });
                 } else {
                     if (oldChar[combatMetric] < char[combatMetric]) {
                         await bossCollection.updateOne(
