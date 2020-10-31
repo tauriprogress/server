@@ -1069,6 +1069,11 @@ function logBugHandler(log, bug) {
                     log.guildid = bug.id;
                 }
                 break;
+            case "date":
+                if (log.log_id === bug.id) {
+                    log[bug.changeKey.key] = bug.changeKey.value;
+                }
+                break;
             default:
         }
     }
