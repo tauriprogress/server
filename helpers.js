@@ -720,7 +720,10 @@ function calcGuildContentCompletion(guild) {
             completion[difficulty].progress++;
         }
 
-        if (completion[difficulty].progress === currentContent.totalBosses) {
+        if (
+            currentContent.completionDifficulties.includes(difficulty) &&
+            completion[difficulty].progress === currentContent.totalBosses
+        ) {
             const firstKill =
                 guild.progression[currentContent.name][difficulty][
                     currentContent.lastBoss
@@ -737,7 +740,10 @@ function calcGuildContentCompletion(guild) {
             }
         }
 
-        if (completion.bossesDefeated < completion[difficulty].progress)
+        if (
+            currentContent.completionDifficulties.includes(difficulty) &&
+            completion.bossesDefeated < completion[difficulty].progress
+        )
             completion.bossesDefeated = completion[difficulty].progress;
     }
 
