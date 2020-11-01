@@ -1147,8 +1147,8 @@ function recentGuildRaidDays(guild) {
     ).getTime();
 
     for (let log of guild.progression.recentKills) {
-        if (log.killtime * 1000 > timeBoundary) {
-            let logDate = new Date(log.killtime * 1000);
+        if (log.date * 1000 > timeBoundary) {
+            let logDate = new Date(log.date * 1000);
 
             recent[unshiftDateDay(logDate.getDay())][logDate.getHours()] += 1;
         } else {
