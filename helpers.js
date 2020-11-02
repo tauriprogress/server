@@ -887,51 +887,36 @@ function updateRaidBoss(oldBoss, boss) {
     return updatedRaidBoss;
 }
 
-function applyPlayerPerformanceRanks(raidBoss) {
-    let dpsArr = [];
-    let hpsArr = [];
-    let dpsSpecs = {};
-    let hpsSpecs = {};
-    let dpsClasses = {};
-    let hpsClasses = {};
+function applyCharacterPerformanceRanks(characters, combatMetric) {
+    let classes = {};
+    let specs = {};
+    let sortedCharacters = characters.sort(
+        (a, b) => b[combatMetric] - a[combatMetric]
+    );
 
-    for (let dpsKey in raidBoss.dps) {
-        dpsArr.push({ ...raidBoss.dps[dpsKey], key: dpsKey });
+    for (let i = 0; i < sortedCharacters.length; i++) {
+        let character = sortedCharacters[i];
+
+        if (!classes[character.class]) {
+            classes[character.class] = 1;
+        } else {
+            classes[character.class] += 1;
+        }
+
+        if (!specs[character.spec]) {
+            specs[character.spec] = 1;
+        } else {
+            specs[character.spec] += 1;
+        }
+
+        character.rank = i + 1;
+        character.cRank = classes[character.class];
+        character.sRank = specs[character.spec];
+
+        sortedCharacters[i] = character;
     }
 
-    for (let hpsKey in raidBoss.hps) {
-        hpsArr.push({ ...raidBoss.hps[hpsKey], key: hpsKey });
-    }
-
-    dpsArr = dpsArr.sort((a, b) => b.dps - a.dps);
-    hpsArr = hpsArr.sort((a, b) => b.hps - a.hps);
-
-    for (let i = 0; i < dpsArr.length; i++) {
-        dpsSpecs[dpsArr[i].spec] = dpsSpecs[dpsArr[i].spec]
-            ? dpsSpecs[dpsArr[i].spec] + 1
-            : 1;
-        dpsClasses[dpsArr[i].class] = dpsClasses[dpsArr[i].class]
-            ? dpsClasses[dpsArr[i].class] + 1
-            : 1;
-
-        raidBoss.dps[dpsArr[i].key].rank = i + 1;
-        raidBoss.dps[dpsArr[i].key].specRank = dpsSpecs[dpsArr[i].spec];
-        raidBoss.dps[dpsArr[i].key].classRank = dpsClasses[dpsArr[i].class];
-    }
-
-    for (let i = 0; i < hpsArr.length; i++) {
-        hpsSpecs[hpsArr[i].spec] = hpsSpecs[hpsArr[i].spec]
-            ? hpsSpecs[hpsArr[i].spec] + 1
-            : 1;
-        hpsClasses[hpsArr[i].class] = hpsClasses[hpsArr[i].class]
-            ? hpsClasses[hpsArr[i].class] + 1
-            : 1;
-        raidBoss.hps[hpsArr[i].key].rank = i + 1;
-        raidBoss.hps[hpsArr[i].key].specRank = hpsSpecs[hpsArr[i].spec];
-        raidBoss.hps[hpsArr[i].key].classRank = hpsClasses[hpsArr[i].class];
-    }
-
-    return raidBoss;
+    return sortedCharacters;
 }
 
 function minutesAgo(time) {
@@ -1230,7 +1215,7 @@ module.exports = {
     updateGuildData,
     updateRaidBoss,
     minutesAgo,
-    applyPlayerPerformanceRanks,
+    applyCharacterPerformanceRanks,
     calcGuildContentCompletion,
     createCharacterId,
     escapeRegex,
