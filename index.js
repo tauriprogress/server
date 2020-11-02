@@ -33,7 +33,7 @@ const { minutesAgo } = require("./helpers");
 
     app.use(
         cors({
-            origin: "https://tauriprogress.github.io/",
+            origin: "https://tauriprogress.github.io",
             optionsSuccessStatus: 200
         })
     );
