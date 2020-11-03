@@ -884,6 +884,7 @@ class Database {
                             const ids = [];
                             for (const specId of characterSpecs) {
                                 if (
+                                    specs[specId] &&
                                     specs[specId][
                                         combatMetric === "dps"
                                             ? "isDps"
