@@ -493,7 +493,7 @@ class Database {
         return new Promise(async (resolve, reject) => {
             try {
                 console.log("db: Updating character ranks");
-                const session = db.client.startSession();
+                const session = this.client.startSession();
 
                 try {
                     console.log("db: Opening new transaction session");
