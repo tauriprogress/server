@@ -6,6 +6,7 @@ const dbPassword = process.env.MONGODB_PASSWORD;
 const dbAddress = process.env.MONGODB_ADDRESS;
 const mongoUri = `mongodb+srv://${dbUser}:${dbPassword}@${dbAddress}`;
 const MongoClient = require("mongodb").MongoClient;
+const NodeCache = require("node-cache");
 
 const {
     getLogs,
@@ -39,6 +40,11 @@ class Database {
         this.isUpdating = false;
         this.updateStatus = "";
         this.lastGuildsUpdate = 0;
+        this.cache = new NodeCache({
+            stdTTL: 20 * 60,
+            checkperiod: 60,
+            useClones: false
+        });
     }
 
     async connect() {
@@ -711,40 +717,52 @@ class Database {
     async getRaidSummary(id) {
         return new Promise(async (resolve, reject) => {
             try {
-                const difficulties = getRaidInfoFromId(id).difficulties;
+                const cacheId = `raidsummary${id}`;
 
-                const projection = difficulties.reduce((acc, difficulty) => {
-                    return { ...acc, [`${difficulty}.recentKills`]: 0 };
-                }, {});
+                const cachedData = this.cache.get(cacheId);
 
-                let bosses = await this.db
-                    .collection(String(id))
-                    .find({})
-                    .project(projection)
-                    .toArray();
+                if (cachedData) {
+                    resolve(cachedData);
+                } else {
+                    const difficulties = getRaidInfoFromId(id).difficulties;
 
-                let raidSummary = {};
-                for (const difficulty of difficulties) {
-                    for (const bossData of bosses) {
-                        const boss = bossData[difficulty];
-                        for (const realmName in boss.fastestKills) {
-                            for (const faction in boss.fastestKills[
-                                realmName
-                            ]) {
-                                boss.fastestKills[realmName][
-                                    faction
-                                ] = boss.fastestKills[realmName][faction].slice(
-                                    0,
-                                    10
-                                );
+                    const projection = difficulties.reduce(
+                        (acc, difficulty) => {
+                            return { ...acc, [`${difficulty}.recentKills`]: 0 };
+                        },
+                        {}
+                    );
+
+                    let bosses = await this.db
+                        .collection(String(id))
+                        .find({})
+                        .project(projection)
+                        .toArray();
+
+                    let raidSummary = {};
+                    for (const difficulty of difficulties) {
+                        for (const bossData of bosses) {
+                            const boss = bossData[difficulty];
+                            for (const realmName in boss.fastestKills) {
+                                for (const faction in boss.fastestKills[
+                                    realmName
+                                ]) {
+                                    boss.fastestKills[realmName][
+                                        faction
+                                    ] = boss.fastestKills[realmName][
+                                        faction
+                                    ].slice(0, 10);
+                                }
                             }
+
+                            raidSummary[boss._id] = boss;
                         }
-
-                        raidSummary[boss._id] = boss;
                     }
-                }
 
-                resolve(raidSummary);
+                    this.cache.set(cacheId, raidSummary);
+
+                    resolve(raidSummary);
+                }
             } catch (err) {
                 reject(err);
             }
@@ -754,86 +772,99 @@ class Database {
     async getRaidBoss(raidId, bossName) {
         return new Promise(async (resolve, reject) => {
             try {
-                const difficulties = getRaidInfoFromId(raidId).difficulties;
+                const cacheId = `raidboss${raidId}${bossName}`;
 
-                const projection = difficulties.reduce((acc, difficulty) => {
-                    return {
-                        ...acc,
-                        [`${difficulty}.bestDps`]: 0,
-                        [`${difficulty}.bestHps`]: 0,
-                        [`${difficulty}.firstKills`]: 0
-                    };
-                }, {});
+                const cachedData = this.cache.get(cacheId);
 
-                const bossInfo = getBossInfo(raidId, bossName);
+                if (cachedData) {
+                    resolve(cachedData);
+                } else {
+                    const difficulties = getRaidInfoFromId(raidId).difficulties;
 
-                let lookUps = [];
-                for (const difficulty in bossInfo.difficultyIds) {
-                    const bossId = bossInfo.difficultyIds[difficulty];
-                    for (const combatMetric of ["dps", "hps"]) {
-                        const bossCollectionName = getBossCollectionName(
-                            bossId,
-                            difficulty,
-                            combatMetric
-                        );
+                    const projection = difficulties.reduce(
+                        (acc, difficulty) => {
+                            return {
+                                ...acc,
+                                [`${difficulty}.bestDps`]: 0,
+                                [`${difficulty}.bestHps`]: 0,
+                                [`${difficulty}.firstKills`]: 0
+                            };
+                        },
+                        {}
+                    );
 
-                        lookUps.push({
-                            $lookup: {
-                                from: bossCollectionName,
-                                pipeline: [
-                                    {
-                                        $sort: {
-                                            [combatMetric]: -1
-                                        }
-                                    }
-                                ],
-                                as: `${difficulty}.${combatMetric}`
-                            }
-                        });
-                    }
-                }
+                    const bossInfo = getBossInfo(raidId, bossName);
 
-                const bossData = (
-                    await this.db
-                        .collection(String(raidId))
-                        .aggregate([
-                            {
-                                $match: {
-                                    name: bossName
-                                }
-                            },
-                            ...lookUps
-                        ])
-                        .project(projection)
-                        .toArray()
-                )[0];
-
-                for (const difficulty of difficulties) {
-                    const boss = bossData[difficulty];
-                    let fastestKills = [];
-                    for (const realm in boss.fastestKills) {
-                        for (const faction in boss.fastestKills[realm]) {
-                            const objectKeys = [realm, faction];
-
-                            fastestKills = fastestKills.concat(
-                                getNestedObjectValue(
-                                    boss.fastestKills,
-                                    objectKeys
-                                )
+                    let lookUps = [];
+                    for (const difficulty in bossInfo.difficultyIds) {
+                        const bossId = bossInfo.difficultyIds[difficulty];
+                        for (const combatMetric of ["dps", "hps"]) {
+                            const bossCollectionName = getBossCollectionName(
+                                bossId,
+                                difficulty,
+                                combatMetric
                             );
+
+                            lookUps.push({
+                                $lookup: {
+                                    from: bossCollectionName,
+                                    pipeline: [
+                                        {
+                                            $sort: {
+                                                [combatMetric]: -1
+                                            }
+                                        }
+                                    ],
+                                    as: `${difficulty}.${combatMetric}`
+                                }
+                            });
                         }
                     }
 
-                    boss.fastestKills = fastestKills
-                        .sort((a, b) => {
-                            return a.fightLength - b.fightLength;
-                        })
-                        .slice(0, 50);
+                    const bossData = (
+                        await this.db
+                            .collection(String(raidId))
+                            .aggregate([
+                                {
+                                    $match: {
+                                        name: bossName
+                                    }
+                                },
+                                ...lookUps
+                            ])
+                            .project(projection)
+                            .toArray()
+                    )[0];
 
-                    bossData[difficulty] = boss;
+                    for (const difficulty of difficulties) {
+                        const boss = bossData[difficulty];
+                        let fastestKills = [];
+                        for (const realm in boss.fastestKills) {
+                            for (const faction in boss.fastestKills[realm]) {
+                                const objectKeys = [realm, faction];
+
+                                fastestKills = fastestKills.concat(
+                                    getNestedObjectValue(
+                                        boss.fastestKills,
+                                        objectKeys
+                                    )
+                                );
+                            }
+                        }
+
+                        boss.fastestKills = fastestKills
+                            .sort((a, b) => {
+                                return a.fightLength - b.fightLength;
+                            })
+                            .slice(0, 50);
+
+                        bossData[difficulty] = boss;
+                    }
+
+                    this.cache.set(cacheId, bossData);
+
+                    resolve(bossData);
                 }
-
-                resolve(bossData);
             } catch (err) {
                 reject(err);
             }
