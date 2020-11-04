@@ -40,10 +40,26 @@ class Database {
         this.isUpdating = false;
         this.updateStatus = "";
         this.lastGuildsUpdate = 0;
-        this.cache = new NodeCache({
+        this.summaryCache = new NodeCache({
             stdTTL: 20 * 60,
             checkperiod: 60,
             useClones: false
+        });
+        this.bossCache = new NodeCache({
+            stdTTL: 20 * 60,
+            checkperiod: 60,
+            useClones: false
+        });
+        this.guildListCache = new NodeCache({
+            stdTTL: 20 * 60,
+            checkperiod: 60,
+            useClones: false
+        });
+        this.characterCache = new NodeCache({
+            stdTTL: 4 * 60,
+            checkperiod: 60,
+            useClones: false,
+            maxKeys: 150
         });
     }
 
@@ -678,8 +694,14 @@ class Database {
     async getGuildList() {
         return new Promise(async (resolve, reject) => {
             try {
-                resolve(
-                    await this.db
+                const cacheId = `list`;
+
+                const cachedData = this.guildListCache.get(cacheId);
+
+                if (cachedData) {
+                    resolve(cachedData);
+                } else {
+                    const guildList = await this.db
                         .collection("guilds")
                         .find()
                         .project({
@@ -689,8 +711,12 @@ class Database {
                             activity: 1,
                             ["progression.completion"]: 1
                         })
-                        .toArray()
-                );
+                        .toArray();
+
+                    this.guildListCache.set(cacheId, guildList);
+
+                    resolve(guildList);
+                }
             } catch (err) {
                 reject(err);
             }
@@ -719,7 +745,7 @@ class Database {
             try {
                 const cacheId = `raidsummary${id}`;
 
-                const cachedData = this.cache.get(cacheId);
+                const cachedData = this.summaryCache.get(cacheId);
 
                 if (cachedData) {
                     resolve(cachedData);
@@ -759,7 +785,7 @@ class Database {
                         }
                     }
 
-                    this.cache.set(cacheId, raidSummary);
+                    this.summaryCache.set(cacheId, raidSummary);
 
                     resolve(raidSummary);
                 }
@@ -774,7 +800,7 @@ class Database {
             try {
                 const cacheId = `raidboss${raidId}${bossName}`;
 
-                const cachedData = this.cache.get(cacheId);
+                const cachedData = this.bossCache.get(cacheId);
 
                 if (cachedData) {
                     resolve(cachedData);
@@ -861,7 +887,7 @@ class Database {
                         bossData[difficulty] = boss;
                     }
 
-                    this.cache.set(cacheId, bossData);
+                    this.bossCache.set(cacheId, bossData);
 
                     resolve(bossData);
                 }
@@ -879,313 +905,334 @@ class Database {
     }) {
         return new Promise(async (resolve, reject) => {
             try {
-                const {
-                    bossCount,
-                    bosses,
-                    id: raidId,
-                    difficulties
-                } = getRaidInfoFromName(raidName);
-                const characterSpecs = characterClassToSpec[characterClass];
+                const cacheId = `${characterName}${realm}${raidName}`;
 
-                let aggregations = {};
+                const cachedData = this.characterCache.get(cacheId);
 
-                let characterPerformance = {};
+                if (cachedData) {
+                    resolve(cachedData);
+                } else {
+                    const {
+                        bossCount,
+                        bosses,
+                        id: raidId,
+                        difficulties
+                    } = getRaidInfoFromName(raidName);
+                    const characterSpecs = characterClassToSpec[characterClass];
 
-                for (const bossInfo of bosses) {
-                    let projection = {};
-                    for (const difficulty in bossInfo.difficultyIds) {
-                        let currentProjection = {
-                            [`${difficulty}.characterData`]: 1
-                        };
-                        for (const combatMetric of ["dps", "hps"]) {
-                            currentProjection[
-                                `${difficulty}.best${capitalize(
+                    let aggregations = {};
+
+                    let characterPerformance = {};
+
+                    for (const bossInfo of bosses) {
+                        let projection = {};
+                        for (const difficulty in bossInfo.difficultyIds) {
+                            let currentProjection = {
+                                [`${difficulty}.characterData`]: 1
+                            };
+                            for (const combatMetric of ["dps", "hps"]) {
+                                currentProjection[
+                                    `${difficulty}.best${capitalize(
+                                        combatMetric
+                                    )}NoCat`
+                                ] = 1;
+
+                                if (!aggregations[bossInfo.name]) {
+                                    aggregations[bossInfo.name] = [];
+                                }
+                                const bossCollectionName = getBossCollectionName(
+                                    bossInfo.difficultyIds[difficulty],
+                                    difficulty,
                                     combatMetric
-                                )}NoCat`
-                            ] = 1;
+                                );
+                                const ids = [];
+                                for (const specId of characterSpecs) {
+                                    if (
+                                        specs[specId] &&
+                                        specs[specId][
+                                            combatMetric === "dps"
+                                                ? "isDps"
+                                                : "isHealer"
+                                        ]
+                                    ) {
+                                        const characterId = createCharacterId(
+                                            characterName,
+                                            realm,
+                                            specId
+                                        );
 
-                            if (!aggregations[bossInfo.name]) {
-                                aggregations[bossInfo.name] = [];
-                            }
-                            const bossCollectionName = getBossCollectionName(
-                                bossInfo.difficultyIds[difficulty],
-                                difficulty,
-                                combatMetric
-                            );
-                            const ids = [];
-                            for (const specId of characterSpecs) {
-                                if (
-                                    specs[specId] &&
-                                    specs[specId][
-                                        combatMetric === "dps"
-                                            ? "isDps"
-                                            : "isHealer"
-                                    ]
-                                ) {
-                                    const characterId = createCharacterId(
-                                        characterName,
-                                        realm,
-                                        specId
-                                    );
+                                        ids.push(characterId);
 
-                                    ids.push(characterId);
-
-                                    for (const realmName of Object.values(
-                                        realms
-                                    )) {
-                                        for (const faction of [0, 1]) {
-                                            currentProjection = {
-                                                ...currentProjection,
-                                                [`${difficulty}.best${capitalize(
-                                                    combatMetric
-                                                )}.${realmName}.${faction}.${specId}`]: {
-                                                    $arrayElemAt: [
-                                                        `$${difficulty}.best${capitalize(
-                                                            combatMetric
-                                                        )}.${realmName}.${faction}.${characterClass}.${specId}`,
-                                                        0
-                                                    ]
-                                                }
-                                            };
+                                        for (const realmName of Object.values(
+                                            realms
+                                        )) {
+                                            for (const faction of [0, 1]) {
+                                                currentProjection = {
+                                                    ...currentProjection,
+                                                    [`${difficulty}.best${capitalize(
+                                                        combatMetric
+                                                    )}.${realmName}.${faction}.${specId}`]: {
+                                                        $arrayElemAt: [
+                                                            `$${difficulty}.best${capitalize(
+                                                                combatMetric
+                                                            )}.${realmName}.${faction}.${characterClass}.${specId}`,
+                                                            0
+                                                        ]
+                                                    }
+                                                };
+                                            }
                                         }
                                     }
                                 }
-                            }
-                            projection = {
-                                ...projection,
-                                ...currentProjection
-                            };
+                                projection = {
+                                    ...projection,
+                                    ...currentProjection
+                                };
 
-                            aggregations[bossInfo.name].unshift({
-                                $lookup: {
-                                    from: bossCollectionName,
-                                    pipeline: [
-                                        {
-                                            $match: {
-                                                _id: { $in: ids }
+                                aggregations[bossInfo.name].unshift({
+                                    $lookup: {
+                                        from: bossCollectionName,
+                                        pipeline: [
+                                            {
+                                                $match: {
+                                                    _id: { $in: ids }
+                                                }
                                             }
-                                        }
-                                    ],
-                                    as: `characterData.${difficulty}.${combatMetric}`
-                                }
-                            });
-                        }
-                    }
-                    aggregations[bossInfo.name].unshift(
-                        {
-                            $match: {
-                                name: bossInfo.name
+                                        ],
+                                        as: `characterData.${difficulty}.${combatMetric}`
+                                    }
+                                });
                             }
-                        },
-                        {
-                            $project: projection
                         }
-                    );
-                }
-
-                let data = (
-                    await this.db
-                        .collection(String(raidId))
-                        .aggregate([
+                        aggregations[bossInfo.name].unshift(
                             {
-                                $facet: aggregations
+                                $match: {
+                                    name: bossInfo.name
+                                }
+                            },
+                            {
+                                $project: projection
                             }
-                        ])
-                        .toArray()
-                )[0];
+                        );
+                    }
 
-                for (const difficulty of difficulties) {
-                    let characterTotal = {};
-                    let bestTotal = {};
+                    let data = (
+                        await this.db
+                            .collection(String(raidId))
+                            .aggregate([
+                                {
+                                    $facet: aggregations
+                                }
+                            ])
+                            .toArray()
+                    )[0];
 
-                    for (const boss of bosses) {
-                        const currentBoss = data[boss.name][0];
+                    for (const difficulty of difficulties) {
+                        let characterTotal = {};
+                        let bestTotal = {};
 
-                        for (const combatMetric of ["dps", "hps"]) {
-                            const bestCombatMetricOfBoss =
-                                currentBoss[difficulty][
-                                    `best${capitalize(combatMetric)}`
-                                ];
-                            const bestOverall =
-                                currentBoss[difficulty][
-                                    `best${capitalize(combatMetric)}NoCat`
-                                ];
+                        for (const boss of bosses) {
+                            const currentBoss = data[boss.name][0];
 
-                            let bestOfClass = {};
-                            let bestOfCharacter = {
-                                [combatMetric]: false
-                            };
+                            for (const combatMetric of ["dps", "hps"]) {
+                                const bestCombatMetricOfBoss =
+                                    currentBoss[difficulty][
+                                        `best${capitalize(combatMetric)}`
+                                    ];
+                                const bestOverall =
+                                    currentBoss[difficulty][
+                                        `best${capitalize(combatMetric)}NoCat`
+                                    ];
 
-                            for (const specId of characterSpecs) {
-                                let bestOfSpec = {};
-                                let characterSpecData = {
+                                let bestOfClass = {};
+                                let bestOfCharacter = {
                                     [combatMetric]: false
                                 };
 
-                                for (const realmName in bestCombatMetricOfBoss) {
-                                    for (const faction in bestCombatMetricOfBoss[
-                                        realmName
+                                for (const specId of characterSpecs) {
+                                    let bestOfSpec = {};
+                                    let characterSpecData = {
+                                        [combatMetric]: false
+                                    };
+
+                                    for (const realmName in bestCombatMetricOfBoss) {
+                                        for (const faction in bestCombatMetricOfBoss[
+                                            realmName
+                                        ]) {
+                                            const currentBest =
+                                                bestCombatMetricOfBoss[
+                                                    realmName
+                                                ][faction][specId];
+
+                                            if (currentBest) {
+                                                if (
+                                                    !bestOfSpec[combatMetric] ||
+                                                    bestOfSpec[combatMetric] <
+                                                        currentBest[
+                                                            combatMetric
+                                                        ]
+                                                ) {
+                                                    bestOfSpec = currentBest;
+                                                }
+                                                if (
+                                                    !bestOfClass[
+                                                        combatMetric
+                                                    ] ||
+                                                    bestOfClass[combatMetric] <
+                                                        currentBest[
+                                                            combatMetric
+                                                        ]
+                                                ) {
+                                                    bestOfClass = currentBest;
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    for (const charData of currentBoss
+                                        .characterData[difficulty][
+                                        combatMetric
                                     ]) {
-                                        const currentBest =
-                                            bestCombatMetricOfBoss[realmName][
-                                                faction
-                                            ][specId];
+                                        if (charData.spec === specId) {
+                                            if (
+                                                bestOfCharacter[combatMetric] <
+                                                charData[combatMetric]
+                                            ) {
+                                                bestOfCharacter = charData;
+                                            }
 
-                                        if (currentBest) {
-                                            if (
-                                                !bestOfSpec[combatMetric] ||
-                                                bestOfSpec[combatMetric] <
-                                                    currentBest[combatMetric]
-                                            ) {
-                                                bestOfSpec = currentBest;
-                                            }
-                                            if (
-                                                !bestOfClass[combatMetric] ||
-                                                bestOfClass[combatMetric] <
-                                                    currentBest[combatMetric]
-                                            ) {
-                                                bestOfClass = currentBest;
-                                            }
+                                            characterSpecData = {
+                                                ...charData,
+                                                topPercent: calcTopPercentOfPerformance(
+                                                    charData[combatMetric],
+                                                    bestOfSpec[combatMetric]
+                                                )
+                                            };
                                         }
                                     }
+
+                                    bestTotal = addToTotalPerformance(
+                                        bestTotal,
+                                        [specId, combatMetric],
+                                        bestOfSpec[combatMetric]
+                                    );
+
+                                    const categorization = [
+                                        raidName,
+                                        difficulty,
+                                        boss.name,
+                                        specId,
+                                        combatMetric
+                                    ];
+                                    characterPerformance = addNestedObjectValue(
+                                        characterPerformance,
+                                        categorization,
+                                        characterSpecData
+                                    );
+
+                                    characterTotal = addToTotalPerformance(
+                                        characterTotal,
+                                        [specId, combatMetric],
+                                        characterSpecData[combatMetric]
+                                    );
                                 }
-
-                                for (const charData of currentBoss
-                                    .characterData[difficulty][combatMetric]) {
-                                    if (charData.spec === specId) {
-                                        if (
-                                            bestOfCharacter[combatMetric] <
-                                            charData[combatMetric]
-                                        ) {
-                                            bestOfCharacter = charData;
-                                        }
-
-                                        characterSpecData = {
-                                            ...charData,
-                                            topPercent: calcTopPercentOfPerformance(
-                                                charData[combatMetric],
-                                                bestOfSpec[combatMetric]
-                                            )
-                                        };
-                                    }
-                                }
-
-                                bestTotal = addToTotalPerformance(
-                                    bestTotal,
-                                    [specId, combatMetric],
-                                    bestOfSpec[combatMetric]
-                                );
 
                                 const categorization = [
                                     raidName,
                                     difficulty,
-                                    boss.name,
-                                    specId,
-                                    combatMetric
+                                    boss.name
                                 ];
+
                                 characterPerformance = addNestedObjectValue(
                                     characterPerformance,
-                                    categorization,
-                                    characterSpecData
+                                    [...categorization, "class", combatMetric],
+                                    {
+                                        ...bestOfCharacter,
+                                        topPercent: calcTopPercentOfPerformance(
+                                            bestOfCharacter[combatMetric],
+                                            bestOfClass[combatMetric]
+                                        )
+                                    }
+                                );
+
+                                bestTotal = addToTotalPerformance(
+                                    bestTotal,
+                                    ["class", combatMetric],
+                                    bestOfClass[combatMetric]
                                 );
 
                                 characterTotal = addToTotalPerformance(
                                     characterTotal,
-                                    [specId, combatMetric],
-                                    characterSpecData[combatMetric]
+                                    ["class", combatMetric],
+                                    bestOfCharacter[combatMetric]
+                                );
+
+                                characterPerformance = addNestedObjectValue(
+                                    characterPerformance,
+                                    [...categorization, "noSpec", combatMetric],
+                                    {
+                                        ...bestOfCharacter,
+                                        topPercent: calcTopPercentOfPerformance(
+                                            bestOfCharacter[combatMetric],
+                                            bestOverall[combatMetric]
+                                        )
+                                    }
+                                );
+                                bestTotal = addToTotalPerformance(
+                                    bestTotal,
+                                    ["noSpec", combatMetric],
+                                    bestOverall[combatMetric]
+                                );
+
+                                characterTotal = addToTotalPerformance(
+                                    characterTotal,
+                                    ["noSpec", combatMetric],
+                                    bestOfCharacter[combatMetric]
                                 );
                             }
+                        }
 
-                            const categorization = [
-                                raidName,
-                                difficulty,
-                                boss.name
-                            ];
+                        for (const specId in characterTotal) {
+                            for (const combatMetric in characterTotal[specId]) {
+                                const categorization = [specId, combatMetric];
+                                const bestCombatMetricOfTotal = getNestedObjectValue(
+                                    bestTotal,
+                                    categorization
+                                );
+                                const characterCombatMetricOfTotal = getNestedObjectValue(
+                                    characterTotal,
+                                    categorization
+                                );
+                                const characterPerformanceTotal =
+                                    characterPerformance[raidName][difficulty]
+                                        .total;
 
-                            characterPerformance = addNestedObjectValue(
-                                characterPerformance,
-                                [...categorization, "class", combatMetric],
-                                {
-                                    ...bestOfCharacter,
-                                    topPercent: calcTopPercentOfPerformance(
-                                        bestOfCharacter[combatMetric],
-                                        bestOfClass[combatMetric]
-                                    )
-                                }
-                            );
-
-                            bestTotal = addToTotalPerformance(
-                                bestTotal,
-                                ["class", combatMetric],
-                                bestOfClass[combatMetric]
-                            );
-
-                            characterTotal = addToTotalPerformance(
-                                characterTotal,
-                                ["class", combatMetric],
-                                bestOfCharacter[combatMetric]
-                            );
-
-                            characterPerformance = addNestedObjectValue(
-                                characterPerformance,
-                                [...categorization, "noSpec", combatMetric],
-                                {
-                                    ...bestOfCharacter,
-                                    topPercent: calcTopPercentOfPerformance(
-                                        bestOfCharacter[combatMetric],
-                                        bestOverall[combatMetric]
-                                    )
-                                }
-                            );
-                            bestTotal = addToTotalPerformance(
-                                bestTotal,
-                                ["noSpec", combatMetric],
-                                bestOverall[combatMetric]
-                            );
-
-                            characterTotal = addToTotalPerformance(
-                                characterTotal,
-                                ["noSpec", combatMetric],
-                                bestOfCharacter[combatMetric]
-                            );
+                                characterPerformance[raidName][
+                                    difficulty
+                                ].total = addNestedObjectValue(
+                                    characterPerformanceTotal || {},
+                                    categorization,
+                                    {
+                                        [combatMetric]:
+                                            characterCombatMetricOfTotal /
+                                            bossCount,
+                                        topPercent: calcTopPercentOfPerformance(
+                                            characterCombatMetricOfTotal,
+                                            bestCombatMetricOfTotal
+                                        )
+                                    }
+                                );
+                            }
                         }
                     }
-
-                    for (const specId in characterTotal) {
-                        for (const combatMetric in characterTotal[specId]) {
-                            const categorization = [specId, combatMetric];
-                            const bestCombatMetricOfTotal = getNestedObjectValue(
-                                bestTotal,
-                                categorization
-                            );
-                            const characterCombatMetricOfTotal = getNestedObjectValue(
-                                characterTotal,
-                                categorization
-                            );
-                            const characterPerformanceTotal =
-                                characterPerformance[raidName][difficulty]
-                                    .total;
-
-                            characterPerformance[raidName][
-                                difficulty
-                            ].total = addNestedObjectValue(
-                                characterPerformanceTotal || {},
-                                categorization,
-                                {
-                                    [combatMetric]:
-                                        characterCombatMetricOfTotal /
-                                        bossCount,
-                                    topPercent: calcTopPercentOfPerformance(
-                                        characterCombatMetricOfTotal,
-                                        bestCombatMetricOfTotal
-                                    )
-                                }
-                            );
-                        }
+                    try {
+                        this.characterCache.set(cacheId, characterPerformance);
+                    } catch (err) {
+                        console.log("db: Character cache is full");
                     }
+
+                    resolve(characterPerformance);
                 }
-
-                resolve(characterPerformance);
             } catch (err) {
                 console.error(err);
                 reject(err);
