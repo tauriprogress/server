@@ -524,36 +524,65 @@ class Database {
                             for (const boss of raid.bosses) {
                                 for (const difficulty in boss.difficultyIds) {
                                     for (const combatMetric of ["dps", "hps"]) {
+                                        let done = false;
                                         const collectionName = getBossCollectionName(
                                             boss.difficultyIds[difficulty],
                                             difficulty,
                                             combatMetric
                                         );
-                                        const bossCollection = await this.db.collection(
-                                            collectionName
-                                        );
+                                        for (let i = 0; i < 3 && !done; i++) {
+                                            const session = this.client.startSession();
 
-                                        let characters = await bossCollection
-                                            .find({}, { session })
-                                            .toArray();
+                                            try {
+                                                console.log(
+                                                    "db: Opening new transaction session"
+                                                );
 
-                                        if (characters)
-                                            await bossCollection.deleteMany(
-                                                {},
-                                                { session }
-                                            );
+                                                await session.withTransaction(
+                                                    async () => {
+                                                        const bossCollection = await this.db.collection(
+                                                            collectionName
+                                                        );
 
-                                        let updatedCharacters = applyCharacterPerformanceRanks(
-                                            characters,
-                                            combatMetric
-                                        );
+                                                        let characters = await bossCollection
+                                                            .find(
+                                                                {},
+                                                                { session }
+                                                            )
+                                                            .toArray();
 
-                                        await bossCollection.insertMany(
-                                            updatedCharacters,
-                                            {
-                                                session
+                                                        if (characters)
+                                                            await bossCollection.deleteMany(
+                                                                {},
+                                                                { session }
+                                                            );
+
+                                                        let updatedCharacters = applyCharacterPerformanceRanks(
+                                                            characters,
+                                                            combatMetric
+                                                        );
+
+                                                        await bossCollection.insertMany(
+                                                            updatedCharacters,
+                                                            {
+                                                                session
+                                                            }
+                                                        );
+                                                    }
+                                                );
+                                            } catch (err) {
+                                                console.log(
+                                                    "transaction error"
+                                                );
+                                                throw new Error(err.message);
+                                            } finally {
+                                                done = true;
+                                                session.endSession();
+                                                console.log(
+                                                    "db: Transaction session closed"
+                                                );
                                             }
-                                        );
+                                        }
                                     }
                                 }
                             }
