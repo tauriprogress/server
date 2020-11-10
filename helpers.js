@@ -626,66 +626,73 @@ function updateGuildData(oldGuild, newGuild) {
         }))(newGuild)
     };
 
-    for (const raidName in newGuild.progression) {
-        if (validRaidName(raidName)) {
-            for (const difficulty in newGuild.progression[raidName]) {
-                for (const bossName in newGuild.progression[raidName][
-                    difficulty
-                ]) {
-                    const bossCategorization = [raidName, difficulty, bossName];
-                    let oldBoss = getNestedObjectValue(
-                        oldGuild.progression,
-                        bossCategorization
-                    );
-                    let newBoss = getNestedObjectValue(
-                        newGuild.progression,
-                        bossCategorization
-                    );
-                    let updatedBoss;
-                    if (oldBoss) {
-                        updatedBoss = {
-                            ...oldBoss,
-                            killCount: oldBoss.killCount + newBoss.killCount,
-                            fastestKills: uniqueLogs([
-                                ...oldBoss.fastestKills,
-                                ...newBoss.fastestKills
-                            ])
-                                .sort((a, b) => a.fightLength - b.fightLength)
-                                .slice(0, 10)
-                        };
+    if (newGuild.progression) {
+        for (const raidName in newGuild.progression) {
+            if (validRaidName(raidName)) {
+                for (const difficulty in newGuild.progression[raidName]) {
+                    for (const bossName in newGuild.progression[raidName][
+                        difficulty
+                    ]) {
+                        const bossCategorization = [
+                            raidName,
+                            difficulty,
+                            bossName
+                        ];
+                        let oldBoss = getNestedObjectValue(
+                            oldGuild.progression,
+                            bossCategorization
+                        );
+                        let newBoss = getNestedObjectValue(
+                            newGuild.progression,
+                            bossCategorization
+                        );
+                        let updatedBoss;
+                        if (oldBoss) {
+                            updatedBoss = {
+                                ...oldBoss,
+                                killCount:
+                                    oldBoss.killCount + newBoss.killCount,
+                                fastestKills: uniqueLogs([
+                                    ...oldBoss.fastestKills,
+                                    ...newBoss.fastestKills
+                                ])
+                                    .sort(
+                                        (a, b) => a.fightLength - b.fightLength
+                                    )
+                                    .slice(0, 10)
+                            };
 
-                        for (let combatMetric of ["dps", "hps"]) {
-                            for (let characterId in newBoss[combatMetric]) {
-                                let oldCharacter =
-                                    oldBoss[combatMetric][characterId];
-                                let newCharacter =
-                                    newBoss[combatMetric][characterId];
-                                if (
-                                    !oldCharacter ||
-                                    oldCharacter[combatMetric] <
-                                        newCharacter[combatMetric]
-                                ) {
-                                    updatedBoss[combatMetric][
-                                        characterId
-                                    ] = newCharacter;
+                            for (let combatMetric of ["dps", "hps"]) {
+                                for (let characterId in newBoss[combatMetric]) {
+                                    let oldCharacter =
+                                        oldBoss[combatMetric][characterId];
+                                    let newCharacter =
+                                        newBoss[combatMetric][characterId];
+                                    if (
+                                        !oldCharacter ||
+                                        oldCharacter[combatMetric] <
+                                            newCharacter[combatMetric]
+                                    ) {
+                                        updatedBoss[combatMetric][
+                                            characterId
+                                        ] = newCharacter;
+                                    }
                                 }
                             }
+                        } else {
+                            updatedBoss = newBoss;
                         }
-                    } else {
-                        updatedBoss = newBoss;
-                    }
 
-                    updatedGuild.progression = addNestedObjectValue(
-                        updatedGuild.progression,
-                        bossCategorization,
-                        updatedBoss
-                    );
+                        updatedGuild.progression = addNestedObjectValue(
+                            updatedGuild.progression,
+                            bossCategorization,
+                            updatedBoss
+                        );
+                    }
                 }
             }
         }
-    }
 
-    if (newGuild.progression) {
         updatedGuild.progression.recentKills = cutRecentKills(
             uniqueLogs([
                 ...newGuild.progression.recentKills,
@@ -693,6 +700,7 @@ function updateGuildData(oldGuild, newGuild) {
             ])
         );
     }
+
     if (newGuild.raidDays) {
         for (let [day, hours] of newGuild.raidDays.total.entries()) {
             for (let [hour, killCount] of hours.entries()) {
@@ -701,7 +709,12 @@ function updateGuildData(oldGuild, newGuild) {
         }
     }
 
-    updatedGuild.activity = { ...updatedGuild.activity, ...newGuild.activity };
+    if (newGuild.activity) {
+        updatedGuild.activity = {
+            ...updatedGuild.activity,
+            ...newGuild.activity
+        };
+    }
 
     return updatedGuild;
 }

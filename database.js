@@ -468,6 +468,10 @@ class Database {
                 let guilds = await this.db
                     .collection("guilds")
                     .find({})
+                    .project({
+                        name: 1,
+                        realm: 1
+                    })
                     .toArray();
 
                 let total = guilds.length;
@@ -485,11 +489,7 @@ class Database {
                         );
 
                         if (newGuild) {
-                            await this.saveGuild({
-                                ...guild,
-                                ...newGuild,
-                                _id: guild._id
-                            });
+                            await this.saveGuild(newGuild);
                         }
                     } catch (err) {
                         if (
