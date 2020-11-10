@@ -469,6 +469,7 @@ class Database {
                     .collection("guilds")
                     .find({})
                     .project({
+                        _id: 1,
                         name: 1,
                         realm: 1
                     })
@@ -489,7 +490,10 @@ class Database {
                         );
 
                         if (newGuild) {
-                            await this.saveGuild(newGuild);
+                            await this.saveGuild({
+                                ...newGuild,
+                                _id: guild._id
+                            });
                         }
                     } catch (err) {
                         if (

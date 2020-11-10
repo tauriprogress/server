@@ -190,7 +190,7 @@ function validClass(characterClass) {
 
 function updateDatabase(db) {
     return (req, res, next) => {
-        if (minutesAgo(db.lastUpdated) > 5) {
+        if (minutesAgo(db.lastUpdated) > 5 && !db.isUpdating) {
             try {
                 db.update();
             } catch (err) {
