@@ -13,7 +13,7 @@
         "tauriprogress-constants": "^3.0.13"
     },
     "scripts": {
-        "start": "node index.js",
+        "start": "node start.js",
         "test": "jest"
     },
     "devDependencies": {
