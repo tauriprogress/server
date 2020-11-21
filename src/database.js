@@ -7,6 +7,9 @@ const dbAddress = process.env.MONGODB_ADDRESS;
 const mongoUri = `mongodb+srv://${dbUser}:${dbPassword}@${dbAddress}`;
 const MongoClient = require("mongodb").MongoClient;
 const NodeCache = require("node-cache");
+const redis = require("redis");
+const redisAddress = process.env.REDIS_ADDRESS;
+const redisPassword = process.env.REDIS_PASSWORD;
 
 const {
     getLogs,
@@ -34,6 +37,7 @@ const {
 
 class Database {
     constructor() {
+        this.redis = {};
         this.db = {};
         this.client = undefined;
         this.lastUpdated = null;
@@ -69,6 +73,11 @@ class Database {
             this.client = await MongoClient.connect(mongoUri, {
                 useUnifiedTopology: true,
                 useNewUrlParser: true
+            });
+
+            this.redis = redis.createClient({
+                url: redisAddress,
+                password: redisPassword
             });
 
             this.db = this.client.db("tauriprogress");
