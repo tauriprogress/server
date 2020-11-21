@@ -1,9 +1,7 @@
-require("dotenv").config();
 const app = require("express")();
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const db = require("./database");
-const port = process.env.PORT || 3001;
 const {
     verifyGetGuild,
     verifyGetCharacter,
@@ -237,6 +235,6 @@ const { minutesAgo } = require("./helpers");
             }
         }
     );
-
-    app.listen(port, () => console.log(`Server running on port ${port}`));
 })();
+
+module.exports = app;
