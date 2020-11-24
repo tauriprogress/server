@@ -897,6 +897,13 @@ class Database {
 
                     for (const difficulty of difficulties) {
                         const boss = bossData[difficulty];
+                        for (let combatMetric of ["dps", "hps"]) {
+                            boss[combatMetric] = applyCharacterPerformanceRanks(
+                                boss[combatMetric],
+                                combatMetric
+                            );
+                        }
+
                         let fastestKills = [];
                         for (const realm in boss.fastestKills) {
                             for (const faction in boss.fastestKills[realm]) {
