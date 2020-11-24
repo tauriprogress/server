@@ -250,12 +250,7 @@ class Database {
                             );
 
                             try {
-                                await bossCollection.insertMany(
-                                    applyCharacterPerformanceRanks(
-                                        characters,
-                                        combatMetric
-                                    )
-                                );
+                                await bossCollection.insertMany(characters);
                             } catch (err) {
                                 console.error(
                                     `Error while tring to save to ${bossId} ${combatMetric}`
@@ -334,7 +329,6 @@ class Database {
                     );
 
                     await this.updateGuilds();
-                    await this.updateCharacterRanks();
                 }
 
                 this.isUpdating = false;
@@ -509,99 +503,6 @@ class Database {
                 }
 
                 resolve("Done");
-            } catch (err) {
-                reject(err);
-            }
-        });
-    }
-
-    async updateCharacterRanks() {
-        return new Promise(async (resolve, reject) => {
-            try {
-                console.log("db: Updating character ranks");
-                const session = this.client.startSession();
-
-                try {
-                    console.log("db: Opening new transaction session");
-                    await session.withTransaction(async () => {
-                        for (const raid of currentContent.raids) {
-                            for (const boss of raid.bosses) {
-                                for (const difficulty in boss.difficultyIds) {
-                                    for (const combatMetric of ["dps", "hps"]) {
-                                        let done = false;
-                                        const collectionName = getBossCollectionName(
-                                            boss.difficultyIds[difficulty],
-                                            difficulty,
-                                            combatMetric
-                                        );
-                                        for (let i = 0; i < 3 && !done; i++) {
-                                            const session = this.client.startSession();
-
-                                            try {
-                                                console.log(
-                                                    "db: Opening new transaction session"
-                                                );
-
-                                                await session.withTransaction(
-                                                    async () => {
-                                                        const bossCollection = await this.db.collection(
-                                                            collectionName
-                                                        );
-
-                                                        let characters = await bossCollection
-                                                            .find(
-                                                                {},
-                                                                { session }
-                                                            )
-                                                            .toArray();
-
-                                                        if (characters)
-                                                            await bossCollection.deleteMany(
-                                                                {},
-                                                                { session }
-                                                            );
-
-                                                        let updatedCharacters = applyCharacterPerformanceRanks(
-                                                            characters,
-                                                            combatMetric
-                                                        );
-
-                                                        await bossCollection.insertMany(
-                                                            updatedCharacters,
-                                                            {
-                                                                session
-                                                            }
-                                                        );
-                                                    }
-                                                );
-                                            } catch (err) {
-                                                console.log(
-                                                    "transaction error"
-                                                );
-                                                throw new Error(err.message);
-                                            } finally {
-                                                done = true;
-                                                session.endSession();
-                                                console.log(
-                                                    "db: Transaction session closed"
-                                                );
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    });
-                } catch (err) {
-                    console.log("transaction error");
-                    throw new Error(err.message);
-                } finally {
-                    session.endSession();
-                    console.log("db: Transaction session closed");
-                }
-
-                console.log("db: Character ranks updated");
-                resolve(true);
             } catch (err) {
                 reject(err);
             }
