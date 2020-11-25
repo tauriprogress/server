@@ -6,7 +6,7 @@ const dbPassword = process.env.MONGODB_PASSWORD;
 const dbAddress = process.env.MONGODB_ADDRESS;
 const mongoUri = `mongodb+srv://${dbUser}:${dbPassword}@${dbAddress}`;
 const MongoClient = require("mongodb").MongoClient;
-const NodeCache = require("node-cache");
+const cache = require("./cache");
 
 const {
     getLogs,
@@ -40,27 +40,6 @@ class Database {
         this.isUpdating = false;
         this.updateStatus = "";
         this.lastGuildsUpdate = 0;
-        this.summaryCache = new NodeCache({
-            stdTTL: 20 * 60,
-            checkperiod: 60,
-            useClones: false
-        });
-        this.bossCache = new NodeCache({
-            stdTTL: 20 * 60,
-            checkperiod: 60,
-            useClones: false
-        });
-        this.guildListCache = new NodeCache({
-            stdTTL: 20 * 60,
-            checkperiod: 60,
-            useClones: false
-        });
-        this.characterCache = new NodeCache({
-            stdTTL: 4 * 60,
-            checkperiod: 60,
-            useClones: false,
-            maxKeys: 150
-        });
     }
 
     async connect() {
@@ -630,7 +609,7 @@ class Database {
             try {
                 const cacheId = `list`;
 
-                const cachedData = this.guildListCache.get(cacheId);
+                const cachedData = cache.guildList.get(cacheId);
 
                 if (cachedData) {
                     resolve(cachedData);
@@ -647,7 +626,7 @@ class Database {
                         })
                         .toArray();
 
-                    this.guildListCache.set(cacheId, guildList);
+                    cache.guildList.set(cacheId, guildList);
 
                     resolve(guildList);
                 }
@@ -679,7 +658,7 @@ class Database {
             try {
                 const cacheId = `raidsummary${id}`;
 
-                const cachedData = this.summaryCache.get(cacheId);
+                const cachedData = cache.raidSummary.get(cacheId);
 
                 if (cachedData) {
                     resolve(cachedData);
@@ -719,7 +698,7 @@ class Database {
                         }
                     }
 
-                    this.summaryCache.set(cacheId, raidSummary);
+                    cache.raidSummary.set(cacheId, raidSummary);
 
                     resolve(raidSummary);
                 }
@@ -734,7 +713,7 @@ class Database {
             try {
                 const cacheId = `raidboss${raidId}${bossName}`;
 
-                const cachedData = this.bossCache.get(cacheId);
+                const cachedData = cache.raidBoss.get(cacheId);
 
                 if (cachedData) {
                     resolve(cachedData);
@@ -828,7 +807,7 @@ class Database {
                         bossData[difficulty] = boss;
                     }
 
-                    this.bossCache.set(cacheId, bossData);
+                    cache.raidBoss.set(cacheId, bossData);
 
                     resolve(bossData);
                 }
@@ -848,7 +827,7 @@ class Database {
             try {
                 const cacheId = `${characterName}${realm}${raidName}`;
 
-                const cachedData = this.characterCache.get(cacheId);
+                const cachedData = cache.character.get(cacheId);
 
                 if (cachedData) {
                     resolve(cachedData);
@@ -1164,7 +1143,7 @@ class Database {
                         }
                     }
                     try {
-                        this.characterCache.set(cacheId, characterPerformance);
+                        cache.character.set(cacheId, characterPerformance);
                     } catch (err) {
                         console.log("db: Character cache is full");
                     }
