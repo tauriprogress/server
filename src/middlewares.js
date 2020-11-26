@@ -10,6 +10,15 @@ const {
     validBossName
 } = require("./helpers");
 
+async function waitDbConnection(req, res, next) {
+    try {
+        await req.db.connected;
+        next();
+    } catch (err) {
+        res.send({ success: false, errorstring: err.message });
+    }
+}
+
 function verifyGetGuild(req, res, next) {
     try {
         if (!req.body.guildName) throw new Error("Invalid guild name.");
@@ -162,6 +171,17 @@ function verifyGetItems(req, res, next) {
     }
 }
 
+function updateDatabase(req, res, next) {
+    if (minutesAgo(req.db.lastUpdated) > 5 && !req.db.isUpdating) {
+        try {
+            req.db.update();
+        } catch (err) {
+            console.log(err);
+        }
+    }
+    next();
+}
+
 function validRaidId(raidId) {
     for (const raid of currentContent.raids) {
         if (raid.id === raidId) {
@@ -188,20 +208,8 @@ function validClass(characterClass) {
     return false;
 }
 
-function updateDatabase(db) {
-    return (req, res, next) => {
-        if (minutesAgo(db.lastUpdated) > 5 && !db.isUpdating) {
-            try {
-                db.update();
-            } catch (err) {
-                console.log(err);
-            }
-        }
-        next();
-    };
-}
-
 module.exports = {
+    waitDbConnection,
     verifyGetGuild,
     verifyGetCharacter,
     verifyGetRaidSummary,
