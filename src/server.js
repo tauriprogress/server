@@ -11,7 +11,8 @@ const {
     verifyCharacterRecentKills,
     verifyGetCharacterPerformance,
     verifyGetItems,
-    updateDatabase
+    updateDatabase,
+    waitDbConnection
 } = require("./middlewares");
 
 const tauriApi = require("./tauriApi");
@@ -37,7 +38,11 @@ const { minutesAgo } = require("./helpers");
     );
 
     app.use(bodyParser.json());
-    app.use(updateDatabase(db));
+    app.use((req, res, next) => {
+        req.db = db;
+        next();
+    });
+    app.use(updateDatabase);
 
     app.get("/getguildlist", async (req, res) => {
         try {
@@ -89,6 +94,7 @@ const { minutesAgo } = require("./helpers");
 
     app.post(
         "/getcharacterperformance",
+        waitDbConnection,
         verifyGetCharacterPerformance,
         async (req, res) => {
             try {
@@ -125,7 +131,7 @@ const { minutesAgo } = require("./helpers");
         }
     });
 
-    app.post("/getboss", verifyGetBoss, async (req, res) => {
+    app.post("/getboss", waitDbConnection, verifyGetBoss, async (req, res) => {
         try {
             res.send({
                 success: true,

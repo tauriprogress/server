@@ -36,11 +36,12 @@ class Database {
     constructor() {
         this.db = {};
         this.client = undefined;
+        this.connected = false;
         this.lastUpdated = null;
         this.isUpdating = false;
         this.updateStatus = "";
         this.lastGuildsUpdate = 0;
-        this.lastRaidBossCacheUpdate = 0;
+        this.lastRaidBossCacheUpdate = new Date().getTime() / 1000;
     }
 
     async connect() {
@@ -56,7 +57,7 @@ class Database {
             this.lastUpdated = await this.getLastUpdated();
             this.lastGuildsUpdate = await this.getLastGuildsUpdate();
 
-            await this.updateRaidBossCache();
+            this.connected = this.updateRaidBossCache();
         } catch (err) {
             throw err;
         }
@@ -129,7 +130,7 @@ class Database {
 
                 await this.update(true);
                 console.log("db: initalization done.");
-                resolve("Done");
+                resolve(true);
             } catch (err) {
                 this.isUpdating = false;
                 reject(err);
@@ -386,7 +387,7 @@ class Database {
             } catch (err) {
                 reject(err);
             }
-            resolve("Done");
+            resolve(true);
         });
     }
 
@@ -433,7 +434,7 @@ class Database {
                     );
                 }
 
-                resolve("Done");
+                resolve(true);
             } catch (err) {
                 reject(err);
             }
@@ -463,7 +464,7 @@ class Database {
 
                 this.lastRaidBossCacheUpdate = updateStarted;
 
-                resolve("done");
+                resolve(true);
             } catch (err) {
                 reject(err);
             }
@@ -614,7 +615,7 @@ class Database {
                     }
                 }
 
-                resolve("Done");
+                resolve(true);
             } catch (err) {
                 reject(err);
             }
@@ -669,7 +670,7 @@ class Database {
                         { session }
                     );
                 }
-                resolve("Done");
+                resolve(true);
             } catch (err) {
                 reject(err);
             }
@@ -707,7 +708,7 @@ class Database {
                         );
                     }
                 }
-                resolve("Done");
+                resolve(true);
             } catch (err) {
                 reject(err);
             }
@@ -720,7 +721,7 @@ class Database {
                 await this.db.collection("guilds").deleteOne({
                     _id: guild._id
                 });
-                resolve("Done");
+                resolve(true);
             } catch (err) {
                 reject(err);
             }
