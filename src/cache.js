@@ -22,6 +22,10 @@ class Cache {
             stdTTL: 0,
             useClones: false
         });
+        this.leaderboard = new NodeCache({
+            stdTTL: 0,
+            useClones: false
+        });
     }
 }
 

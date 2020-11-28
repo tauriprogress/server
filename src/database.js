@@ -58,6 +58,7 @@ class Database {
             this.lastGuildsUpdate = await this.getLastGuildsUpdate();
 
             this.connected = this.updateRaidBossCache();
+            this.updateLeaderboard();
         } catch (err) {
             throw err;
         }
@@ -1197,6 +1198,121 @@ class Database {
                 reject(err);
             }
         });
+    }
+
+    async updateLeaderboard() {
+        await this.connected;
+        for (const combatMetric of ["dps", "hps"]) {
+            for (const raid of currentContent.raids) {
+                let characterTotals = {};
+                let characterSpecTotals = {};
+
+                for (const bossInfo of raid.bosses) {
+                    const cacheId = `${raid.id}${bossInfo.name}`;
+                    const boss = cache.raidBoss.get(cacheId, bossInfo);
+
+                    let bestOfBoss = {};
+                    for (const difficulty of raid.difficulties) {
+                        if (!characterTotals[difficulty])
+                            characterTotals[difficulty] = {};
+
+                        if (!bestOfBoss[difficulty])
+                            bestOfBoss[difficulty] = {};
+
+                        for (const character of boss[difficulty][
+                            combatMetric
+                        ]) {
+                            const charId = `${character.name},${character.realm}`;
+                            if (!bestOfBoss[difficulty][charId]) {
+                                bestOfBoss[difficulty][charId] = {
+                                    _id: charId,
+                                    [combatMetric]: character[combatMetric],
+                                    class: character.class,
+                                    name: character.name,
+                                    realm: character.realm,
+                                    f: character.f
+                                };
+                            } else if (
+                                bestOfBoss[difficulty][charId][combatMetric] <
+                                character[combatMetric]
+                            ) {
+                                bestOfBoss[difficulty][charId][combatMetric] =
+                                    character[combatMetric];
+                            }
+
+                            if (!characterSpecTotals[character.spec])
+                                characterSpecTotals[character.spec] = {};
+
+                            if (
+                                !characterSpecTotals[character.spec][difficulty]
+                            )
+                                characterSpecTotals[character.spec][
+                                    difficulty
+                                ] = {};
+
+                            if (
+                                !characterSpecTotals[character.spec][
+                                    difficulty
+                                ][charId]
+                            ) {
+                                characterSpecTotals[character.spec][difficulty][
+                                    charId
+                                ] = {
+                                    _id: charId,
+                                    [combatMetric]: 0,
+                                    class: character.class,
+                                    spec: character.spec,
+                                    name: character.name,
+                                    realm: character.realm,
+                                    f: character.f
+                                };
+                            }
+
+                            characterSpecTotals[character.spec][difficulty][
+                                charId
+                            ][combatMetric] += character[combatMetric];
+                        }
+
+                        for (const charId in bestOfBoss[difficulty]) {
+                            if (!characterTotals[difficulty][charId]) {
+                                characterTotals[difficulty][charId] =
+                                    bestOfBoss[difficulty][charId];
+                            } else {
+                                characterTotals[difficulty][charId][
+                                    combatMetric
+                                ] +=
+                                    bestOfBoss[difficulty][charId][
+                                        combatMetric
+                                    ];
+                            }
+                        }
+                    }
+                }
+
+                for (const difficulty in characterTotals) {
+                    characterTotals[difficulty] = Object.values(
+                        characterTotals[difficulty]
+                    ).sort((a, b) => b[combatMetric] - a[combatMetric]);
+                }
+
+                cache.leaderboard.set(
+                    `${raid.id}${combatMetric}`,
+                    characterTotals
+                );
+
+                for (const spec in characterSpecTotals) {
+                    for (const difficulty in characterSpecTotals[spec]) {
+                        characterSpecTotals[spec][difficulty] = Object.values(
+                            characterSpecTotals[spec][difficulty]
+                        ).sort((a, b) => b[combatMetric] - a[combatMetric]);
+                    }
+                    cache.leaderboard.set(
+                        `${raid.id}${spec}${combatMetric}`,
+                        characterSpecTotals[spec]
+                    );
+                }
+            }
+        }
     }
 
     async getLastUpdated() {
