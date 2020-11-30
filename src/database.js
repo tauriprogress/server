@@ -1315,6 +1315,22 @@ class Database {
         }
     }
 
+    async getLeaderboardData(dataId) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const data = cache.leaderboard.get(dataId);
+
+                if (!data) {
+                    throw new Error("No data");
+                } else {
+                    resolve(data);
+                }
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+
     async getLastUpdated() {
         return new Promise(async (resolve, reject) => {
             try {

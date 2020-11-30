@@ -11,6 +11,7 @@ const {
     verifyCharacterRecentKills,
     verifyGetCharacterPerformance,
     verifyGetItems,
+    verifyGetLeaderboard,
     updateDatabase,
     waitDbConnection
 } = require("./middlewares");
@@ -232,6 +233,26 @@ const { minutesAgo } = require("./helpers");
                             req.body.limit
                         )
                     ).response
+                });
+            } catch (err) {
+                res.send({
+                    success: false,
+                    errorstring: err.message
+                });
+            }
+        }
+    );
+
+    app.post(
+        "/getleaderboard",
+        waitDbConnection,
+        verifyGetLeaderboard,
+        async (req, res) => {
+            try {
+                let data = await db.getLeaderboardData(req.body.dataId);
+                res.send({
+                    success: true,
+                    response: data
                 });
             } catch (err) {
                 res.send({
