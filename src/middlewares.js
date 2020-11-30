@@ -156,6 +156,20 @@ function verifyCharacterRecentKills(req, res, next) {
     }
 }
 
+function verifyGetLeaderboard(req, res, next) {
+    try {
+        if (!req.body.dataId)
+            throw new Error(`${req.body.raidId} is not a valid raid id.`);
+
+        next();
+    } catch (err) {
+        res.send({
+            success: false,
+            errorstring: err.message
+        });
+    }
+}
+
 function verifyGetItems(req, res, next) {
     try {
         if (req.body.realm)
@@ -218,5 +232,6 @@ module.exports = {
     verifyCharacterRecentKills,
     verifyGetCharacterPerformance,
     updateDatabase,
-    verifyGetItems
+    verifyGetItems,
+    verifyGetLeaderboard
 };
