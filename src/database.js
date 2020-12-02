@@ -1230,7 +1230,8 @@ class Database {
                                     class: character.class,
                                     name: character.name,
                                     realm: character.realm,
-                                    f: character.f
+                                    f: character.f,
+                                    ilvl: character.ilvl
                                 };
                             } else if (
                                 bestOfBoss[difficulty][charId][combatMetric] <
@@ -1264,8 +1265,17 @@ class Database {
                                     spec: character.spec,
                                     name: character.name,
                                     realm: character.realm,
-                                    f: character.f
+                                    f: character.f,
+                                    ilvl: character.ilvl
                                 };
+                            } else if (
+                                characterSpecTotals[character.spec][difficulty][
+                                    charId
+                                ].ilvl < character.ilvl
+                            ) {
+                                characterSpecTotals[character.spec][difficulty][
+                                    charId
+                                ].ilvl = character.ilvl;
                             }
 
                             characterSpecTotals[character.spec][difficulty][
@@ -1284,6 +1294,14 @@ class Database {
                                     bestOfBoss[difficulty][charId][
                                         combatMetric
                                     ];
+
+                                if (
+                                    characterTotals[difficulty][charId].ilvl <
+                                    bestOfBoss[difficulty][charId].ilvl
+                                ) {
+                                    characterTotals[difficulty][charId].ilvl =
+                                        bestOfBoss[difficulty][charId].ilvl;
+                                }
                             }
                         }
                     }
