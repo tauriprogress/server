@@ -1311,6 +1311,20 @@ class Database {
                     characterTotals[difficulty] = Object.values(
                         characterTotals[difficulty]
                     ).sort((a, b) => b[combatMetric] - a[combatMetric]);
+
+                    const bestPerformance = characterTotals[difficulty].length
+                        ? characterTotals[difficulty][0][combatMetric]
+                        : 0;
+
+                    characterTotals[difficulty] = characterTotals[
+                        difficulty
+                    ].map(character => ({
+                        ...character,
+                        topPercent: calcTopPercentOfPerformance(
+                            character[combatMetric],
+                            bestPerformance
+                        )
+                    }));
                 }
 
                 cache.leaderboard.set(
@@ -1323,7 +1337,25 @@ class Database {
                         characterSpecTotals[spec][difficulty] = Object.values(
                             characterSpecTotals[spec][difficulty]
                         ).sort((a, b) => b[combatMetric] - a[combatMetric]);
+
+                        const bestPerformance = characterTotals[difficulty]
+                            .length
+                            ? characterTotals[difficulty][0][combatMetric]
+                            : 0;
+
+                        characterSpecTotals[spec][
+                            difficulty
+                        ] = characterSpecTotals[spec][difficulty].map(
+                            character => ({
+                                ...character,
+                                topPercent: calcTopPercentOfPerformance(
+                                    character[combatMetric],
+                                    bestPerformance
+                                )
+                            })
+                        );
                     }
+
                     cache.leaderboard.set(
                         `${raid.id}${spec}${combatMetric}`,
                         characterSpecTotals[spec]
