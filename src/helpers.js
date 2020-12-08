@@ -998,7 +998,9 @@ function addToTotalPerformance(total, categorization, combatMetricValue) {
 }
 
 function capitalize(str) {
-    return str.charAt(0).toUpperCase() + str.slice(1);
+    const capitalized = str.charAt(0).toUpperCase() + str.slice(1);
+
+    return capitalized.length === str.length ? capitalized : str;
 }
 
 function validRaidName(raidName) {
