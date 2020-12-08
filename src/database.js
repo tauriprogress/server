@@ -1231,14 +1231,30 @@ class Database {
                                     name: character.name,
                                     realm: character.realm,
                                     f: character.f,
-                                    ilvl: character.ilvl
+                                    ilvl: character.ilvl,
+                                    date: character.date
                                 };
-                            } else if (
-                                bestOfBoss[difficulty][charId][combatMetric] <
-                                character[combatMetric]
-                            ) {
-                                bestOfBoss[difficulty][charId][combatMetric] =
-                                    character[combatMetric];
+                            } else {
+                                if (
+                                    bestOfBoss[difficulty][charId][
+                                        combatMetric
+                                    ] < character[combatMetric]
+                                ) {
+                                    bestOfBoss[difficulty][charId][
+                                        combatMetric
+                                    ] = character[combatMetric];
+                                }
+
+                                if (
+                                    bestOfBoss[difficulty][charId].date <
+                                    character.date
+                                ) {
+                                    bestOfBoss[difficulty][charId].f =
+                                        character.f;
+
+                                    bestOfBoss[difficulty][charId].date =
+                                        character.date;
+                                }
                             }
 
                             if (!characterSpecTotals[character.spec])
@@ -1266,16 +1282,33 @@ class Database {
                                     name: character.name,
                                     realm: character.realm,
                                     f: character.f,
-                                    ilvl: character.ilvl
+                                    ilvl: character.ilvl,
+                                    date: character.date
                                 };
-                            } else if (
-                                characterSpecTotals[character.spec][difficulty][
-                                    charId
-                                ].ilvl < character.ilvl
-                            ) {
-                                characterSpecTotals[character.spec][difficulty][
-                                    charId
-                                ].ilvl = character.ilvl;
+                            } else {
+                                if (
+                                    characterSpecTotals[character.spec][
+                                        difficulty
+                                    ][charId].ilvl < character.ilvl
+                                ) {
+                                    characterSpecTotals[character.spec][
+                                        difficulty
+                                    ][charId].ilvl = character.ilvl;
+                                }
+
+                                if (
+                                    characterSpecTotals[character.spec][
+                                        difficulty
+                                    ][charId].date < character.date
+                                ) {
+                                    characterSpecTotals[character.spec][
+                                        difficulty
+                                    ][charId].f = character.f;
+
+                                    characterSpecTotals[character.spec][
+                                        difficulty
+                                    ][charId].date = character.date;
+                                }
                             }
 
                             characterSpecTotals[character.spec][difficulty][
@@ -1301,6 +1334,17 @@ class Database {
                                 ) {
                                     characterTotals[difficulty][charId].ilvl =
                                         bestOfBoss[difficulty][charId].ilvl;
+                                }
+
+                                if (
+                                    characterTotals[difficulty][charId].date <
+                                    bestOfBoss[difficulty][charId].date
+                                ) {
+                                    characterTotals[difficulty][charId].f =
+                                        bestOfBoss[difficulty][charId].f;
+
+                                    characterTotals[difficulty][charId].date =
+                                        bestOfBoss[difficulty][charId].date;
                                 }
                             }
                         }
