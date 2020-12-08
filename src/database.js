@@ -299,7 +299,7 @@ class Database {
 
                 if (
                     !isInitalization &&
-                    minutesAgo(this.lastGuildsUpdate) > 720
+                    minutesAgo(this.lastGuildsUpdate) > 1400
                 ) {
                     console.log("db: Updating guilds");
                     this.lastGuildsUpdate = updateStarted;
