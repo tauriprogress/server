@@ -1231,7 +1231,7 @@ class Database {
                         for (const character of boss[difficulty][
                             combatMetric
                         ]) {
-                            const charId = `${character.name},${character.realm}`;
+                            const charId = `${character.name},${character.realm},${character.class}`;
                             if (!bestOfBoss[difficulty][charId]) {
                                 bestOfBoss[difficulty][charId] = {
                                     _id: charId,
