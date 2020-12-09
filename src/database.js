@@ -316,7 +316,16 @@ class Database {
                 }
 
                 if (minutesAgo(this.lastRaidBossCacheUpdate) > 20) {
-                    this.updateRaidBossCache();
+                    new Promise(async (resolve, reject) => {
+                        try {
+                            await this.updateRaidBossCache();
+                            await this.updateLeaderboard();
+                            resolve();
+                        } catch (err) {
+                            console.error(err);
+                            resolve();
+                        }
+                    });
                 }
 
                 this.isUpdating = false;
