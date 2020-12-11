@@ -13,7 +13,7 @@ const {
     verifyGetItems,
     verifyGetLeaderboard,
     updateDatabase,
-    waitDbConnection
+    waitDbCache
 } = require("./middlewares");
 
 const tauriApi = require("./tauriApi");
@@ -43,6 +43,7 @@ const { minutesAgo } = require("./helpers");
         req.db = db;
         next();
     });
+
     app.use(updateDatabase);
 
     app.get("/getguildlist", async (req, res) => {
@@ -95,7 +96,7 @@ const { minutesAgo } = require("./helpers");
 
     app.post(
         "/getcharacterperformance",
-        waitDbConnection,
+        waitDbCache,
         verifyGetCharacterPerformance,
         async (req, res) => {
             try {
@@ -132,7 +133,7 @@ const { minutesAgo } = require("./helpers");
         }
     });
 
-    app.post("/getboss", waitDbConnection, verifyGetBoss, async (req, res) => {
+    app.post("/getboss", waitDbCache, verifyGetBoss, async (req, res) => {
         try {
             res.send({
                 success: true,
@@ -245,7 +246,7 @@ const { minutesAgo } = require("./helpers");
 
     app.post(
         "/getleaderboard",
-        waitDbConnection,
+        waitDbCache,
         verifyGetLeaderboard,
         async (req, res) => {
             try {
@@ -262,6 +263,8 @@ const { minutesAgo } = require("./helpers");
             }
         }
     );
+
+    db.updateRequiredData();
 })();
 
 module.exports = app;
