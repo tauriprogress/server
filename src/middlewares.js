@@ -10,9 +10,9 @@ const {
     validBossName
 } = require("./helpers");
 
-async function waitDbConnection(req, res, next) {
+async function waitDbCache(req, res, next) {
     try {
-        await req.db.connected;
+        await req.db.cacheLoaded;
         next();
     } catch (err) {
         res.send({ success: false, errorstring: err.message });
@@ -223,7 +223,7 @@ function validClass(characterClass) {
 }
 
 module.exports = {
-    waitDbConnection,
+    waitDbCache,
     verifyGetGuild,
     verifyGetCharacter,
     verifyGetRaidSummary,

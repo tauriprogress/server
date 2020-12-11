@@ -36,7 +36,7 @@ class Database {
     constructor() {
         this.db = {};
         this.client = undefined;
-        this.connected = false;
+        this.cacheLoaded = false;
         this.lastUpdated = null;
         this.isUpdating = false;
         this.updateStatus = "";
@@ -56,13 +56,28 @@ class Database {
 
             this.lastUpdated = await this.getLastUpdated();
             this.lastGuildsUpdate = await this.getLastGuildsUpdate();
-
-            this.connected = this.updateRaidBossCache();
-            this.updateLeaderboard();
         } catch (err) {
             throw err;
         }
     }
+
+    async updateRequiredData() {
+        return new Promise(async (resolve, reject) => {
+            try {
+                if (!this.cacheLoaded) {
+                    this.cacheLoaded = this.updateRaidBossCache();
+                } else {
+                    await this.updateRaidBossCache();
+                }
+
+                this.updateLeaderboard();
+            } catch (err) {
+                console.log(err);
+            }
+            resolve();
+        });
+    }
+
     async disconnect() {
         return new Promise(async (resolve, reject) => {
             try {
@@ -316,16 +331,7 @@ class Database {
                 }
 
                 if (minutesAgo(this.lastRaidBossCacheUpdate) > 20) {
-                    new Promise(async (resolve, reject) => {
-                        try {
-                            await this.updateRaidBossCache();
-                            await this.updateLeaderboard();
-                            resolve();
-                        } catch (err) {
-                            console.error(err);
-                            resolve();
-                        }
-                    });
+                    this.updateRequiredData();
                 }
 
                 this.isUpdating = false;
@@ -456,9 +462,8 @@ class Database {
             try {
                 const updateStarted = new Date().getTime() / 1000;
 
-                let promises = [];
-
                 for (const raid of currentContent.raids) {
+                    let promises = [];
                     for (const boss of raid.bosses) {
                         promises.push(this.requestRaidBoss(raid.id, boss.name));
                     }
@@ -1210,7 +1215,7 @@ class Database {
     }
 
     async updateLeaderboard() {
-        await this.connected;
+        await this.cacheLoaded;
         for (const combatMetric of ["dps", "hps"]) {
             for (const raid of currentContent.raids) {
                 let characterTotals = {};
