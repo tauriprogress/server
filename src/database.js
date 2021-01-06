@@ -654,17 +654,24 @@ class Database {
                             newGuild.realm
                         );
 
-                        if (guildData) {
-                            await this.db.collection("guilds").insertOne(
-                                recentGuildRaidDays(
-                                    calcGuildContentCompletion({
-                                        ...newGuild,
-                                        ...guildData
-                                    })
-                                ),
-                                { session }
-                            );
+                        if (!guildData) {
+                            guildData = {
+                                ...newGuild,
+                                f: 0,
+                                guildList: {},
+                                gRanks: {}
+                            };
                         }
+
+                        await this.db.collection("guilds").insertOne(
+                            recentGuildRaidDays(
+                                calcGuildContentCompletion({
+                                    ...newGuild,
+                                    ...guildData
+                                })
+                            ),
+                            { session }
+                        );
                     } catch (err) {
                         console.error(err);
                     }

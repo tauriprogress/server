@@ -574,7 +574,12 @@ async function requestGuildData(guildName, realm) {
             guild = err.message;
         }
     } while (!guild.success && guild === "request timed out");
-    if (!guild.success) throw new Error(guild.errorstring);
+    if (!guild.success && guild.errorstring === "guild not found")
+        throw new Error(guild.errorstring);
+
+    if (!guild.success) {
+        return false;
+    }
 
     guild = guild.response;
 
