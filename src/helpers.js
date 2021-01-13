@@ -154,9 +154,9 @@ function processLogs(logs) {
         const fightLength = log.fight_time;
         const date = log.killtime;
 
-        const guildId = log.guildid;
         const guildName = log.guilddata.name;
-        const isGuildKill = guildId && guildName ? true : false;
+        const isGuildKill = log.guildid && guildName ? true : false;
+        const guildId = isGuildKill ? `${guildName} ${realm}` : undefined;
         const guildFaction = log.guilddata.faction;
         const guildBossCategorization = [
             "progression",
