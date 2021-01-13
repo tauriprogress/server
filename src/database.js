@@ -196,6 +196,7 @@ class Database {
                 let { logs, lastLogIds: newLastLogIds } = await getLogs(
                     lastLogIds
                 );
+
                 if (isInitalization) {
                     console.log(
                         "db: Saving logs in case something goes wrong in the initalization process to",
@@ -265,6 +266,7 @@ class Database {
                             $set: {
                                 lastUpdated: updateStarted,
                                 lastLogIds: newLastLogIds,
+                                lastGuildsUpdate: updateStarted,
                                 isInitalized: true
                             }
                         }
