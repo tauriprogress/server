@@ -1,4 +1,7 @@
-import * as constants from "tauriprogress-constants";
+import * as dotenv from "dotenv";
+dotenv.config();
+
+const defaultPort = 3001;
 
 const realmGroups = {
     tauri: "",
@@ -18,6 +21,7 @@ class Environment {
     readonly MONGODB_USER: string;
     readonly MONGODB_PASSWORD: string;
     readonly MONGODB_ADDRESS: string;
+    readonly PORT: number;
 
     constructor() {
         if (process.env.REALM_GROUP && isRealmGroup(process.env.REALM_GROUP)) {
@@ -72,6 +76,14 @@ class Environment {
                 `Environment variable MONGODB_ADDRESS=${process.env.MONGODB_ADDRESS} is invalid.`
             );
             process.exit(0);
+        }
+
+        if (typeof process.env.PORT === "string") {
+            this.PORT = Number(process.env.PORT)
+                ? Number(process.env.PORT)
+                : (this.PORT = defaultPort);
+        } else {
+            this.PORT = defaultPort;
         }
     }
 }
