@@ -1,6 +1,8 @@
 import { environment } from "../environment";
 import { Request, Response, NextFunction } from "express";
 
+import { validRaidId, validClass, validRealm } from "../helpers";
+
 const {
     capitalize,
     validRaidName,
@@ -228,30 +230,4 @@ export function updateDatabase(
         }
     }
     next();
-}
-
-function validRaidId(raidId) {
-    for (const raid of currentContent.raids) {
-        if (raid.id === raidId) {
-            return true;
-        }
-    }
-    return false;
-}
-
-function validRealm(realm) {
-    for (let key in realms) {
-        if (realms[key] === realm) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-function validClass(characterClass) {
-    for (let classId in characterClassNames) {
-        if (classId == characterClass) return true;
-    }
-    return false;
 }
