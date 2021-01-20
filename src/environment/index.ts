@@ -27,6 +27,7 @@ class Environment {
     readonly PORT: number;
 
     readonly defaultRealm: string;
+    readonly raids;
 
     constructor() {
         if (process.env.REALM_GROUP && isRealmGroup(process.env.REALM_GROUP)) {
@@ -98,6 +99,8 @@ class Environment {
                         constants.tauri.realms
                     )[0] as keyof typeof constants.tauri.realms
                 ];
+
+            this.raids = constants.tauri.currentContent.raids;
         } else {
             this.defaultRealm =
                 constants.crystalsong.realms[
@@ -105,6 +108,8 @@ class Environment {
                         constants.crystalsong.realms
                     )[0] as keyof typeof constants.crystalsong.realms
                 ];
+
+            this.raids = constants.crystalsong.currentContent.raids;
         }
     }
 }
