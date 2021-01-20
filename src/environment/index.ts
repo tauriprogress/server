@@ -28,6 +28,7 @@ class Environment {
 
     readonly defaultRealm: string;
     readonly raids;
+    readonly realms;
 
     constructor() {
         if (process.env.REALM_GROUP && isRealmGroup(process.env.REALM_GROUP)) {
@@ -93,6 +94,8 @@ class Environment {
         }
 
         if (this.REALM_GROUP === "tauri") {
+            this.realms = constants.tauri.realms;
+
             this.defaultRealm =
                 constants.tauri.realms[
                     Object.keys(
@@ -102,6 +105,8 @@ class Environment {
 
             this.raids = constants.tauri.currentContent.raids;
         } else {
+            this.realms = constants.crystalsong.realms;
+
             this.defaultRealm =
                 constants.crystalsong.realms[
                     Object.keys(
