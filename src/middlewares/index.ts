@@ -1,8 +1,6 @@
-const {
-    currentContent,
-    realms,
-    characterClassNames
-} = require("./expansionData");
+import { environment } from "../environment";
+import { Request, Response, NextFunction } from "express";
+
 const {
     capitalize,
     validRaidName,
@@ -10,7 +8,11 @@ const {
     validBossName
 } = require("./helpers");
 
-async function waitDbCache(req, res, next) {
+export async function waitDbCache(
+    req: Request,
+    res: Response,
+    next: NextFunction
+) {
     try {
         await req.db.cacheLoaded;
         next();
@@ -19,12 +21,16 @@ async function waitDbCache(req, res, next) {
     }
 }
 
-function verifyGetGuild(req, res, next) {
+export function verifyGetGuild(
+    req: Request,
+    res: Response,
+    next: NextFunction
+) {
     try {
         if (!req.body.guildName) throw new Error("Invalid guild name.");
         req.body.guildName = req.body.guildName.trim().replace(/\s+/g, " ");
         if (!req.body.realm) {
-            req.body.realm = realms["tauri"];
+            req.body.realm = environment.defaultRealm;
         }
         req.body.realm = req.body.realm.trim();
         if (!validRealm(req.body.realm)) throw new Error("Invalid realm name.");
@@ -37,7 +43,11 @@ function verifyGetGuild(req, res, next) {
     }
 }
 
-function verifyGetCharacter(req, res, next) {
+export function verifyGetCharacter(
+    req: Request,
+    res: Response,
+    next: NextFunction
+) {
     try {
         if (!req.body.characterName) throw new Error("Invalid character name.");
         req.body.characterName = capitalize(
@@ -45,7 +55,7 @@ function verifyGetCharacter(req, res, next) {
         );
 
         if (!req.body.realm) {
-            req.body.realm = realms["tauri"];
+            req.body.realm = environment.defaultRealm;
         }
         req.body.realm = req.body.realm.trim();
         if (!validRealm(req.body.realm)) throw new Error("Invalid realm name.");
@@ -55,7 +65,11 @@ function verifyGetCharacter(req, res, next) {
     }
 }
 
-function verifyGetCharacterPerformance(req, res, next) {
+export function verifyGetCharacterPerformance(
+    req: Request,
+    res: Response,
+    next: NextFunction
+) {
     try {
         if (!req.body.characterName) throw new Error("Invalid character name.");
         req.body.characterName = capitalize(
@@ -72,7 +86,7 @@ function verifyGetCharacterPerformance(req, res, next) {
             throw new Error("Invalid raid name.");
 
         if (!req.body.realm) {
-            req.body.realm = realms["tauri"];
+            req.body.realm = environment.defaultRealm;
         }
         req.body.realm = req.body.realm.trim();
         if (!validRealm(req.body.realm)) throw new Error("Invalid realm name.");
@@ -82,7 +96,11 @@ function verifyGetCharacterPerformance(req, res, next) {
     }
 }
 
-function verifyGetRaidSummary(req, res, next) {
+export function verifyGetRaidSummary(
+    req: Request,
+    res: Response,
+    next: NextFunction
+) {
     try {
         if (!req.body.raidId || !validRaidId(req.body.raidId))
             throw new Error(`${req.body.raidId} is not a valid raid id.`);
@@ -96,7 +114,7 @@ function verifyGetRaidSummary(req, res, next) {
     }
 }
 
-function verifyGetBoss(req, res, next) {
+export function verifyGetBoss(req: Request, res: Response, next: NextFunction) {
     try {
         if (!req.body.raidId || !validRaidId(req.body.raidId))
             throw new Error(`${req.body.raidId} is not a valid raid id.`);
@@ -113,12 +131,12 @@ function verifyGetBoss(req, res, next) {
     }
 }
 
-function verifyGetLog(req, res, next) {
+export function verifyGetLog(req: Request, res: Response, next: NextFunction) {
     try {
         if (!req.body.logId) throw new Error("Invalid log id name.");
         req.body.logId = req.body.logId.trim().replace(/\s+/g, " ");
 
-        if (!req.body.realm) req.body.realm = realms["tauri"];
+        if (!req.body.realm) req.body.realm = environment.defaultRealm;
         req.body.realm = req.body.realm.trim();
         if (!validRealm(req.body.realm)) throw new Error("Invalid realm name.");
 
@@ -128,7 +146,11 @@ function verifyGetLog(req, res, next) {
     }
 }
 
-function verifyCharacterRecentKills(req, res, next) {
+export function verifyCharacterRecentKills(
+    req: Request,
+    res: Response,
+    next: NextFunction
+) {
     try {
         if (req.body.realm)
             req.body.realm = req.body.realm.trim().replace(/\s+/g, " ");
@@ -156,7 +178,11 @@ function verifyCharacterRecentKills(req, res, next) {
     }
 }
 
-function verifyGetLeaderboard(req, res, next) {
+export function verifyGetLeaderboard(
+    req: Request,
+    res: Response,
+    next: NextFunction
+) {
     try {
         if (!req.body.dataId)
             throw new Error(`${req.body.raidId} is not a valid raid id.`);
@@ -170,7 +196,11 @@ function verifyGetLeaderboard(req, res, next) {
     }
 }
 
-function verifyGetItems(req, res, next) {
+export function verifyGetItems(
+    req: Request,
+    res: Response,
+    next: NextFunction
+) {
     try {
         if (req.body.realm)
             req.body.realm = req.body.realm.trim().replace(/\s+/g, " ");
@@ -185,7 +215,11 @@ function verifyGetItems(req, res, next) {
     }
 }
 
-function updateDatabase(req, res, next) {
+export function updateDatabase(
+    req: Request,
+    res: Response,
+    next: NextFunction
+) {
     if (minutesAgo(req.db.lastUpdated) > 5 && !req.db.isUpdating) {
         try {
             req.db.update();
@@ -221,17 +255,3 @@ function validClass(characterClass) {
     }
     return false;
 }
-
-module.exports = {
-    waitDbCache,
-    verifyGetGuild,
-    verifyGetCharacter,
-    verifyGetRaidSummary,
-    verifyGetBoss,
-    verifyGetLog,
-    verifyCharacterRecentKills,
-    verifyGetCharacterPerformance,
-    updateDatabase,
-    verifyGetItems,
-    verifyGetLeaderboard
-};
