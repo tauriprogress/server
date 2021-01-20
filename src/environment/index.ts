@@ -1,7 +1,6 @@
 import * as constants from "tauriprogress-constants";
 
 import * as dotenv from "dotenv";
-import { SSL_OP_SINGLE_DH_USE } from "constants";
 dotenv.config();
 
 const defaultPort = 3001;
