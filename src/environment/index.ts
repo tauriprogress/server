@@ -29,11 +29,50 @@ class Environment {
             process.exit(0);
         }
 
-        this.TAURI_API_KEY = process.env.REALM_GROUP;
-        this.TAURI_API_SECRET = process.env.REALM_GROUP;
-        this.MONGODB_USER = process.env.REALM_GROUP;
-        this.MONGODB_PASSWORD = process.env.REALM_GROUP;
-        this.MONGODB_ADDRESS = process.env.REALM_GROUP;
+        if (typeof process.env.TAURI_API_KEY === "string") {
+            this.TAURI_API_KEY = process.env.TAURI_API_KEY;
+        } else {
+            console.error(
+                `Environment variable TAURI_API_KEY=${process.env.TAURI_API_KEY} is invalid.`
+            );
+            process.exit(0);
+        }
+
+        if (typeof process.env.TAURI_API_SECRET === "string") {
+            this.TAURI_API_SECRET = process.env.TAURI_API_SECRET;
+        } else {
+            console.error(
+                `Environment variable TAURI_API_SECRET=${process.env.TAURI_API_SECRET} is invalid.`
+            );
+            process.exit(0);
+        }
+
+        if (typeof process.env.MONGODB_USER === "string") {
+            this.MONGODB_USER = process.env.MONGODB_USER;
+        } else {
+            console.error(
+                `Environment variable MONGODB_USER=${process.env.MONGODB_USER} is invalid.`
+            );
+            process.exit(0);
+        }
+
+        if (typeof process.env.MONGODB_PASSWORD === "string") {
+            this.MONGODB_PASSWORD = process.env.MONGODB_PASSWORD;
+        } else {
+            console.error(
+                `Environment variable MONGODB_PASSWORD=${process.env.MONGODB_PASSWORD} is invalid.`
+            );
+            process.exit(0);
+        }
+
+        if (typeof process.env.MONGODB_ADDRESS === "string") {
+            this.MONGODB_ADDRESS = process.env.MONGODB_ADDRESS;
+        } else {
+            console.error(
+                `Environment variable MONGODB_ADDRESS=${process.env.MONGODB_ADDRESS} is invalid.`
+            );
+            process.exit(0);
+        }
     }
 }
 
