@@ -1,4 +1,7 @@
+import * as constants from "tauriprogress-constants";
+
 import * as dotenv from "dotenv";
+import { SSL_OP_SINGLE_DH_USE } from "constants";
 dotenv.config();
 
 const defaultPort = 3001;
@@ -22,6 +25,8 @@ class Environment {
     readonly MONGODB_PASSWORD: string;
     readonly MONGODB_ADDRESS: string;
     readonly PORT: number;
+
+    readonly defaultRealm: string;
 
     constructor() {
         if (process.env.REALM_GROUP && isRealmGroup(process.env.REALM_GROUP)) {
@@ -84,6 +89,22 @@ class Environment {
                 : (this.PORT = defaultPort);
         } else {
             this.PORT = defaultPort;
+        }
+
+        if (this.REALM_GROUP === "tauri") {
+            this.defaultRealm =
+                constants.tauri.realms[
+                    Object.keys(
+                        constants.tauri.realms
+                    )[0] as keyof typeof constants.tauri.realms
+                ];
+        } else {
+            this.defaultRealm =
+                constants.crystalsong.realms[
+                    Object.keys(
+                        constants.crystalsong.realms
+                    )[0] as keyof typeof constants.crystalsong.realms
+                ];
         }
     }
 }
