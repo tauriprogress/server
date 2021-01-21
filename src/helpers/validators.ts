@@ -25,3 +25,16 @@ export function validRaidName(raidName: string) {
     }
     return false;
 }
+
+export function validBossName(raidId: number, bossName: string) {
+    for (const raid of environment.raids) {
+        if (raid.id === raidId) {
+            for (const boss of raid.bosses) {
+                if (boss.name === bossName) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}

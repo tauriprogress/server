@@ -1,9 +1,15 @@
 import { environment } from "../environment";
 import { Request, Response, NextFunction } from "express";
 
-import { validRaidId, validClass, validRealm, validRaidName } from "../helpers";
+import {
+    validRaidId,
+    validClass,
+    validRealm,
+    validRaidName,
+    validBossName
+} from "../helpers";
 
-const { capitalize, minutesAgo, validBossName } = require("./helpers");
+const { capitalize, minutesAgo } = require("./helpers");
 
 export async function waitDbCache(
     req: Request,
