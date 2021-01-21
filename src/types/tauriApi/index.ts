@@ -1,0 +1,1 @@
+export { CharacterData } from "./characterData";
