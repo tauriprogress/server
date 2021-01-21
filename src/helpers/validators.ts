@@ -38,3 +38,16 @@ export function validBossName(raidId: number, bossName: string) {
     }
     return false;
 }
+
+export function validDifficulty(raidId: number, difficulty: number) {
+    for (const raid of environment.raids) {
+        if (raid.id === raidId) {
+            for (const raidDifficulty of raid.difficulties) {
+                if (difficulty === raidDifficulty) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
