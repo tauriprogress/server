@@ -1,8 +1,7 @@
 import fetch from "node-fetch";
 import * as url from "url";
 import { environment } from "../environment";
-import { validRealm } from "../helpers";
-import { CharacterData, GuildData } from "../types";
+import { CharacterData, GuildData, CharacterAchievements } from "../types";
 
 class TauriApi {
     private apikey: string;
@@ -73,8 +72,8 @@ class TauriApi {
         });
     }
 
-    getAchievements(realm, name) {
-        return this.request({
+    getCharacterAchievements(name: string, realm: string) {
+        return this.request<CharacterAchievements>({
             method: "POST",
             body: encodeURIComponent(
                 JSON.stringify({
