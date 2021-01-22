@@ -2,7 +2,7 @@ import fetch from "node-fetch";
 import * as url from "url";
 import { environment } from "../environment";
 import { validRealm } from "../helpers";
-import { CharacterData } from "../types";
+import { CharacterData, GuildData } from "../types";
 
 class TauriApi {
     private apikey: string;
@@ -49,7 +49,7 @@ class TauriApi {
                     secret: this.apisecret,
                     url: "character-sheet",
                     params: {
-                        r: validRealm(realm) ? realm : environment.defaultRealm,
+                        r: realm,
                         n: name
                     }
                 })
@@ -57,8 +57,8 @@ class TauriApi {
         });
     }
 
-    getGuild(name, realm) {
-        return this.request({
+    getGuildData(name: string, realm: string) {
+        return this.request<GuildData>({
             method: "POST",
             body: encodeURIComponent(
                 JSON.stringify({
