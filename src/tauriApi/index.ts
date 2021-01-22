@@ -1,7 +1,12 @@
 import fetch from "node-fetch";
 import * as url from "url";
 import { environment } from "../environment";
-import { CharacterData, GuildData, CharacterAchievements } from "../types";
+import {
+    CharacterData,
+    GuildData,
+    CharacterAchievements,
+    RaidMaps
+} from "../types";
 
 class TauriApi {
     private apikey: string;
@@ -88,9 +93,8 @@ class TauriApi {
         });
     }
 
-    getRaidMaps(realm) {
-        // get encounters by exapnsion
-        return this.request({
+    getRaidMaps(realm: string) {
+        return this.request<RaidMaps>({
             method: "POST",
             body: encodeURIComponent(
                 JSON.stringify({
