@@ -5,7 +5,8 @@ import {
     CharacterData,
     GuildData,
     CharacterAchievements,
-    RaidMaps
+    RaidMaps,
+    RaidLog
 } from "../types";
 
 class TauriApi {
@@ -108,9 +109,9 @@ class TauriApi {
         });
     }
 
-    getRaidLog(realm, id) {
+    getRaidLog(id: number, realm: string) {
         // returns info of 1 raid encounter by id
-        return this.request({
+        return this.request<RaidLog>({
             method: "POST",
             body: encodeURIComponent(
                 JSON.stringify({
