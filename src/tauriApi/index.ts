@@ -6,7 +6,8 @@ import {
     GuildData,
     CharacterAchievements,
     RaidMaps,
-    RaidLog
+    RaidLog,
+    LastRaidLogs
 } from "../types";
 
 class TauriApi {
@@ -110,7 +111,6 @@ class TauriApi {
     }
 
     getRaidLog(id: number, realm: string) {
-        // returns info of 1 raid encounter by id
         return this.request<RaidLog>({
             method: "POST",
             body: encodeURIComponent(
@@ -126,9 +126,8 @@ class TauriApi {
         });
     }
 
-    getRaidLast(realm, lastLogId = 0) {
-        // returns the last boss kills on server, big response
-        return this.request({
+    getRaidLast(lastLogId: number = 0, realm: string) {
+        return this.request<LastRaidLogs>({
             method: "POST",
             body: encodeURIComponent(
                 JSON.stringify({
