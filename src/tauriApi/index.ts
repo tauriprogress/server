@@ -9,7 +9,8 @@ import {
     RaidLog,
     LastRaidLogs,
     CharacterLastRaidLogs,
-    GuildLastRaidLogs
+    GuildLastRaidLogs,
+    RaidBossRankedLogs
 } from "../types";
 
 class TauriApi {
@@ -190,9 +191,14 @@ class TauriApi {
         });
     }
 
-    getRaidRank(realm, encounter, difficulty) {
-        // return boss kills of boss, sorted by fastest kill ascending
-        return this.request({
+    getRaidRank(
+        bossId: number,
+        realm: string,
+        difficulty: number,
+        logId: number = 0,
+        limit: number = 0
+    ) {
+        return this.request<RaidBossRankedLogs>({
             method: "POST",
             body: encodeURIComponent(
                 JSON.stringify({
@@ -200,8 +206,10 @@ class TauriApi {
                     url: "raid-rank-encounter",
                     params: {
                         r: realm,
-                        encounter: encounter,
-                        difficulty: difficulty
+                        encounter: bossId,
+                        difficulty: difficulty,
+                        from: logId,
+                        limit: limit
                     }
                 })
             )
