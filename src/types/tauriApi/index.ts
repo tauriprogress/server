@@ -6,3 +6,4 @@ export { RaidLog } from "./raidLog";
 export { LastRaidLogs } from "./lastRaidLogs";
 export { CharacterLastRaidLogs } from "./characterLastRaidLogs";
 export { GuildLastRaidLogs } from "./guildLastRaidLogs";
+export { RaidBossRankedLogs } from "./raidBossRankedLogs";
