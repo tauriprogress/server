@@ -8,3 +8,4 @@ export { CharacterLastRaidLogs } from "./characterLastRaidLogs";
 export { GuildLastRaidLogs } from "./guildLastRaidLogs";
 export { RaidBossRankedLogs } from "./raidBossRankedLogs";
 export { Item } from "./item";
+export { CharacterTalents } from "./characterTalents";
