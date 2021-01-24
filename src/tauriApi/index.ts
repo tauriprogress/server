@@ -8,7 +8,8 @@ import {
     RaidMaps,
     RaidLog,
     LastRaidLogs,
-    CharacterLastRaidLogs
+    CharacterLastRaidLogs,
+    GuildLastRaidLogs
 } from "../types";
 
 class TauriApi {
@@ -166,9 +167,13 @@ class TauriApi {
         });
     }
 
-    getRaidGuild(realm, guildName) {
-        // returns all of the boss kills of the guild
-        return this.request({
+    getRaidGuild(
+        guildName: string,
+        realm: string,
+        logId: number = 0,
+        limit: number = 0
+    ) {
+        return this.request<GuildLastRaidLogs>({
             method: "POST",
             body: encodeURIComponent(
                 JSON.stringify({
@@ -176,7 +181,9 @@ class TauriApi {
                     url: "raid-guild",
                     params: {
                         r: realm,
-                        gn: guildName
+                        gn: guildName,
+                        from: logId,
+                        limit: limit
                     }
                 })
             )

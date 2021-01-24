@@ -5,3 +5,4 @@ export { RaidMaps } from "./raidMaps";
 export { RaidLog } from "./raidLog";
 export { LastRaidLogs } from "./lastRaidLogs";
 export { CharacterLastRaidLogs } from "./characterLastRaidLogs";
+export { GuildLastRaidLogs } from "./guildLastRaidLogs";
