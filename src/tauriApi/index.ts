@@ -68,22 +68,6 @@ class TauriApi {
         });
     }
 
-    getGuildData(name: string, realm: string) {
-        return this.request<GuildData>({
-            method: "POST",
-            body: encodeURIComponent(
-                JSON.stringify({
-                    secret: this.apisecret,
-                    url: "guild-info",
-                    params: {
-                        r: realm,
-                        gn: name
-                    }
-                })
-            )
-        });
-    }
-
     getCharacterAchievements(name: string, realm: string) {
         return this.request<CharacterAchievements>({
             method: "POST",
@@ -91,6 +75,45 @@ class TauriApi {
                 JSON.stringify({
                     secret: this.apisecret,
                     url: "character-achievements",
+                    params: {
+                        r: realm,
+                        n: name
+                    }
+                })
+            )
+        });
+    }
+
+    getCharacterRaidLogs(
+        characterName: string,
+        realm: string,
+        logId: number = 0,
+        limit: number = 0
+    ) {
+        return this.request<CharacterLastRaidLogs>({
+            method: "POST",
+            body: encodeURIComponent(
+                JSON.stringify({
+                    secret: this.apisecret,
+                    url: "raid-player",
+                    params: {
+                        r: realm,
+                        cn: characterName,
+                        from: logId,
+                        limit: limit
+                    }
+                })
+            )
+        });
+    }
+
+    getCharacterTalents(name: string, realm: string) {
+        return this.request<CharacterTalents>({
+            method: "POST",
+            body: encodeURIComponent(
+                JSON.stringify({
+                    secret: this.apisecret,
+                    url: "character-talents",
                     params: {
                         r: realm,
                         n: name
@@ -131,7 +154,7 @@ class TauriApi {
         });
     }
 
-    getRaidLast(lastLogId: number = 0, realm: string) {
+    getRaidLastLogs(lastLogId: number = 0, realm: string) {
         return this.request<LastRaidLogs>({
             method: "POST",
             body: encodeURIComponent(
@@ -147,53 +170,7 @@ class TauriApi {
         });
     }
 
-    getRaidPlayer(
-        characterName: string,
-        realm: string,
-        logId: number = 0,
-        limit: number = 0
-    ) {
-        return this.request<CharacterLastRaidLogs>({
-            method: "POST",
-            body: encodeURIComponent(
-                JSON.stringify({
-                    secret: this.apisecret,
-                    url: "raid-player",
-                    params: {
-                        r: realm,
-                        cn: characterName,
-                        from: logId,
-                        limit: limit
-                    }
-                })
-            )
-        });
-    }
-
-    getRaidGuild(
-        guildName: string,
-        realm: string,
-        logId: number = 0,
-        limit: number = 0
-    ) {
-        return this.request<GuildLastRaidLogs>({
-            method: "POST",
-            body: encodeURIComponent(
-                JSON.stringify({
-                    secret: this.apisecret,
-                    url: "raid-guild",
-                    params: {
-                        r: realm,
-                        gn: guildName,
-                        from: logId,
-                        limit: limit
-                    }
-                })
-            )
-        });
-    }
-
-    getRaidRank(
+    getRaidRankedLogs(
         bossId: number,
         realm: string,
         difficulty: number,
@@ -218,7 +195,46 @@ class TauriApi {
         });
     }
 
-    getRaidGuildRank(
+    getGuildData(name: string, realm: string) {
+        return this.request<GuildData>({
+            method: "POST",
+            body: encodeURIComponent(
+                JSON.stringify({
+                    secret: this.apisecret,
+                    url: "guild-info",
+                    params: {
+                        r: realm,
+                        gn: name
+                    }
+                })
+            )
+        });
+    }
+
+    getGuildRaidLogs(
+        guildName: string,
+        realm: string,
+        logId: number = 0,
+        limit: number = 0
+    ) {
+        return this.request<GuildLastRaidLogs>({
+            method: "POST",
+            body: encodeURIComponent(
+                JSON.stringify({
+                    secret: this.apisecret,
+                    url: "raid-guild",
+                    params: {
+                        r: realm,
+                        gn: guildName,
+                        from: logId,
+                        limit: limit
+                    }
+                })
+            )
+        });
+    }
+
+    getGuildRaidBossRankedLogs(
         guildName: string,
         realm: string,
         bossId: number,
@@ -271,22 +287,6 @@ class TauriApi {
                     params: {
                         r: realm,
                         i: guid
-                    }
-                })
-            )
-        });
-    }
-
-    getCharacterTalents(name: string, realm: string) {
-        return this.request<CharacterTalents>({
-            method: "POST",
-            body: encodeURIComponent(
-                JSON.stringify({
-                    secret: this.apisecret,
-                    url: "character-talents",
-                    params: {
-                        r: realm,
-                        n: name
                     }
                 })
             )
