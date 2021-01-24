@@ -10,7 +10,8 @@ import {
     LastRaidLogs,
     CharacterLastRaidLogs,
     GuildLastRaidLogs,
-    RaidBossRankedLogs
+    RaidBossRankedLogs,
+    Item
 } from "../types";
 
 class TauriApi {
@@ -216,9 +217,15 @@ class TauriApi {
         });
     }
 
-    getRaidGuildRank(realm, guildName, encounter, difficulty) {
-        // similar to getRaidRank, but only returns guild kills, not including random kills
-        return this.request({
+    getRaidGuildRank(
+        guildName: string,
+        realm: string,
+        bossId: number,
+        difficulty: number,
+        logId: number = 0,
+        limit: number = 0
+    ) {
+        return this.request<RaidBossRankedLogs>({
             method: "POST",
             body: encodeURIComponent(
                 JSON.stringify({
@@ -227,16 +234,18 @@ class TauriApi {
                     params: {
                         r: realm,
                         gn: guildName,
-                        encounter: encounter,
-                        difficulty: difficulty
+                        encounter: bossId,
+                        difficulty: difficulty,
+                        from: logId,
+                        limit: limit
                     }
                 })
             )
         });
     }
 
-    getItem(id) {
-        return this.request({
+    getItem(id: number) {
+        return this.request<Item>({
             method: "POST",
             body: encodeURIComponent(
                 JSON.stringify({
@@ -251,15 +260,15 @@ class TauriApi {
         });
     }
 
-    getItemByGuid(guid, realm) {
-        return this.request({
+    getItemByGuid(guid: number, realm: string) {
+        return this.request<Item>({
             method: "POST",
             body: encodeURIComponent(
                 JSON.stringify({
                     secret: this.apisecret,
                     url: "item-tooltip",
                     params: {
-                        r: realm || "[HU] Tauri WoW Server",
+                        r: realm,
                         i: guid
                     }
                 })
