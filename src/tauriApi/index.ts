@@ -7,7 +7,8 @@ import {
     CharacterAchievements,
     RaidMaps,
     RaidLog,
-    LastRaidLogs
+    LastRaidLogs,
+    CharacterLastRaidLogs
 } from "../types";
 
 class TauriApi {
@@ -142,9 +143,13 @@ class TauriApi {
         });
     }
 
-    getRaidPlayer(realm, characterName, logId, limit) {
-        // returns latest boss kills of the player
-        return this.request({
+    getRaidPlayer(
+        characterName: string,
+        realm: string,
+        logId: number = 0,
+        limit: number = 0
+    ) {
+        return this.request<CharacterLastRaidLogs>({
             method: "POST",
             body: encodeURIComponent(
                 JSON.stringify({
@@ -153,8 +158,8 @@ class TauriApi {
                     params: {
                         r: realm,
                         cn: characterName,
-                        from: logId ? logId : 0,
-                        limit: limit ? limit : 0
+                        from: logId,
+                        limit: limit
                     }
                 })
             )
