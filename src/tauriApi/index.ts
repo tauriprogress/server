@@ -11,7 +11,8 @@ import {
     CharacterLastRaidLogs,
     GuildLastRaidLogs,
     RaidBossRankedLogs,
-    Item
+    Item,
+    CharacterTalents
 } from "../types";
 
 class TauriApi {
@@ -276,15 +277,15 @@ class TauriApi {
         });
     }
 
-    getCharacterTalents(name, realm) {
-        return this.request({
+    getCharacterTalents(name: string, realm: string) {
+        return this.request<CharacterTalents>({
             method: "POST",
             body: encodeURIComponent(
                 JSON.stringify({
                     secret: this.apisecret,
                     url: "character-talents",
                     params: {
-                        r: realm || "[HU] Tauri WoW Server",
+                        r: realm,
                         n: name
                     }
                 })
