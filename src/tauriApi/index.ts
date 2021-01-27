@@ -306,4 +306,4 @@ class TauriApi {
     }
 }
 
-module.exports = new TauriApi();
+export const tauriApi = new TauriApi();
