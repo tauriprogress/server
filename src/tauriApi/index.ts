@@ -19,35 +19,47 @@ class TauriApi {
     private apikey: string;
     private apisecret: string;
     private baseUrl: string;
+    private retryCount: number;
 
     constructor() {
         this.apikey = environment.TAURI_API_KEY;
         this.apisecret = environment.TAURI_API_SECRET;
         this.baseUrl = "http://chapi.tauri.hu/apiIndex.php";
+        this.retryCount = 3;
     }
 
     request<T>(options: Object): Promise<T> {
         return new Promise(async (resolve, reject) => {
-            try {
-                let timeOut = setTimeout(() => {
-                    reject(new Error("request timed out"));
-                }, 13000);
+            const timeOutErrorMessage = "Api request timed out.";
+            let currentTry = 0;
+            while (currentTry < this.retryCount) {
+                try {
+                    const timeOut = setTimeout(() => {
+                        reject(new Error(timeOutErrorMessage));
+                    }, 13000);
 
-                resolve(
-                    await fetch(
+                    const response = await fetch(
                         url.parse(`${this.baseUrl}?apikey=${this.apikey}`),
                         options
                     ).then(res => {
-                        clearTimeout(timeOut);
                         return res.json();
-                    })
-                );
-            } catch (err) {
-                if (err.message === "Api request timed out.") {
-                    reject(err);
-                } else {
-                    reject(new Error("Api request failed."));
+                    });
+                    if (response.success) {
+                        clearTimeout(timeOut);
+                        resolve(response);
+                        break;
+                    }
+                } catch (err) {
+                    if (err.message !== timeOutErrorMessage) {
+                        reject(new Error("Api request failed."));
+                        break;
+                    }
                 }
+                currentTry++;
+            }
+
+            if (currentTry === 3) {
+                reject(timeOutErrorMessage);
             }
         });
     }
