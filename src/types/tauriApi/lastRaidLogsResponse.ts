@@ -6,10 +6,10 @@ export interface LastRaidLogsResponse {
 }
 
 export interface LastRaidLogs {
-    logs: Log[];
+    logs: LastRaidLog[];
 }
 
-interface Log {
+export interface LastRaidLog {
     pos: number;
     log_id: number;
     map_id: number;
