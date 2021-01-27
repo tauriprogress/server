@@ -1,15 +1,15 @@
-export interface LastRaidLogs {
+export interface GuildLastRaidLogsResponse {
     success: boolean;
     errorcode: number;
     errorstring: string;
-    response: Response;
+    response: GuildLastRaidLogs;
 }
 
-export interface Response {
+export interface GuildLastRaidLogs {
     logs: Log[];
 }
 
-export interface Log {
+interface Log {
     pos: number;
     log_id: number;
     map_id: number;
@@ -31,7 +31,7 @@ export interface Log {
     item_count: number;
 }
 
-export interface EncounterData {
+interface EncounterData {
     encounter_id: number;
     encounter_map: number;
     encounter_difficulty: number;
@@ -40,17 +40,15 @@ export interface EncounterData {
     encounter_index: number;
 }
 
-export interface Guilddata {
-    name?: string;
-    faction?: Faction;
-    leadername?: string;
+interface Guilddata {
+    name: string;
+    faction: number;
+    leadername: string;
 }
 
-export interface Mapentry {
+interface Mapentry {
     id: number;
     expansion: number;
     type: number;
     name: string;
 }
-
-export type Faction = 0 | 1;

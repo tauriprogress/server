@@ -1,11 +1,11 @@
-export interface RaidMaps {
+export interface RaidMapsResponse {
     success: boolean;
     errorcode: number;
     errorstring: string;
-    response: Response;
+    response: RaidMaps;
 }
 
-export interface Response {
+export interface RaidMaps {
     map_exp_0: MapExp[];
     map_exp_1: MapExp[];
     map_exp_2: MapExp[];
@@ -13,7 +13,7 @@ export interface Response {
     map_exp_4: MapExp[];
 }
 
-export interface MapExp {
+interface MapExp {
     id: number;
     expansion: number;
     type: number;
@@ -22,12 +22,12 @@ export interface MapExp {
     encounters: Encounter[];
 }
 
-export interface AvailableDifficulty {
+interface AvailableDifficulty {
     id: number;
     name: string;
 }
 
-export interface Encounter {
+interface Encounter {
     encounter_id: number;
     encounter_map: number;
     encounter_difficulty: number;

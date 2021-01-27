@@ -1,11 +1,11 @@
-export interface RaidLog {
+export interface RaidLogResponse {
     success: boolean;
     errorcode: number;
     errorstring: string;
-    response: Response;
+    response: RaidLog;
 }
 
-export interface Response {
+export interface RaidLog {
     log_id: number;
     map_id: number;
     mapentry: Mapentry;
@@ -28,7 +28,7 @@ export interface Response {
     items: Item[];
 }
 
-export interface EncounterData {
+interface EncounterData {
     encounter_id: number;
     encounter_map: number;
     encounter_difficulty: number;
@@ -37,27 +37,27 @@ export interface EncounterData {
     encounter_index: number;
 }
 
-export interface Guilddata {
+interface Guilddata {
     name?: string;
     faction?: Faction;
     leadername?: string;
 }
 
-export interface Item {
+interface Item {
     itemid: number;
     count: number;
     random_prop: number;
     random_suffix: number;
 }
 
-export interface Mapentry {
+interface Mapentry {
     id: number;
     expansion: number;
     type: number;
     name: string;
 }
 
-export interface Member {
+interface Member {
     valid_player: boolean;
     guid: number;
     race: number;
@@ -78,4 +78,4 @@ export interface Member {
     ilvl: number;
 }
 
-export type Faction = 0 | 1;
+type Faction = 0 | 1;

@@ -1,11 +1,11 @@
-export interface CharacterData {
+export interface CharacterDataResponse {
     success: boolean;
     errorcode: number;
     errorstring: string;
-    response: Response;
+    response: CharacterData;
 }
 
-export interface Response {
+export interface CharacterData {
     isCata: boolean;
     expansion: number;
     realm: string;
@@ -58,13 +58,13 @@ export interface Response {
     characterFeed: CharacterFeed[];
 }
 
-export interface AdditionalBarInfo {
+interface AdditionalBarInfo {
     class: string;
     title: string;
     value: number;
 }
 
-export interface Challengemode {
+interface Challengemode {
     completiontime: number;
     completedtime: number;
     medal: number;
@@ -74,13 +74,13 @@ export interface Challengemode {
     guildinfo: Guildinfo;
 }
 
-export interface Guildinfo {
+interface Guildinfo {
     name: string;
     faction: number;
     leadername: string;
 }
 
-export interface Player {
+interface Player {
     specializationid?: number;
     specializationrole?: number;
     specializationname?: string;
@@ -88,7 +88,7 @@ export interface Player {
     playerinfo?: Playerinfo;
 }
 
-export interface Playerinfo {
+interface Playerinfo {
     charname: string;
     race: number;
     class: number;
@@ -98,14 +98,14 @@ export interface Playerinfo {
     faction: number;
 }
 
-export interface CharacterArenaTeamInfo {
+interface CharacterArenaTeamInfo {
     name: string;
     rank: number;
     rating: number;
     personalrating: number;
 }
 
-export interface CharacterFeed {
+interface CharacterFeed {
     type: number;
     data: number;
     date: number;
@@ -116,21 +116,10 @@ export interface CharacterFeed {
     desc?: string;
     point?: number;
     reward?: string;
-    location?: Location;
+    location?: string;
 }
 
-export enum Location {
-    Empty = "",
-    EndTime = "End Time",
-    GateOfTheSettingSun = "Gate of the Setting Sun",
-    MoguShanPalace = "Mogu'shan Palace",
-    ScarletHalls = "Scarlet Halls",
-    Scholomance = "Scholomance",
-    SiegeOfNiuzaoTemple = "Siege of Niuzao Temple",
-    SiegeOfOrgrimmar = "Siege of Orgrimmar"
-}
-
-export interface CharacterItem {
+interface CharacterItem {
     entry: number;
     guid: number;
     originalicon: string;
@@ -141,39 +130,34 @@ export interface CharacterItem {
     originalname: string;
     name: string;
     transmogid: number;
-    transmogitemname: Transmogitemname;
+    transmogitemname: string;
     transmogitemicon: string;
     gems: Gem[];
     ench: Ench;
     queryParams?: string;
 }
 
-export interface Ench {
+interface Ench {
     enchantid?: number;
     entry?: number;
     icon?: string;
 }
 
-export interface Gem {
+interface Gem {
     enchantid: number;
     id: number;
     gemcolor: number;
     icon: string;
 }
 
-export enum Transmogitemname {
-    Empty = "",
-    Witchfury = "Witchfury"
-}
-
-export interface PrimaryTradeSkill {
+interface PrimaryTradeSkill {
     name: string;
     icon: string;
     value: number;
     max: number;
 }
 
-export interface Skindata {
+interface Skindata {
     skinstyle: number;
     facecolor: number;
     hairstyle: number;

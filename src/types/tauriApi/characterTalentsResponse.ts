@@ -1,11 +1,11 @@
-export interface CharacterTalents {
+export interface CharacterTalentsResponse {
     success: boolean;
     errorcode: number;
     errorstring: string;
-    response: Response;
+    response: CharacterTalents;
 }
 
-export interface Response {
+export interface CharacterTalents {
     isCata: boolean;
     expansion: number;
     realm: string;
@@ -54,7 +54,7 @@ export interface Response {
     talentsFileName: string;
 }
 
-export interface Glyphs {
+interface Glyphs {
     spec: number;
     slot: number;
     name: string;
@@ -63,7 +63,7 @@ export interface Glyphs {
     typeflag: number;
 }
 
-export interface Challengemode {
+interface Challengemode {
     completiontime: number;
     completedtime: number;
     medal: number;
@@ -73,13 +73,13 @@ export interface Challengemode {
     guildinfo: Guildinfo;
 }
 
-export interface Guildinfo {
+interface Guildinfo {
     name: string;
     faction: number;
     leadername: string;
 }
 
-export interface Player {
+interface Player {
     specializationid?: number;
     specializationrole?: number;
     specializationname?: string;
@@ -87,7 +87,7 @@ export interface Player {
     playerinfo?: Playerinfo;
 }
 
-export interface Playerinfo {
+interface Playerinfo {
     charname: string;
     race: number;
     class: number;
@@ -97,7 +97,7 @@ export interface Playerinfo {
     faction: number;
 }
 
-export interface Skindata {
+interface Skindata {
     skinstyle: number;
     facecolor: number;
     hairstyle: number;

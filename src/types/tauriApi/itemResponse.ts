@@ -1,11 +1,11 @@
-export interface Item {
+export interface ItemResponse {
     success: boolean;
     errorcode: number;
     errorstring: string;
-    response: Response;
+    response: Item;
 }
 
-export interface Response {
+export interface Item {
     isCata: boolean;
     expansion: number;
     dataUrlPrefix: string;
@@ -114,41 +114,41 @@ export interface Response {
     useenchantment: string;
 }
 
-export interface ItemSetInfo {
+interface ItemSetInfo {
     base?: Base;
 }
 
-export interface Base {
+interface Base {
     name: string;
     reqSkill: number;
     reqValue: number;
     Spells: Spell[];
-    Items: Item[];
+    Items: SetItem[];
 }
 
-export interface Item {
+interface SetItem {
     name: string;
     invType: number;
     have: boolean;
 }
 
-export interface Spell {
+interface Spell {
     spell: string;
     threshold: number;
 }
 
-export interface ItemStat {
+interface ItemStat {
     type: number;
     value: number;
     StatDescription: string;
 }
 
-export interface Socket {
+interface Socket {
     Color: number;
     Content: number;
 }
 
-export interface SocketContainedGem {
+interface SocketContainedGem {
     gemid: number;
     icon: string;
     desc: string;
@@ -156,7 +156,7 @@ export interface SocketContainedGem {
     color: number;
 }
 
-export interface Durability {
+interface Durability {
     current: number;
     max: number;
 }

@@ -1,16 +1,16 @@
-export interface RaidBossRankedLogs {
+export interface LastRaidLogsResponse {
     success: boolean;
     errorcode: number;
     errorstring: string;
-    response: Response;
+    response: LastRaidLogs;
 }
 
-export interface Response {
+export interface LastRaidLogs {
     logs: Log[];
 }
 
-export interface Log {
-    rank: number;
+interface Log {
+    pos: number;
     log_id: number;
     map_id: number;
     mapentry: Mapentry;
@@ -31,7 +31,7 @@ export interface Log {
     item_count: number;
 }
 
-export interface EncounterData {
+interface EncounterData {
     encounter_id: number;
     encounter_map: number;
     encounter_difficulty: number;
@@ -40,15 +40,17 @@ export interface EncounterData {
     encounter_index: number;
 }
 
-export interface Guilddata {
+interface Guilddata {
     name?: string;
-    faction?: number;
+    faction?: Faction;
     leadername?: string;
 }
 
-export interface Mapentry {
+interface Mapentry {
     id: number;
     expansion: number;
     type: number;
     name: string;
 }
+
+type Faction = 0 | 1;

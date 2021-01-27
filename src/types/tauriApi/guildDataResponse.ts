@@ -1,11 +1,11 @@
-export interface GuildData {
+export interface GuildDataResponse {
     success: boolean;
     errorcode: number;
     errorstring: string;
     response: Response;
 }
 
-export interface Response {
+export interface GuildData {
     dataUrlPrefix: string;
     isCata: boolean;
     expansion: number;

@@ -2,17 +2,17 @@ import fetch from "node-fetch";
 import * as url from "url";
 import { environment } from "../environment";
 import {
-    CharacterData,
-    GuildData,
-    CharacterAchievements,
-    RaidMaps,
-    RaidLog,
-    LastRaidLogs,
-    CharacterLastRaidLogs,
-    GuildLastRaidLogs,
-    RaidBossRankedLogs,
-    Item,
-    CharacterTalents
+    CharacterDataResponse,
+    GuildDataResponse,
+    CharacterAchievementsResponse,
+    RaidMapsResponse,
+    RaidLogResponse,
+    LastRaidLogsResponse,
+    CharacterLastRaidLogsResponse,
+    GuildLastRaidLogsResponse,
+    RaidBossRankedLogsResponse,
+    ItemResponse,
+    CharacterTalentsResponse
 } from "../types";
 
 class TauriApi {
@@ -65,7 +65,7 @@ class TauriApi {
     }
 
     getCharacterData(name: string, realm: string) {
-        return this.request<CharacterData>({
+        return this.request<CharacterDataResponse>({
             method: "POST",
             body: encodeURIComponent(
                 JSON.stringify({
@@ -81,7 +81,7 @@ class TauriApi {
     }
 
     getCharacterAchievements(name: string, realm: string) {
-        return this.request<CharacterAchievements>({
+        return this.request<CharacterAchievementsResponse>({
             method: "POST",
             body: encodeURIComponent(
                 JSON.stringify({
@@ -102,7 +102,7 @@ class TauriApi {
         logId: number = 0,
         limit: number = 0
     ) {
-        return this.request<CharacterLastRaidLogs>({
+        return this.request<CharacterLastRaidLogsResponse>({
             method: "POST",
             body: encodeURIComponent(
                 JSON.stringify({
@@ -120,7 +120,7 @@ class TauriApi {
     }
 
     getCharacterTalents(name: string, realm: string) {
-        return this.request<CharacterTalents>({
+        return this.request<CharacterTalentsResponse>({
             method: "POST",
             body: encodeURIComponent(
                 JSON.stringify({
@@ -136,7 +136,7 @@ class TauriApi {
     }
 
     getRaidMaps(realm: string) {
-        return this.request<RaidMaps>({
+        return this.request<RaidMapsResponse>({
             method: "POST",
             body: encodeURIComponent(
                 JSON.stringify({
@@ -151,7 +151,7 @@ class TauriApi {
     }
 
     getRaidLog(id: number, realm: string) {
-        return this.request<RaidLog>({
+        return this.request<RaidLogResponse>({
             method: "POST",
             body: encodeURIComponent(
                 JSON.stringify({
@@ -167,7 +167,7 @@ class TauriApi {
     }
 
     getRaidLastLogs(lastLogId: number = 0, realm: string) {
-        return this.request<LastRaidLogs>({
+        return this.request<LastRaidLogsResponse>({
             method: "POST",
             body: encodeURIComponent(
                 JSON.stringify({
@@ -189,7 +189,7 @@ class TauriApi {
         logId: number = 0,
         limit: number = 0
     ) {
-        return this.request<RaidBossRankedLogs>({
+        return this.request<RaidBossRankedLogsResponse>({
             method: "POST",
             body: encodeURIComponent(
                 JSON.stringify({
@@ -208,7 +208,7 @@ class TauriApi {
     }
 
     getGuildData(name: string, realm: string) {
-        return this.request<GuildData>({
+        return this.request<GuildDataResponse>({
             method: "POST",
             body: encodeURIComponent(
                 JSON.stringify({
@@ -229,7 +229,7 @@ class TauriApi {
         logId: number = 0,
         limit: number = 0
     ) {
-        return this.request<GuildLastRaidLogs>({
+        return this.request<GuildLastRaidLogsResponse>({
             method: "POST",
             body: encodeURIComponent(
                 JSON.stringify({
@@ -254,7 +254,7 @@ class TauriApi {
         logId: number = 0,
         limit: number = 0
     ) {
-        return this.request<RaidBossRankedLogs>({
+        return this.request<RaidBossRankedLogsResponse>({
             method: "POST",
             body: encodeURIComponent(
                 JSON.stringify({
@@ -274,7 +274,7 @@ class TauriApi {
     }
 
     getItem(id: number) {
-        return this.request<Item>({
+        return this.request<ItemResponse>({
             method: "POST",
             body: encodeURIComponent(
                 JSON.stringify({
@@ -290,7 +290,7 @@ class TauriApi {
     }
 
     getItemByGuid(guid: number, realm: string) {
-        return this.request<Item>({
+        return this.request<ItemResponse>({
             method: "POST",
             body: encodeURIComponent(
                 JSON.stringify({
