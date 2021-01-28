@@ -29,6 +29,7 @@ class Environment {
     readonly raids;
     readonly realms;
     readonly characterClassNames;
+    readonly shortRealms;
 
     constructor() {
         if (process.env.REALM_GROUP && isRealmGroup(process.env.REALM_GROUP)) {
@@ -121,6 +122,8 @@ class Environment {
             this.characterClassNames =
                 constants.crystalsong.characterClassNames;
         }
+
+        this.shortRealms = constants.shortRealms;
     }
 }
 
