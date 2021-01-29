@@ -18,3 +18,9 @@ export function addNestedObjectValue<T>(
         return value !== undefined ? value : {};
     }
 }
+
+export function capitalize(string: string) {
+    const capitalized = string.charAt(0).toUpperCase() + string.slice(1);
+
+    return capitalized.length === string.length ? capitalized : string;
+}
