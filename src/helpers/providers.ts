@@ -1,5 +1,5 @@
 import { environment } from "../environment";
-import { RaidLogWithRealm } from "../types";
+import { LooseObject, RaidLogWithRealm } from "../types";
 
 export function createCharacterId(
     name: string,
@@ -61,4 +61,19 @@ export function getLogFaction(log: RaidLogWithRealm) {
     }
 
     return horde > alliance ? 1 : 0;
+}
+
+export function getNestedObjectValue(
+    obj: LooseObject,
+    keys: Array<string | number>
+): any {
+    let currentKey = keys[0];
+
+    if (keys.length === 1) {
+        return obj[currentKey];
+    } else {
+        return obj.hasOwnProperty(currentKey)
+            ? getNestedObjectValue(obj[currentKey], keys.slice(1, keys.length))
+            : undefined;
+    }
 }
