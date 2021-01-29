@@ -2,7 +2,7 @@ import { LooseObject } from "../types";
 
 export function addNestedObjectValue<T>(
     obj: LooseObject,
-    keys: Array<string>,
+    keys: Array<string | number>,
     value: T
 ) {
     let currentKey = keys[0];
