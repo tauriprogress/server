@@ -1,7 +1,7 @@
 import { environment } from "../environment";
 import { LooseObject, RaidLogWithRealm } from "../types";
 
-export function createCharacterId(
+export function getCharacterId(
     name: string,
     realm: keyof typeof environment.shortRealms,
     spec: number

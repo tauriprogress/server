@@ -1,7 +1,7 @@
-import { createCharacterId } from "../../helpers";
+import { getCharacterId } from "../../helpers";
 
 export interface Character {
-    _id: ReturnType<typeof createCharacterId>;
+    _id: ReturnType<typeof getCharacterId>;
     realm: string;
     class: number;
     name: string;
