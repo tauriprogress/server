@@ -10,7 +10,7 @@
         "mongodb": "^3.6.0",
         "node-cache": "^5.1.2",
         "node-fetch": "^2.6.0",
-        "tauriprogress-constants": "^3.0.13"
+        "tauriprogress-constants": "^4.0.4"
     },
     "scripts": {
         "start": "node start.js",
