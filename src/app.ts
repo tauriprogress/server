@@ -21,6 +21,7 @@ import {
 import tauriApi from "./tauriApi";
 
 import { minutesAgo } from "./helpers";
+import { LooseObject } from "./types";
 
 const app = express();
 
@@ -191,7 +192,7 @@ const app = express();
 
     app.post("/getitems", verifyGetItems, async (req, res) => {
         try {
-            let items = {};
+            let items: LooseObject = {};
             for (let guid of req.body.ids) {
                 let data;
 
