@@ -10,4 +10,6 @@ export interface Character {
     date: number;
     logId: number;
     f: 0 | 1;
+    dps?: number;
+    hps?: number;
 }
