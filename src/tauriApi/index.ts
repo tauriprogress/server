@@ -305,5 +305,6 @@ class TauriApi {
         });
     }
 }
+const tauriApi = new TauriApi();
 
-export const tauriApi = new TauriApi();
+export default tauriApi;

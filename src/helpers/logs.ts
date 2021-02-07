@@ -14,7 +14,7 @@ import {
     unshiftDateDay,
     guildRecentKills
 } from "../helpers";
-import { tauriApi } from "../tauriApi";
+import tauriApi from "../tauriApi";
 import {
     LastLogIds,
     LastRaidLogWithRealm,
