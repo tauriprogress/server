@@ -81,9 +81,9 @@ const app = express();
 
     app.post("/getcharacter", verifyGetCharacter, async (req, res) => {
         try {
-            let character = await tauriApi.getCharacter(
-                req.body.realm,
-                req.body.characterName
+            let character = await tauriApi.getCharacterData(
+                req.body.characterName,
+                req.body.realm
             );
             if (!character.success) throw new Error(character.errorstring);
 
@@ -175,7 +175,7 @@ const app = express();
     app.post("/getlog", verifyGetLog, async (req, res) => {
         try {
             let log = (
-                await tauriApi.getRaidLog(req.body.realm, req.body.logId)
+                await tauriApi.getRaidLog(req.body.logId, req.body.realm)
             ).response;
             res.send({
                 success: true,
@@ -232,9 +232,9 @@ const app = express();
                 res.send({
                     success: true,
                     response: (
-                        await tauriApi.getRaidPlayer(
-                            req.body.realm,
+                        await tauriApi.getCharacterRaidLogs(
                             req.body.characterName,
+                            req.body.realm,
                             req.body.logId,
                             req.body.limit
                         )
