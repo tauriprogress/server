@@ -77,3 +77,7 @@ export function getNestedObjectValue(
             : undefined;
     }
 }
+
+export function minutesAgo(time: number) {
+    return Math.round((new Date().getTime() / 1000 - Number(time)) / 60);
+}
