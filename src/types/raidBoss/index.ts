@@ -11,8 +11,8 @@ export interface RaidBoss {
     firstKills: CategorizedTrimmedLogs;
     bestDps: CategorizedCharacter;
     bestHps: CategorizedCharacter;
-    bestDpsNoCat: Character;
-    bestHpsNoCat: Character;
+    bestDpsNoCat?: Character;
+    bestHpsNoCat?: Character;
 }
 
 interface CategorizedTrimmedLogs {
