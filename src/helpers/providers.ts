@@ -9,6 +9,14 @@ export function getCharacterId(
     return `${name},${environment.shortRealms[realm]},${spec}`;
 }
 
+export function getBossCollectionName(
+    id: number,
+    difficulty: number,
+    combatMetric: string
+) {
+    return `${id} ${difficulty} ${combatMetric}`;
+}
+
 export function getLatestWednesday(currentDate: Date = new Date()) {
     const currentDay = currentDate.getDay();
 
