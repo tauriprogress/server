@@ -25,7 +25,12 @@ import {
     RaidBoss
 } from "../types";
 
-export async function getLogs(lastLogIds: LastLogIds) {
+export async function getLogs(
+    lastLogIds: LastLogIds
+): Promise<{
+    logs: RaidLogWithRealm[];
+    lastLogIds: { [propName: string]: number };
+}> {
     return new Promise(async (resolve, reject) => {
         try {
             let unfilteredLogs: Array<LastRaidLogWithRealm> = [];
