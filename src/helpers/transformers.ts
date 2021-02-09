@@ -1,4 +1,4 @@
-import { LooseObject } from "../types";
+import { LooseObject, RaidLogWithRealm } from "../types";
 
 export function addNestedObjectValue<T>(
     obj: LooseObject,
@@ -25,7 +25,10 @@ export function capitalize(string: string) {
     return capitalized.length === string.length ? capitalized : string;
 }
 
-export function logBugHandler(log: LooseObject, bug: LooseObject) {
+export function logBugHandler(
+    log: LooseObject,
+    bug: LooseObject
+): RaidLogWithRealm | false {
     if (log) {
         switch (bug.type) {
             case "log":
@@ -78,5 +81,5 @@ export function logBugHandler(log: LooseObject, bug: LooseObject) {
         }
     }
 
-    return log;
+    return log as RaidLogWithRealm;
 }
