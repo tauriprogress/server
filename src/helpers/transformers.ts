@@ -24,3 +24,59 @@ export function capitalize(string: string) {
 
     return capitalized.length === string.length ? capitalized : string;
 }
+
+export function logBugHandler(log: LooseObject, bug: LooseObject) {
+    if (log) {
+        switch (bug.type) {
+            case "log":
+                if (log.log_id === bug.logId && log.realm === bug.realm) {
+                    return false;
+                }
+
+                break;
+            case "boss":
+                if (
+                    log.encounter_data.encounter_id === bug.boss &&
+                    log.killtime > bug.date.from &&
+                    log.killtime < bug.date.to
+                ) {
+                    return false;
+                }
+
+                break;
+            case "spec":
+                log.members = log.members.map((member: any) => {
+                    if (
+                        member.spec === bug.specId &&
+                        log.killtime > bug.date.from &&
+                        log.killtime < bug.date.to
+                    ) {
+                        return {
+                            ...member,
+                            [bug.changeKey.key]: bug.changeKey.value
+                        };
+                    }
+                    return member;
+                });
+
+                break;
+
+            case "guildData":
+                if (bug.guildIds[log.guildid]) {
+                    const key = bug.changeKey.key as keyof typeof log;
+
+                    log[key] = bug.changeKey.value;
+                    log.guildid = bug.id;
+                }
+                break;
+            case "date":
+                if (log.log_id === bug.id) {
+                    log[bug.changeKey.key] = bug.changeKey.value;
+                }
+                break;
+            default:
+        }
+    }
+
+    return log;
+}
