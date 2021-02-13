@@ -9,7 +9,6 @@ import {
     getDefaultGuildBoss,
     getLogFaction,
     getNestedObjectValue,
-    capitalize,
     getCharacterId,
     unshiftDateDay,
     guildRecentKills
@@ -101,7 +100,7 @@ export async function getLogs(
 }
 
 export function processLogs(logs: Array<RaidLogWithRealm>) {
-    let bosses: LooseObject = {};
+    let bosses: { [propName: string]: RaidBoss } = {};
     let defaultBoss = getDefaultBoss();
     let guilds: {
         [propName: string]: Guild;
@@ -138,7 +137,9 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
 
         const trimmedLog = {
             id: logId,
-            guild: isGuildKill ? { name: guildName, f: faction } : null,
+            guild: isGuildKill
+                ? { name: guildName || undefined, f: faction as 0 | 1 }
+                : undefined,
             fightLength: fightLength,
             realm: realm,
             date: date
@@ -347,30 +348,33 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
                         characterData.spec
                     ];
 
-                    const bestOf =
-                        bosses[bossId][`best${capitalize(combatMetric)}NoCat`];
+                    const bestOfNoCatKey =
+                        combatMetric === "dps"
+                            ? "bestDpsNoCat"
+                            : "bestHpsNoCat";
 
-                    if (!bestOf[combatMetric]) {
-                        bosses[bossId][
-                            `best${capitalize(combatMetric)}NoCat`
-                        ] = characterData;
-                    }
-                    if (combatMetricPerformance > bestOf[combatMetric]) {
-                        bosses[bossId][
-                            `best${capitalize(combatMetric)}NoCat`
-                        ] = characterData;
+                    const bestOf = bosses[bossId][bestOfNoCatKey];
+                    const bestOfCombatMetric = bestOf && bestOf[combatMetric];
+
+                    if (!bestOf || !bestOf[combatMetric]) {
+                        bosses[bossId][bestOfNoCatKey] = characterData;
+                    } else if (
+                        bestOfCombatMetric &&
+                        bestOfCombatMetric < combatMetricPerformance
+                    ) {
+                        bosses[bossId][bestOfNoCatKey] = characterData;
                     }
 
+                    const bestOfKey =
+                        combatMetric === "dps" ? "bestDps" : "bestHps";
                     const categorizedBestOf = getNestedObjectValue(
-                        bosses[bossId][`best${capitalize(combatMetric)}`],
+                        bosses[bossId][bestOfKey],
                         characterCategorization
                     ) as Character[];
 
                     if (!categorizedBestOf) {
-                        bosses[bossId][
-                            `best${capitalize(combatMetric)}`
-                        ] = addNestedObjectValue(
-                            bosses[bossId][`best${capitalize(combatMetric)}`],
+                        bosses[bossId][bestOfKey] = addNestedObjectValue(
+                            bosses[bossId][bestOfKey],
                             characterCategorization,
                             [characterData]
                         );
@@ -412,11 +416,9 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
                                 }
                             } else {
                                 bosses[bossId][
-                                    `best${capitalize(combatMetric)}`
+                                    bestOfKey
                                 ] = addNestedObjectValue(
-                                    bosses[bossId][
-                                        `best${capitalize(combatMetric)}`
-                                    ],
+                                    bosses[bossId][bestOfKey],
                                     characterCategorization,
                                     categorizedBestOf
                                         .concat(characterData)
