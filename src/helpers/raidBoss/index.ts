@@ -1,4 +1,5 @@
 import { RaidBoss } from "../../types";
+export * from "./updateRaidBoss";
 
 export function getDefaultBoss(): RaidBoss {
     return {
