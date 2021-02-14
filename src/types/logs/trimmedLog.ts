@@ -7,6 +7,6 @@ export interface TrimmedLog {
 }
 
 interface GuildData {
-    name: string;
+    name: string | undefined;
     f: 0 | 1;
 }
