@@ -25,7 +25,7 @@ interface CategorizedCharacter {
     [propName: string]: {
         [propName: number]: {
             [propName: number]: {
-                [propName: number]: Character;
+                [propName: number]: Character[];
             };
         };
     };
