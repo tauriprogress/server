@@ -1,4 +1,4 @@
-import { GuildBoss, LooseObject, RaidLogWithRealm, TrimmedLog } from "../types";
+import { LooseObject, RaidLogWithRealm } from "../types";
 
 export function addNestedObjectValue<T>(
     obj: LooseObject,
@@ -84,9 +84,10 @@ export function logBugHandler(
     return log as RaidLogWithRealm;
 }
 
-export function uniqueLogs(logs: TrimmedLog[] | GuildBoss["fastestKills"]) {
+export function uniqueLogs<T extends { id: number }>(logs: T[]): T[] {
     let logIds: LooseObject = {};
-    const uniqueLogs = [];
+    const uniqueLogs: T[] = [];
+
     for (const log of logs) {
         if (!logIds[log.id]) {
             logIds[log.id] = true;
