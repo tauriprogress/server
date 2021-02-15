@@ -192,3 +192,4 @@ export async function requestGuildData(guildName: string, realm: string) {
 }
 
 export * from "./guildBoss";
+export * from "./updateGuildData";
