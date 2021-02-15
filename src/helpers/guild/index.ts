@@ -9,6 +9,8 @@ import {
     GuildCompletion
 } from "../../types";
 
+import tauriApi from "../../tauriApi";
+
 export function getDefaultGuild(): Guild {
     return {
         _id: "",
@@ -138,6 +140,55 @@ export function guildRecentKills(logs: GuildRecentKill[]) {
     }
 
     return recentKills;
+}
+
+export function getGuildId(guildName: string, realm: string) {
+    return `${guildName} ${realm}`;
+}
+
+export async function requestGuildData(guildName: string, realm: string) {
+    const response = await tauriApi.getGuildData(guildName, realm);
+
+    if (!response.success) throw new Error(response.errorstring);
+
+    const guild = response.response;
+
+    let members = [];
+
+    for (const memberId in guild.guildList) {
+        members.push({
+            name: guild.guildList[memberId].name,
+            class: guild.guildList[memberId].class,
+            rankName: guild.guildList[memberId].rank_name,
+            lvl: guild.guildList[memberId].level
+        });
+    }
+
+    let ranks = [];
+    for (const rankId in guild.gRanks) {
+        ranks.push(guild.gRanks[rankId].rname);
+    }
+
+    let newGuild: Guild = {
+        ...getDefaultGuild(),
+        _id: getGuildId(guildName, realm),
+        name: guild.guildName,
+        f: guild.faction as 0 | 1,
+        realm: guild.realm,
+        ranks: ranks,
+        members: members
+    };
+
+    for (const guild of environment.guildFactionBugs) {
+        if (
+            guild.guildName === newGuild.name &&
+            guild.realm === newGuild.realm
+        ) {
+            newGuild.f = Number(guild.faction) as 0 | 1;
+        }
+    }
+
+    return newGuild;
 }
 
 export * from "./guildBoss";

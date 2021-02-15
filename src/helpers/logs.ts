@@ -11,7 +11,8 @@ import {
     getNestedObjectValue,
     getCharacterId,
     unshiftDateDay,
-    guildRecentKills
+    guildRecentKills,
+    getGuildId
 } from "../helpers";
 import tauriApi from "../tauriApi";
 import {
@@ -126,7 +127,8 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
 
         const guildName = log.guilddata.name;
         const isGuildKill = log.guildid && guildName ? true : false;
-        const guildId = isGuildKill ? `${guildName} ${realm}` : undefined;
+        const guildId =
+            isGuildKill && guildName ? getGuildId(guildName, realm) : undefined;
         const guildFaction = log.guilddata.faction;
         const guildBossCategorization = [
             "progression",
