@@ -2,7 +2,7 @@ export interface GuildDataResponse {
     success: boolean;
     errorcode: number;
     errorstring: string;
-    response: Response;
+    response: GuildData;
 }
 
 export interface GuildData {
