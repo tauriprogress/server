@@ -1,5 +1,5 @@
 import { environment } from "../environment";
-import { LooseObject, RaidLogWithRealm } from "../types";
+import { LooseObject, RaidLogWithRealm, LastLogIds } from "../types";
 
 export function getCharacterId(
     name: string,
@@ -88,4 +88,16 @@ export function getNestedObjectValue(
 
 export function minutesAgo(time: number) {
     return Math.round((new Date().getTime() / 1000 - Number(time)) / 60);
+}
+
+export function getLastLogIds<T extends { log_id: number; realm: string }>(
+    logs: T[]
+) {
+    let lastLogIds: LastLogIds = {};
+
+    for (let log of logs) {
+        lastLogIds[log.realm] = log.log_id;
+    }
+
+    return lastLogIds;
 }
