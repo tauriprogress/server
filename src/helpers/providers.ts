@@ -101,3 +101,13 @@ export function getLastLogIds<T extends { log_id: number; realm: string }>(
 
     return lastLogIds;
 }
+
+export function getRaidInfoFromId(raidId: number) {
+    for (const raid of environment.currentContent.raids) {
+        if (raid.id === raidId) {
+            return raid;
+        }
+    }
+
+    throw new Error("Invalid raid id.");
+}
