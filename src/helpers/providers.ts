@@ -111,3 +111,22 @@ export function getRaidInfoFromId(raidId: number) {
 
     throw new Error("Invalid raid id.");
 }
+
+export function getBossInfo(raidId: number, bossName: string) {
+    let idFound = false;
+    for (const raid of environment.currentContent.raids) {
+        if (raid.id === raidId) {
+            idFound = true;
+            for (const boss of raid.bosses) {
+                if (boss.name === bossName) {
+                    return boss;
+                }
+            }
+        }
+    }
+    if (idFound) {
+        throw new Error("Invalid raid id.")
+    } else {
+        throw new Error("Invalid boss name.")
+    }
+}
