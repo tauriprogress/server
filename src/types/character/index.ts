@@ -13,3 +13,5 @@ export interface Character {
     dps?: number;
     hps?: number;
 }
+
+export * from "./rankedCharacter";
