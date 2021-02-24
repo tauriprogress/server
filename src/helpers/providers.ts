@@ -125,8 +125,12 @@ export function getBossInfo(raidId: number, bossName: string) {
         }
     }
     if (idFound) {
-        throw new Error("Invalid raid id.")
+        throw new Error("Invalid raid id.");
     } else {
-        throw new Error("Invalid boss name.")
+        throw new Error("Invalid boss name.");
     }
+}
+
+export function getRaidBossCacheId(raidId: number, bossName: string) {
+    return `${raidId}${bossName}`;
 }
