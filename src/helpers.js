@@ -1079,6 +1079,14 @@ function logBugHandler(log, bug) {
                     log[bug.changeKey.key] = bug.changeKey.value;
                 }
                 break;
+            case "ignoreLogOfCharacter":
+                for (const member of log.members) {
+                    if (member.name === bug.characterName) {
+                        log = false;
+                    }
+                }
+                break;
+
             default:
         }
     }
