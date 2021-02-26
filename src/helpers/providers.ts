@@ -134,3 +134,10 @@ export function getBossInfo(raidId: number, bossName: string) {
 export function getRaidBossCacheId(raidId: number, bossName: string) {
     return `${raidId}${bossName}`;
 }
+
+export function getRelativePerformance(
+    currentPerformance: number,
+    bestPerformance: number
+) {
+    return Math.round((currentPerformance / bestPerformance) * 1000) / 10;
+}
