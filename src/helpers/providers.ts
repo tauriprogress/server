@@ -141,3 +141,15 @@ export function getRelativePerformance(
 ) {
     return Math.round((currentPerformance / bestPerformance) * 1000) / 10;
 }
+
+export function getLeaderboardCacheId(
+    raidId: number,
+    combatMetric: string,
+    spec?: string
+) {
+    if (spec) {
+        return `${raidId}${spec}${combatMetric}`;
+    }
+
+    return `${raidId}${combatMetric}`;
+}
