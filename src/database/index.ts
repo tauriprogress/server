@@ -19,7 +19,9 @@ import {
     getBossInfo,
     getNestedObjectValue,
     applyCharacterPerformanceRanks,
-    getRaidBossCacheId
+    getRaidBossCacheId,
+    getRelativePerformance,
+    getLeaderboardCacheId
 } from "../helpers";
 
 import { MongoClient, Db, ClientSession, ObjectID } from "mongodb";
@@ -33,7 +35,10 @@ import {
     Character,
     RaidBossDataToServe,
     DbRaidBossDataResponse,
-    LooseObject
+    LooseObject,
+    Leaderboard,
+    RankedCharacter,
+    CharacterOfLeaderboard
 } from "../types";
 
 const connectionErrorMessage = "Not connected to database.";
@@ -884,6 +889,134 @@ class Database {
                 reject(err);
             }
         });
+    }
+
+    async updateLeaderboard() {
+        await this.firstCacheLoad;
+
+        for (const combatMetric of ["dps", "hps"] as const) {
+            for (const raid of environment.currentContent.raids) {
+                let currentLeaderboard: Leaderboard = {};
+
+                for (const difficulty of raid.difficulties) {
+                    let characters: {
+                        [propName: string]: CharacterOfLeaderboard;
+                    } = {};
+
+                    for (const bossInfo of raid.bosses) {
+                        let boss = cache.raidBoss.get(
+                            getRaidBossCacheId(raid.id, bossInfo.name)
+                        ) as RaidBossDataToServe;
+                        let bestOfCharacters: {
+                            [propName: string]: RankedCharacter;
+                        } = {};
+
+                        let bestPerforamnceOfBoss = 0;
+
+                        for (const character of boss[difficulty][
+                            combatMetric
+                        ]) {
+                            let currentPerformance = character[combatMetric];
+                            const charId = `${character.name},${character.realm},${character.class}`;
+
+                            if (!bestOfCharacters[charId]) {
+                                bestOfCharacters[charId] = character;
+                            } else {
+                                let prevPerformance =
+                                    bestOfCharacters[charId][combatMetric];
+
+                                if (
+                                    prevPerformance &&
+                                    currentPerformance &&
+                                    currentPerformance > prevPerformance
+                                ) {
+                                    bestOfCharacters[charId] = character;
+                                }
+                            }
+
+                            if (
+                                currentPerformance &&
+                                currentPerformance > bestPerforamnceOfBoss
+                            ) {
+                                bestPerforamnceOfBoss = currentPerformance;
+                            }
+                        }
+
+                        for (let characterId in bestOfCharacters) {
+                            let currentCharacter =
+                                bestOfCharacters[characterId];
+                            let currentPerformance =
+                                currentCharacter[combatMetric];
+
+                            if (!characters[characterId]) {
+                                characters[characterId] = {
+                                    _id: currentCharacter._id,
+                                    class: currentCharacter.class,
+                                    f: currentCharacter.f,
+                                    ilvl: currentCharacter.ilvl,
+                                    name: currentCharacter.name,
+                                    realm: currentCharacter.realm,
+                                    spec: currentCharacter.spec,
+                                    topPercent: currentPerformance
+                                        ? getRelativePerformance(
+                                              currentPerformance,
+                                              bestPerforamnceOfBoss
+                                          )
+                                        : 0,
+                                    date: currentCharacter.date
+                                };
+                            } else {
+                                const newDate =
+                                    currentCharacter.date >
+                                    characters[characterId].date
+                                        ? currentCharacter.date
+                                        : characters[characterId].date;
+
+                                const newFaction =
+                                    currentCharacter.date >
+                                    characters[characterId].date
+                                        ? currentCharacter.f
+                                        : characters[characterId].f;
+
+                                const newIlvl =
+                                    currentCharacter.ilvl >
+                                    characters[characterId].ilvl
+                                        ? currentCharacter.ilvl
+                                        : characters[characterId].ilvl;
+
+                                const newTopPercent = currentPerformance
+                                    ? characters[characterId].topPercent +
+                                      getRelativePerformance(
+                                          currentPerformance,
+                                          bestPerforamnceOfBoss
+                                      )
+                                    : characters[characterId].topPercent;
+
+                                characters[characterId] = {
+                                    ...characters[characterId],
+                                    f: newFaction,
+                                    ilvl: newIlvl,
+                                    topPercent: newTopPercent,
+                                    date: newDate
+                                };
+                            }
+                        }
+                    }
+
+                    for (let characterId in characters) {
+                        let currentCharacter = characters[characterId];
+
+                        currentCharacter.topPercent =
+                            currentCharacter.topPercent / raid.bosses.length;
+                    }
+
+                    currentLeaderboard[difficulty] = Object.values(characters);
+                }
+
+                const cacheId = getLeaderboardCacheId(raid.id, combatMetric);
+                cache.leaderboard.set(cacheId, currentLeaderboard);
+            }
+        }
     }
 }
 
