@@ -1108,5 +1108,6 @@ class Database {
 }
 
 const db = new Database();
+export type DatabaseType = typeof db;
 
 export default db;
