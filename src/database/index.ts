@@ -48,9 +48,9 @@ class Database {
 
     private client: MongoClient | undefined;
 
-    private lastUpdated: number;
+    public lastUpdated: number;
+    public isUpdating: boolean;
     private lastGuildsUpdate: number;
-    private isUpdating: boolean;
     private updateStatus: string;
 
     public firstCacheLoad: false | true | Promise<any>;
