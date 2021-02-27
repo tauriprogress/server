@@ -89,7 +89,7 @@ class Database {
         }
     }
 
-    async initalizeDatabase() {
+    async initalizeDatabase(): Promise<true> {
         return new Promise(async (resolve, reject) => {
             try {
                 if (!this.db) throw new Error(connectionErrorMessage);
@@ -160,7 +160,7 @@ class Database {
         });
     }
 
-    async updateDatabase(isInitalization: boolean) {
+    async updateDatabase(isInitalization: boolean): Promise<number> {
         return new Promise(async (resolve, reject) => {
             try {
                 if (!this.db) throw new Error(connectionErrorMessage);
@@ -380,7 +380,7 @@ class Database {
         });
     }
 
-    async isInitalized() {
+    async isInitalized(): Promise<boolean> {
         return new Promise(async (resolve, reject) => {
             try {
                 if (!this.db) throw new Error(connectionErrorMessage);
