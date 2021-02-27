@@ -17,7 +17,7 @@ export async function waitDbCache(
     next: NextFunction
 ) {
     try {
-        await req.db.cacheLoaded;
+        await req.db.firstCacheLoad;
         next();
     } catch (err) {
         res.send({ success: false, errorstring: err.message });
@@ -225,7 +225,7 @@ export function updateDatabase(
 ) {
     if (minutesAgo(req.db.lastUpdated) > 30 && !req.db.isUpdating) {
         try {
-            req.db.update();
+            req.db.updateDatabase(false);
         } catch (err) {
             console.log(err);
         }
