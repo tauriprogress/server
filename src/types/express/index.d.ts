@@ -1,5 +1,5 @@
 declare namespace Express {
     interface Request {
-        db: any;
+        db: import("../../database").DatabaseType;
     }
 }
