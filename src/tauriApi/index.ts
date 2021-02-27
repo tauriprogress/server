@@ -35,7 +35,7 @@ class TauriApi {
             while (currentTry < this.retryCount) {
                 try {
                     const timeOut = setTimeout(() => {
-                        reject(new Error(timeOutErrorMessage));
+                        throw new Error(timeOutErrorMessage);
                     }, 13000);
 
                     const response = await fetch(
