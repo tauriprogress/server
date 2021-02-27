@@ -1,5 +1,10 @@
-import { Character, LooseObject, RaidLogWithRealm } from "../types";
-import { RankedCharacter } from "../types/character/rankedCharacter";
+import {
+    Character,
+    LooseObject,
+    RaidLogWithRealm,
+    RankedCharacter,
+    CharacterOfLeaderboard
+} from "../types";
 
 export function addNestedObjectValue<T>(
     obj: LooseObject,
@@ -139,4 +144,37 @@ export function applyCharacterPerformanceRanks(
     }
 
     return rankedCharacters;
+}
+
+export function updateCharacterOfLeaderboard(
+    previousCharacter: CharacterOfLeaderboard,
+    currentCharacter: CharacterOfLeaderboard
+): CharacterOfLeaderboard {
+    const updatedDate =
+        previousCharacter.date > currentCharacter.date
+            ? previousCharacter.date
+            : currentCharacter.date;
+
+    const updatedFaction =
+        previousCharacter.date > currentCharacter.date
+            ? previousCharacter.f
+            : currentCharacter.f;
+
+    const updatedIlvl =
+        previousCharacter.ilvl > currentCharacter.ilvl
+            ? previousCharacter.ilvl
+            : currentCharacter.ilvl;
+
+    const updatedTopPercent =
+        previousCharacter.topPercent > currentCharacter.topPercent
+            ? previousCharacter.topPercent
+            : currentCharacter.topPercent;
+
+    return {
+        ...previousCharacter,
+        date: updatedDate,
+        f: updatedFaction,
+        ilvl: updatedIlvl,
+        topPercent: updatedTopPercent
+    };
 }
