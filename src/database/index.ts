@@ -9,7 +9,6 @@ import {
     logBugHandler,
     updateRaidBoss,
     requestGuildData,
-    getDefaultGuild,
     getRecentGuildRaidDays,
     getGuildContentCompletion,
     updateGuildData,
@@ -41,7 +40,6 @@ import {
     RankedCharacter,
     CharacterOfLeaderboard
 } from "../types";
-import { specs } from "tauriprogress-constants/build/tauri";
 
 const connectionErrorMessage = "Not connected to database.";
 
@@ -313,7 +311,7 @@ class Database {
 
                 if (
                     !isInitalization &&
-                    minutesAgo(this.lastGuildsUpdate) > 1400
+                    minutesAgo(this.lastGuildsUpdate) > 2800
                 ) {
                     console.log("db: Updating guilds");
                     this.lastGuildsUpdate = updateStarted;

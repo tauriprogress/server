@@ -223,7 +223,7 @@ export function updateDatabase(
     res: Response,
     next: NextFunction
 ) {
-    if (minutesAgo(req.db.lastUpdated) > 5 && !req.db.isUpdating) {
+    if (minutesAgo(req.db.lastUpdated) > 30 && !req.db.isUpdating) {
         try {
             req.db.update();
         } catch (err) {
