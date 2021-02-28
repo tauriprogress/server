@@ -1105,6 +1105,40 @@ class Database {
             }
         }
     }
+
+    async getGuildList() {
+        return new Promise(async (resolve, reject) => {
+            try {
+                if (!this.db) throw new Error(connectionErrorMessage);
+
+                const cacheId = `list`;
+
+                const cachedData = cache.guildList.get(cacheId);
+
+                if (cachedData) {
+                    resolve(cachedData);
+                } else {
+                    const guildList = await this.db
+                        .collection("guilds")
+                        .find()
+                        .project({
+                            name: 1,
+                            f: 1,
+                            realm: 1,
+                            activity: 1,
+                            ["progression.completion"]: 1
+                        })
+                        .toArray();
+
+                    cache.guildList.set(cacheId, guildList);
+
+                    resolve(guildList);
+                }
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
 }
 
 const db = new Database();
