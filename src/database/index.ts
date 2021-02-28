@@ -38,7 +38,9 @@ import {
     LooseObject,
     Leaderboard,
     RankedCharacter,
-    CharacterOfLeaderboard
+    CharacterOfLeaderboard,
+    RaidSummary,
+    RaidBossNoRecent
 } from "../types";
 
 const connectionErrorMessage = "Not connected to database.";
@@ -1191,6 +1193,65 @@ class Database {
                     throw new Error("No data");
                 } else {
                     resolve(data);
+                }
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+
+    async getRaidSummary(raidId: number) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                if (!this.db) throw new Error(connectionErrorMessage);
+
+                const cacheId = `raidsummary${raidId}`;
+
+                const cachedData = cache.raidSummary.get(cacheId);
+
+                if (cachedData) {
+                    resolve(cachedData);
+                } else {
+                    const difficulties = getRaidInfoFromId(raidId).difficulties;
+
+                    const projection = difficulties.reduce(
+                        (acc, difficulty) => {
+                            return { ...acc, [`${difficulty}.recentKills`]: 0 };
+                        },
+                        {}
+                    );
+
+                    let bosses = (await this.db
+                        .collection(String(raidId))
+                        .find({})
+                        .project(projection)
+                        .toArray()) as {
+                        [propName: number]: RaidBossNoRecent;
+                    }[];
+
+                    let raidSummary: RaidSummary = {};
+                    for (const difficulty of difficulties) {
+                        for (const bossData of bosses) {
+                            const boss = bossData[difficulty];
+                            for (const realmName in boss.fastestKills) {
+                                for (const faction in boss.fastestKills[
+                                    realmName
+                                ]) {
+                                    boss.fastestKills[realmName][
+                                        faction
+                                    ] = boss.fastestKills[realmName][
+                                        faction
+                                    ].slice(0, 10);
+                                }
+                            }
+
+                            raidSummary[boss._id] = boss;
+                        }
+                    }
+
+                    cache.raidSummary.set(cacheId, raidSummary);
+
+                    resolve(raidSummary);
                 }
             } catch (err) {
                 reject(err);

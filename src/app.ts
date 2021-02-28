@@ -268,8 +268,6 @@ const app = express();
             }
         }
     );
-
-    db.updateRequiredData();
 })();
 
 export default app;
