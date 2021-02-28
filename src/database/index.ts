@@ -1139,6 +1139,25 @@ class Database {
             }
         });
     }
+
+    async getGuild(realm: string, guildName: string) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                if (!this.db) throw new Error(connectionErrorMessage);
+
+                const guild = await this.db.collection("guilds").findOne({
+                    name: guildName,
+                    realm: realm
+                });
+
+                if (!guild) throw new Error("guild not found");
+
+                resolve(guild);
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
 }
 
 const db = new Database();
