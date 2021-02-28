@@ -1158,6 +1158,29 @@ class Database {
             }
         });
     }
+
+    async getRaidBoss(raidId: number, bossName: string) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                if (!this.db) throw new Error(connectionErrorMessage);
+
+                const cacheId = `${raidId}${bossName}`;
+
+                const cachedData = cache.raidBoss.get(cacheId);
+
+                if (cachedData) {
+                    resolve(cachedData);
+                } else {
+                    let bossData = await this.requestRaidBoss(raidId, bossName);
+                    cache.raidBoss.set(cacheId, bossData);
+
+                    resolve(bossData);
+                }
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
 }
 
 const db = new Database();
