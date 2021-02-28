@@ -1181,6 +1181,22 @@ class Database {
             }
         });
     }
+
+    async getLeaderboard(id: string) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const data = cache.leaderboard.get(id);
+
+                if (!data) {
+                    throw new Error("No data");
+                } else {
+                    resolve(data);
+                }
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
 }
 
 const db = new Database();

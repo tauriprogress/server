@@ -33,7 +33,6 @@ const app = express();
         }
     } catch (err) {
         console.error(err);
-        db.disconnect().catch(err => console.error(err));
         process.exit(1);
     }
 
@@ -82,7 +81,7 @@ const app = express();
 
     app.post("/getcharacter", verifyGetCharacter, async (req, res) => {
         try {
-            let character = await tauriApi.getCharacterData(
+            const character = await tauriApi.getCharacterData(
                 req.body.characterName,
                 req.body.realm
             );
@@ -256,7 +255,7 @@ const app = express();
         verifyGetLeaderboard,
         async (req, res) => {
             try {
-                let data = await db.getLeaderboardData(req.body.dataId);
+                let data = await db.getLeaderboard(req.body.id);
                 res.send({
                     success: true,
                     response: data
