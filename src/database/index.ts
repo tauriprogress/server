@@ -62,7 +62,7 @@ class Database {
     private lastGuildsUpdate: number;
     private updateStatus: string;
 
-    public firstCacheLoad: false | true | Promise<any>;
+    public firstCacheLoad: false | true | Promise<true>;
 
     private updatedRaidBosses: { raidId: number; name: string }[];
 
@@ -827,7 +827,7 @@ class Database {
     }
 
     async updateRaidBossCache() {
-        const fullLoad = async () => {
+        const fullLoad = async (): Promise<true> => {
             return new Promise(async (resolve, reject) => {
                 try {
                     for (const raid of environment.currentContent.raids) {
