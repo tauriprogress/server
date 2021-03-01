@@ -34,25 +34,39 @@ class TauriApi {
             let currentTry = 0;
             while (currentTry < this.retryCount) {
                 try {
-                    const timeOut = setTimeout(() => {
-                        throw new Error(timeOutErrorMessage);
-                    }, 13000);
-
-                    const response = await fetch(
+                    const apiRequest = fetch(
                         url.parse(`${this.baseUrl}?apikey=${this.apikey}`),
                         options
                     ).then(res => {
                         return res.json();
                     });
+
+                    const timeOut = new Promise(resolve => {
+                        setTimeout(() => {
+                            resolve({
+                                success: false,
+                                errorstring: timeOutErrorMessage
+                            });
+                        }, 13000);
+                    });
+
+                    const response = await Promise.race([timeOut, apiRequest]);
+
                     if (response.success) {
-                        clearTimeout(timeOut);
                         resolve(response);
                         break;
+                    } else {
+                        throw new Error(response.errorstring);
                     }
                 } catch (err) {
                     if (err.message !== timeOutErrorMessage) {
-                        reject(new Error("Api request failed."));
-                        break;
+                        if (err.message === "guild not found") {
+                            reject(new Error("guild not found"));
+                            break;
+                        } else {
+                            reject(new Error("Api request failed."));
+                            break;
+                        }
                     }
                 }
                 currentTry++;
