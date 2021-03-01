@@ -153,3 +153,13 @@ export function getLeaderboardCacheId(
 
     return `${raidId}${combatMetric}`;
 }
+
+export function getRaidInfoFromName(raidName: string) {
+    for (const raid of environment.currentContent.raids) {
+        if (raid.name === raidName) {
+            return raid;
+        }
+    }
+
+    throw new Error("Invalid raid name.");
+}
