@@ -15,3 +15,4 @@ export interface Character {
 }
 
 export * from "./rankedCharacter";
+export * from "./characterPerformance";

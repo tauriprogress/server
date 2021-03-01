@@ -4,3 +4,4 @@ export * from "./providers";
 export * from "./raidBoss";
 export * from "./guild";
 export * from "./logs";
+export * from "./characterPerformance";

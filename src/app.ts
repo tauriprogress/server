@@ -105,12 +105,12 @@ const app = express();
         verifyGetCharacterPerformance,
         async (req, res) => {
             try {
-                let performance = await db.getCharacterPerformance({
-                    characterName: req.body.characterName,
-                    characterClass: req.body.characterClass,
-                    realm: req.body.realm,
-                    raidName: req.body.raidName
-                });
+                let performance = await db.getCharacterPerformance(
+                    req.body.characterName,
+                    req.body.characterClass,
+                    req.body.realm,
+                    req.body.raidName
+                );
                 res.send({
                     success: true,
                     response: { ...performance }

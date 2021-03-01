@@ -16,12 +16,17 @@ import {
     minutesAgo,
     getRaidInfoFromId,
     getBossInfo,
-    getNestedObjectValue,
     applyCharacterPerformanceRanks,
     getRaidBossCacheId,
     getRelativePerformance,
     getLeaderboardCacheId,
-    updateCharacterOfLeaderboard
+    updateCharacterOfLeaderboard,
+    getRaidInfoFromName,
+    capitalize,
+    getCharacterId,
+    addNestedObjectValue,
+    getNestedObjectValue,
+    addToCharTotalPerformance
 } from "../helpers";
 
 import { MongoClient, Db, ClientSession, ObjectID } from "mongodb";
@@ -40,7 +45,9 @@ import {
     RankedCharacter,
     CharacterOfLeaderboard,
     RaidSummary,
-    RaidBossNoRecent
+    RaidBossNoRecent,
+    CharacterPerformance,
+    CharPerfBossData
 } from "../types";
 
 const connectionErrorMessage = "Not connected to database.";
@@ -1161,14 +1168,19 @@ class Database {
         });
     }
 
-    async getRaidBoss(raidId: number, bossName: string) {
+    async getRaidBoss(
+        raidId: number,
+        bossName: string
+    ): Promise<RaidBossDataToServe> {
         return new Promise(async (resolve, reject) => {
             try {
                 if (!this.db) throw new Error(connectionErrorMessage);
 
                 const cacheId = `${raidId}${bossName}`;
 
-                const cachedData = cache.raidBoss.get(cacheId);
+                const cachedData = cache.raidBoss.get(cacheId) as
+                    | RaidBossDataToServe
+                    | false;
 
                 if (cachedData) {
                     resolve(cachedData);
@@ -1258,9 +1270,349 @@ class Database {
             }
         });
     }
+
+    async getCharacterPerformance(
+        characterName: string,
+        characterClass: keyof typeof environment.characterClassToSpec,
+        realm: keyof typeof environment.shortRealms,
+        raidName: string
+    ): Promise<CharacterPerformance> {
+        return new Promise(async (resolve, reject) => {
+            try {
+                if (!this.db) throw new Error(connectionErrorMessage);
+
+                const cacheId = `${characterName}${realm}${raidName}`;
+
+                const cachedData = cache.character.get(cacheId) as
+                    | CharacterPerformance
+                    | false;
+
+                if (cachedData) {
+                    resolve(cachedData);
+                } else {
+                    const {
+                        bossCount,
+                        bosses,
+                        id: raidId,
+                        difficulties
+                    } = getRaidInfoFromName(raidName);
+                    const characterSpecs =
+                        environment.characterClassToSpec[characterClass];
+
+                    let aggregations: LooseObject = {};
+
+                    let characterPerformance: CharacterPerformance = {};
+
+                    for (const bossInfo of bosses) {
+                        let projection = {};
+                        for (const difficulty in bossInfo.difficultyIds) {
+                            let currentProjection: LooseObject = {
+                                [`${difficulty}.characterData`]: 1
+                            };
+                            for (const combatMetric of [
+                                "dps",
+                                "hps"
+                            ] as const) {
+                                currentProjection[
+                                    `${difficulty}.best${capitalize(
+                                        combatMetric
+                                    )}NoCat`
+                                ] = 1;
+
+                                if (!aggregations[bossInfo.name]) {
+                                    aggregations[bossInfo.name] = [];
+                                }
+
+                                for (const specId of characterSpecs) {
+                                    const spec =
+                                        environment.specs[
+                                            (specId as unknown) as keyof typeof environment.specs
+                                        ];
+                                    const key = (combatMetric === "dps"
+                                        ? "isDps"
+                                        : "isHealer") as keyof typeof spec;
+
+                                    if (spec && spec[key]) {
+                                        for (const realmName of Object.values(
+                                            environment.realms
+                                        )) {
+                                            for (const faction of [0, 1]) {
+                                                currentProjection = {
+                                                    ...currentProjection,
+                                                    [`${difficulty}.best${capitalize(
+                                                        combatMetric
+                                                    )}.${realmName}.${faction}.${specId}`]: {
+                                                        $arrayElemAt: [
+                                                            `$${difficulty}.best${capitalize(
+                                                                combatMetric
+                                                            )}.${realmName}.${faction}.${characterClass}.${specId}`,
+                                                            0
+                                                        ]
+                                                    }
+                                                };
+                                            }
+                                        }
+                                    }
+                                }
+                                projection = {
+                                    ...projection,
+                                    ...currentProjection
+                                };
+                            }
+                        }
+                        aggregations[bossInfo.name].unshift(
+                            {
+                                $match: {
+                                    name: bossInfo.name
+                                }
+                            },
+                            {
+                                $project: projection
+                            }
+                        );
+                    }
+
+                    let data = (
+                        await this.db
+                            .collection(String(raidId))
+                            .aggregate([
+                                {
+                                    $facet: aggregations
+                                }
+                            ])
+                            .toArray()
+                    )[0];
+
+                    for (const difficulty of difficulties) {
+                        let characterTotal: LooseObject = {};
+                        let bestTotal: LooseObject = {};
+
+                        for (const boss of bosses) {
+                            const currentBoss = data[boss.name][0];
+
+                            for (const combatMetric of [
+                                "dps",
+                                "hps"
+                            ] as const) {
+                                const bestCombatMetricOfBoss =
+                                    currentBoss[difficulty][
+                                        `best${capitalize(combatMetric)}`
+                                    ];
+                                const bestOverall =
+                                    currentBoss[difficulty][
+                                        `best${capitalize(combatMetric)}NoCat`
+                                    ];
+
+                                let bestOfClass: LooseObject = {};
+                                let bestOfCharacter: LooseObject = {
+                                    [combatMetric]: 0
+                                };
+
+                                for (const specId of characterSpecs) {
+                                    let bestOfSpec: LooseObject = {};
+                                    let characterSpecData: LooseObject = {
+                                        [combatMetric]: 0
+                                    };
+
+                                    for (const realmName in bestCombatMetricOfBoss) {
+                                        for (const faction in bestCombatMetricOfBoss[
+                                            realmName
+                                        ]) {
+                                            const currentBest =
+                                                bestCombatMetricOfBoss[
+                                                    realmName
+                                                ][faction][specId];
+
+                                            if (currentBest) {
+                                                if (
+                                                    !bestOfSpec[combatMetric] ||
+                                                    bestOfSpec[combatMetric] <
+                                                        currentBest[
+                                                            combatMetric
+                                                        ]
+                                                ) {
+                                                    bestOfSpec = currentBest;
+                                                }
+                                                if (
+                                                    !bestOfClass[
+                                                        combatMetric
+                                                    ] ||
+                                                    bestOfClass[combatMetric] <
+                                                        currentBest[
+                                                            combatMetric
+                                                        ]
+                                                ) {
+                                                    bestOfClass = currentBest;
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    const bossData = (
+                                        await this.getRaidBoss(
+                                            raidId,
+                                            boss.name
+                                        )
+                                    )[difficulty][combatMetric];
+
+                                    const charData =
+                                        bossData.find(
+                                            character =>
+                                                character._id ===
+                                                getCharacterId(
+                                                    characterName,
+                                                    realm,
+                                                    specId
+                                                )
+                                        ) || ({} as LooseObject);
+                                    if (
+                                        bestOfCharacter[combatMetric] <
+                                        charData[combatMetric]
+                                    ) {
+                                        bestOfCharacter = charData;
+                                    }
+
+                                    characterSpecData = {
+                                        ...charData,
+                                        topPercent: getRelativePerformance(
+                                            charData[combatMetric],
+                                            bestOfSpec[combatMetric]
+                                        )
+                                    };
+
+                                    const categorization = [
+                                        raidName,
+                                        difficulty,
+                                        boss.name,
+                                        specId,
+                                        combatMetric
+                                    ];
+
+                                    characterPerformance = addNestedObjectValue(
+                                        characterPerformance,
+                                        categorization,
+                                        characterSpecData
+                                    );
+
+                                    characterTotal = addToCharTotalPerformance(
+                                        characterTotal,
+                                        [specId, combatMetric],
+                                        characterSpecData[combatMetric]
+                                    );
+
+                                    bestTotal = addToCharTotalPerformance(
+                                        bestTotal,
+                                        [specId, combatMetric],
+                                        bestOfSpec[combatMetric]
+                                    );
+                                }
+
+                                const categorization = [
+                                    raidName,
+                                    difficulty,
+                                    boss.name
+                                ];
+
+                                characterPerformance = addNestedObjectValue(
+                                    characterPerformance,
+                                    [...categorization, "class", combatMetric],
+                                    {
+                                        ...bestOfCharacter,
+                                        topPercent: getRelativePerformance(
+                                            bestOfCharacter[combatMetric],
+                                            bestOfClass[combatMetric]
+                                        )
+                                    }
+                                );
+
+                                bestTotal = addToCharTotalPerformance(
+                                    bestTotal,
+                                    ["class", combatMetric],
+                                    bestOfClass[combatMetric]
+                                );
+
+                                characterTotal = addToCharTotalPerformance(
+                                    characterTotal,
+                                    ["class", combatMetric],
+                                    bestOfCharacter[combatMetric]
+                                );
+
+                                characterPerformance = addNestedObjectValue(
+                                    characterPerformance,
+                                    [...categorization, "noSpec", combatMetric],
+                                    {
+                                        ...bestOfCharacter,
+                                        topPercent: getRelativePerformance(
+                                            bestOfCharacter[combatMetric],
+                                            bestOverall[combatMetric]
+                                        )
+                                    }
+                                );
+                                bestTotal = addToCharTotalPerformance(
+                                    bestTotal,
+                                    ["noSpec", combatMetric],
+                                    bestOverall[combatMetric]
+                                );
+
+                                characterTotal = addToCharTotalPerformance(
+                                    characterTotal,
+                                    ["noSpec", combatMetric],
+                                    bestOfCharacter[combatMetric]
+                                );
+                            }
+                        }
+
+                        for (const specId in characterTotal) {
+                            for (const combatMetric in characterTotal[specId]) {
+                                const categorization = [specId, combatMetric];
+                                const bestCombatMetricOfTotal = getNestedObjectValue(
+                                    bestTotal,
+                                    categorization
+                                );
+                                const characterCombatMetricOfTotal = getNestedObjectValue(
+                                    characterTotal,
+                                    categorization
+                                );
+                                const characterPerformanceTotal =
+                                    characterPerformance[raidName][difficulty]
+                                        .total;
+
+                                characterPerformance[raidName][
+                                    difficulty
+                                ].total = addNestedObjectValue(
+                                    characterPerformanceTotal || {},
+                                    categorization,
+                                    {
+                                        [combatMetric]:
+                                            characterCombatMetricOfTotal /
+                                            bossCount,
+                                        topPercent: getRelativePerformance(
+                                            characterCombatMetricOfTotal,
+                                            bestCombatMetricOfTotal
+                                        )
+                                    }
+                                ) as CharPerfBossData;
+                            }
+                        }
+                    }
+                    try {
+                        cache.character.set(cacheId, characterPerformance);
+                    } catch (err) {
+                        console.log("db: Character cache is full");
+                    }
+
+                    resolve(characterPerformance);
+                }
+            } catch (err) {
+                console.error(err);
+                reject(err);
+            }
+        });
+    }
 }
 
 const db = new Database();
+
 export type DatabaseType = typeof db;
 
 export default db;
