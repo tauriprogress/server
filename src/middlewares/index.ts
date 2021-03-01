@@ -9,7 +9,7 @@ import {
     validBossName
 } from "../helpers";
 
-const { capitalize, minutesAgo } = require("./helpers");
+const { capitalize, minutesAgo } = require("../helpers");
 
 export async function waitDbCache(
     req: Request,
