@@ -36,6 +36,7 @@ class Environment {
     readonly characterSpecToClass;
     readonly logBugs;
     readonly guildFactionBugs;
+    readonly characterClassToSpec;
 
     constructor() {
         if (process.env.REALM_GROUP && isRealmGroup(process.env.REALM_GROUP)) {
@@ -150,6 +151,8 @@ class Environment {
         this.characterRaceToFaction = constants.characterRaceToFaction;
 
         this.characterSpecToClass = constants.characterSpecToClass;
+
+        this.characterClassToSpec = constants.characterClassToSpec;
     }
 }
 
