@@ -44,14 +44,14 @@ const app = express();
     );
 
     app.use(bodyParser.json());
-    app.use((req, res, next) => {
+    app.use((req, _1, next) => {
         req.db = db;
         next();
     });
 
     app.use(updateDatabase);
 
-    app.get("/getguildlist", async (req, res) => {
+    app.get("/getguildlist", async (_1, res) => {
         try {
             res.send({
                 success: true,
@@ -155,13 +155,14 @@ const app = express();
         }
     });
 
-    app.get("/lastupdated", async (req, res) => {
+    app.get("/lastupdated", async (_1, res) => {
         try {
             res.send({
                 success: true,
                 response: {
                     lastUpdated: minutesAgo(await db.getLastUpdated()),
-                    isUpdating: db.isUpdating
+                    isUpdating: db.isUpdating,
+                    status: db.updateStatus
                 }
             });
         } catch (err) {

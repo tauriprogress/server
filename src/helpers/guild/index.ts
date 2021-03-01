@@ -78,7 +78,7 @@ export function getGuildContentCompletion(
             };
         }
 
-        for (let boss in guildRaids[environment.currentContent.name][
+        for (let _1 in guildRaids[environment.currentContent.name][
             difficulty
         ]) {
             completion.difficulties[difficulty].bossesDefeated++;
