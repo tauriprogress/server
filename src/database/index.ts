@@ -59,8 +59,8 @@ class Database {
 
     public lastUpdated: number;
     public isUpdating: boolean;
+    public updateStatus: string;
     private lastGuildsUpdate: number;
-    private updateStatus: string;
 
     public firstCacheLoad: false | true | Promise<true>;
 
