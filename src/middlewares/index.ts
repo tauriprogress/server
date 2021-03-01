@@ -218,11 +218,7 @@ export function verifyGetItems(
     }
 }
 
-export function updateDatabase(
-    req: Request,
-    res: Response,
-    next: NextFunction
-) {
+export function updateDatabase(req: Request, _1: Response, next: NextFunction) {
     if (minutesAgo(req.db.lastUpdated) > 30 && !req.db.isUpdating) {
         try {
             req.db.updateDatabase(false);
