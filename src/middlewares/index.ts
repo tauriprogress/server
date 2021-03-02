@@ -187,8 +187,10 @@ export function verifyGetLeaderboard(
     next: NextFunction
 ) {
     try {
-        if (!req.body.id)
-            throw new Error(`${req.body.id} is not a valid leaderboard id.`);
+        if (!req.body.dataId)
+            throw new Error(
+                `${req.body.dataId} is not a valid leaderboard id.`
+            );
 
         next();
     } catch (err) {

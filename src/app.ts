@@ -256,7 +256,7 @@ const app = express();
         verifyGetLeaderboard,
         async (req, res) => {
             try {
-                let data = await db.getLeaderboard(req.body.id);
+                let data = await db.getLeaderboard(req.body.dataId);
                 res.send({
                     success: true,
                     response: data
