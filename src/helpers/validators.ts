@@ -10,7 +10,7 @@ export function validRaidId(raidId: number) {
 }
 
 export function validRealm(realm: string) {
-    return environment.realms.hasOwnProperty(realm);
+    return Object.values(environment.realms).includes(realm);
 }
 
 export function validClass(characterClass: number) {
