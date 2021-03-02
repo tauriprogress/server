@@ -83,6 +83,14 @@ export function logBugHandler(
                     log[bug.changeKey.key] = bug.changeKey.value;
                 }
                 break;
+            case "ignoreLogOfCharacter":
+                for (const member of log.members) {
+                    if (member.name === bug.characterName) {
+                        return false;
+                    }
+                }
+
+                break;
             default:
         }
     }
