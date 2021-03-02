@@ -262,7 +262,7 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
                     ...oldGuildBoss,
                     killCount: oldGuildBoss.killCount + 1,
                     firstKill:
-                        oldGuildBoss.firstKill === false
+                        oldGuildBoss.firstKill === undefined
                             ? date
                             : date < oldGuildBoss.firstKill
                             ? date
