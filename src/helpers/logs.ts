@@ -132,6 +132,7 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
         const guildFaction = log.guilddata.faction;
         const guildBossCategorization = [
             "progression",
+            "raids",
             raidName,
             difficulty,
             bossName
