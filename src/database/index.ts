@@ -91,7 +91,7 @@ class Database {
 
             this.db = this.client.db("tauriprogress");
 
-            this.lastUpdated = await this.getLastUpdated();
+            this.lastUpdated = 0;
             this.lastGuildsUpdate = await this.getLastGuildsUpdate();
         } catch (err) {
             throw err;
@@ -922,6 +922,8 @@ class Database {
                         };
                     } = {};
 
+                    let bestRelativePerformance = 0;
+
                     for (const bossInfo of raid.bosses) {
                         let boss = cache.raidBoss.get(
                             getRaidBossCacheId(raid.id, bossInfo.name)
@@ -1043,6 +1045,10 @@ class Database {
                                 characters[
                                     charId
                                 ].best.topPercent = performance;
+
+                                if (performance > bestRelativePerformance) {
+                                    bestRelativePerformance = performance;
+                                }
                             }
                         }
                     }
@@ -1051,9 +1057,12 @@ class Database {
                         if (!leaderboards.overall[difficulty]) {
                             leaderboards.overall[difficulty] = [];
                         }
-                        characters[charId].best.topPercent =
-                            characters[charId].best.topPercent /
-                            raid.bosses.length;
+                        characters[
+                            charId
+                        ].best.topPercent = getRelativePerformance(
+                            characters[charId].best.topPercent,
+                            bestRelativePerformance
+                        );
 
                         leaderboards.overall[difficulty].push(
                             characters[charId].best
@@ -1068,9 +1077,12 @@ class Database {
                                 leaderboards.specs[specId][difficulty] = [];
                             }
 
-                            characters[charId].specs[specId].topPercent =
-                                characters[charId].specs[specId].topPercent /
-                                raid.bosses.length;
+                            characters[charId].specs[
+                                specId
+                            ].topPercent = getRelativePerformance(
+                                characters[charId].specs[specId].topPercent,
+                                bestRelativePerformance
+                            );
 
                             leaderboards.specs[specId][difficulty].push(
                                 characters[charId].specs[specId]
