@@ -41,7 +41,9 @@ export function defaultGuildRaidDays(): GuildRaidDays {
 }
 
 export function getRecentGuildRaidDays(logs: GuildRecentKill[]) {
-    let { recent: raidDays } = defaultGuildRaidDays();
+    let { recent: raidDays } = JSON.parse(
+        JSON.stringify(defaultGuildRaidDays())
+    );
 
     const timeBoundary = getLatestWednesday(
         new Date(new Date().getTime() - week * 2)
