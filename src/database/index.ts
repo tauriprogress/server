@@ -667,7 +667,7 @@ class Database {
                         console.log(
                             `db: Updating ${guild.name} ${current}/${total}`
                         );
-                        // THIS NEEDS TO BE THOUGHT OUT
+
                         const newGuild = await requestGuildData(
                             guild.name,
                             guild.realm
