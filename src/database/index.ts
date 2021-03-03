@@ -198,6 +198,21 @@ class Database {
                     lastLogIds
                 );
 
+                logs = logs.reduce((acc, log) => {
+                    let fixedLog: RaidLogWithRealm | false = log;
+                    for (const bug of environment.logBugs) {
+                        if (fixedLog) {
+                            fixedLog = logBugHandler(fixedLog, bug);
+                        }
+                    }
+
+                    if (fixedLog) {
+                        acc.push(fixedLog);
+                    }
+
+                    return acc;
+                }, [] as RaidLogWithRealm[]);
+
                 if (isInitalization) {
                     console.log(
                         "db: Saving logs in case something goes wrong in the initalization process to",
@@ -207,20 +222,6 @@ class Database {
                         "logData.json",
                         JSON.stringify({ logs, lastLogIds: newLastLogIds })
                     );
-                    logs = logs.reduce((acc, log) => {
-                        let fixedLog: RaidLogWithRealm | false = log;
-                        for (const bug of environment.logBugs) {
-                            if (fixedLog) {
-                                fixedLog = logBugHandler(fixedLog, bug);
-                            }
-                        }
-
-                        if (fixedLog) {
-                            acc.push(fixedLog);
-                        }
-
-                        return acc;
-                    }, [] as RaidLogWithRealm[]);
 
                     console.log("db: Processing logs");
                     const { bosses, guilds, combatMetrics } = processLogs(logs);
