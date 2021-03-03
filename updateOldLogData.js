@@ -1,9 +1,9 @@
 require("dotenv").config();
 const fs = require("fs");
-const { getLogs } = require("./helpers");
+const { getLogs } = require("./build/helpers");
 let oldData;
 try {
-    oldData = require("./logData.json");
+    oldData = require("./build/database/logData.json");
 } catch (e) {
     oldData = false;
 }
