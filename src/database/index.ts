@@ -482,26 +482,27 @@ class Database {
                         ).catch(err => {
                             if (err.message === "guild not found")
                                 throw new Error(err.message);
-                            return {};
+                            return false as const;
                         });
 
                         await this.db.collection("guilds").insertOne(
-                            {
-                                ...newGuild,
-                                ...guildData,
-                                raidDays: {
-                                    ...newGuild.raidDays,
-                                    recent: getRecentGuildRaidDays(
-                                        newGuild.progression.recentKills
-                                    )
-                                },
-                                progression: {
-                                    ...newGuild.progression,
-                                    completion: getGuildContentCompletion(
-                                        newGuild.progression.raids
-                                    )
-                                }
-                            },
+                            guildData
+                                ? updateGuildData(newGuild, guildData)
+                                : {
+                                      ...newGuild,
+                                      raidDays: {
+                                          ...newGuild.raidDays,
+                                          recent: getRecentGuildRaidDays(
+                                              newGuild.progression.recentKills
+                                          )
+                                      },
+                                      progression: {
+                                          ...newGuild.progression,
+                                          completion: getGuildContentCompletion(
+                                              newGuild.progression.raids
+                                          )
+                                      }
+                                  },
                             { session }
                         );
                     } catch (err) {
