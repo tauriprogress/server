@@ -1212,6 +1212,8 @@ class Database {
     async getLeaderboard(id: string) {
         return new Promise(async (resolve, reject) => {
             try {
+                if (!this.firstCacheLoad) throw new Error("Loading...");
+
                 const data = cache.leaderboard.get(id);
 
                 if (!data) {
