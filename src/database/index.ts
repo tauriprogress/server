@@ -558,7 +558,7 @@ class Database {
                             combatMetric
                         ]) {
                             await this.saveChar(
-                                Number(bossId),
+                                bossId,
                                 combatMetric as "dps" | "hps",
                                 combatMetrics[bossId][combatMetric][charId],
                                 session
@@ -589,7 +589,7 @@ class Database {
     }
 
     async saveChar(
-        bossId: number,
+        bossId: string,
         combatMetric: "dps" | "hps",
         char: Character,
         session?: ClientSession
