@@ -10,6 +10,7 @@ export interface Guild {
     activity: GuildActivity;
     progression: GuildProgression;
     raidDays: GuildRaidDays;
+    ranking: Ranking;
 }
 
 interface GuildMember {
@@ -76,4 +77,33 @@ interface GuildFastKill {
     id: number;
     fightLength: number;
     date: number;
+}
+
+interface Ranking {
+    [propName: string]: {
+        [propName: number]: {
+            fullClear: {
+                time: number | false;
+                details: SmallLog[];
+                weeks: {
+                    [propName: string]: [
+                        {
+                            members: [];
+                            logs: SmallLog[];
+                        }
+                    ];
+                };
+            };
+            fastestKills: {
+                time: number | false;
+                details: SmallLog[];
+            };
+        };
+    };
+}
+
+interface SmallLog {
+    logId: number;
+    date: number;
+    fightLength: number;
 }
