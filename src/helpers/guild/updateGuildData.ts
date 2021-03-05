@@ -4,10 +4,11 @@ import {
     getNestedObjectValue,
     addNestedObjectValue,
     uniqueLogs,
-    guildRecentKills
+    guildRecentKills,
+    getRaidInfoFromName
 } from "../../helpers";
 
-import { Guild, GuildBoss } from "../../types";
+import { Guild, GuildBoss, GuildRankingFastest } from "../../types";
 
 export function updateGuildData(oldGuild: Guild, newGuild: Guild) {
     let updatedGuild: Guild = {
@@ -116,4 +117,52 @@ export function updateGuildData(oldGuild: Guild, newGuild: Guild) {
     );
 
     return updatedGuild;
+}
+
+export function updateGuildRanking(guild: Guild) {
+    for (const raidName in guild.ranking) {
+        for (const difficulty in guild.ranking[raidName]) {
+            guild.ranking[raidName][
+                difficulty
+            ].fastestKills = fastestGuildRanking(
+                raidName,
+                Number(difficulty),
+                guild
+            );
+        }
+    }
+
+    return guild;
+}
+
+export function fastestGuildRanking(
+    raidName: string,
+    difficulty: number,
+    guild: Guild
+): GuildRankingFastest {
+    const raidInfo = getRaidInfoFromName(raidName);
+    let time = 0;
+    let logs = [];
+
+    for (const bossInfo of raidInfo.bosses) {
+        if (
+            !guild.progression.raids[raidName] ||
+            !guild.progression.raids[raidName][difficulty] ||
+            !guild.progression.raids[raidName][difficulty][bossInfo.name]
+        ) {
+            return {
+                time: false,
+                logs: []
+            };
+        }
+
+        const fastestKill =
+            guild.progression.raids[raidName][difficulty][bossInfo.name]
+                .fastestKills[0];
+
+        time += fastestKill.fightLength;
+        logs.push(fastestKill);
+    }
+
+    return { time: time, logs: logs };
 }

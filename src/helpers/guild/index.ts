@@ -29,7 +29,8 @@ export function getDefaultGuild(): Guild {
             },
             raids: {}
         },
-        raidDays: defaultGuildRaidDays()
+        raidDays: defaultGuildRaidDays(),
+        ranking: {}
     };
 }
 
