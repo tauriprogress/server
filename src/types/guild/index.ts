@@ -82,28 +82,32 @@ interface GuildFastKill {
 interface Ranking {
     [propName: string]: {
         [propName: number]: {
-            fullClear: {
-                time: number | false;
-                details: SmallLog[];
-                weeks: {
-                    [propName: string]: [
-                        {
-                            members: [];
-                            logs: SmallLog[];
-                        }
-                    ];
-                };
-            };
-            fastestKills: {
-                time: number | false;
-                details: SmallLog[];
-            };
+            fullClear: GuildRankingFull;
+            fastestKills: GuildRankingFastest;
         };
     };
 }
 
-interface SmallLog {
-    logId: number;
+export interface GuildRankingFull {
+    time: number | false;
+    details: GuildRankingLog[];
+    weeks: {
+        [propName: string]: [
+            {
+                members: [];
+                logs: GuildRankingLog[];
+            }
+        ];
+    };
+}
+
+export interface GuildRankingFastest {
+    time: number | false;
+    logs: GuildRankingLog[];
+}
+
+export interface GuildRankingLog {
+    id: number;
     date: number;
     fightLength: number;
 }
