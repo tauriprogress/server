@@ -51,3 +51,24 @@ export function validDifficulty(raidId: number, difficulty: number) {
     }
     return false;
 }
+
+export function sameMembers(
+    members1: string[],
+    members2: string[],
+    difficulty: 10 | 25
+): boolean {
+    let memberContainer: { [propName: string]: boolean } = {};
+    let sameMemberCount = 1;
+
+    for (let name of members1) {
+        memberContainer[name] = true;
+    }
+
+    for (let name of members2) {
+        if (memberContainer[name]) {
+            sameMemberCount++;
+        }
+    }
+
+    return difficulty * 0.8 <= sameMemberCount;
+}
