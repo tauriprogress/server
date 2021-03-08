@@ -90,7 +90,7 @@ interface Ranking {
 
 export interface GuildRankingFull {
     time: number | false;
-    details: GuildRankingLog[];
+    logs: GuildRankingLog[];
     weeks: {
         [propName: string]: [
             {
@@ -110,4 +110,5 @@ export interface GuildRankingLog {
     id: number;
     date: number;
     fightLength: number;
+    bossName: string;
 }

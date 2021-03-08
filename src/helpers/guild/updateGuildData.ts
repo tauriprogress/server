@@ -8,7 +8,12 @@ import {
     getRaidInfoFromName
 } from "../../helpers";
 
-import { Guild, GuildBoss, GuildRankingFastest } from "../../types";
+import {
+    Guild,
+    GuildBoss,
+    GuildRankingFastest,
+    GuildRankingFull
+} from "../../types";
 
 export function updateGuildData(oldGuild: Guild, newGuild: Guild) {
     let updatedGuild: Guild = {
@@ -129,6 +134,13 @@ export function updateGuildRanking(guild: Guild) {
                 Number(difficulty),
                 guild
             );
+
+            guild.ranking[raidName][
+                difficulty
+            ].fullClear = fullClearGuildRanking(
+                guild.ranking[raidName][difficulty].fullClear,
+                raidName
+            );
         }
     }
 
@@ -161,8 +173,72 @@ export function fastestGuildRanking(
                 .fastestKills[0];
 
         time += fastestKill.fightLength;
-        logs.push(fastestKill);
+        logs.push({ ...fastestKill, bossName: bossInfo.name });
     }
 
     return { time: time, logs: logs };
+}
+
+export function fullClearGuildRanking(
+    fullClearGuildRanking: GuildRankingFull,
+    raidName: string
+): GuildRankingFull {
+    const raidInfo = getRaidInfoFromName(raidName);
+
+    let updatedFullClearGuildRanking = JSON.parse(
+        JSON.stringify(fullClearGuildRanking)
+    );
+
+    const latestWeekId = Object.keys(fullClearGuildRanking.weeks).reduce(
+        (acc, curr) => {
+            if (Number(curr) > Number(acc)) {
+                return Number(curr);
+            }
+
+            return acc;
+        },
+        0
+    );
+
+    for (const weekId in fullClearGuildRanking.weeks) {
+        for (const raidGroup of fullClearGuildRanking.weeks[weekId]) {
+            let completion: { [propName: string]: boolean } = {};
+            for (const bossInfo of raidInfo.bosses) {
+                completion[bossInfo.name] = false;
+            }
+
+            for (const log of raidGroup.logs) {
+                completion[log.bossName] = true;
+            }
+
+            let completed = true;
+            for (const bossName in completion) {
+                if (!completion[bossName]) {
+                    completed = false;
+                }
+            }
+
+            if (completed) {
+                let time = 0;
+
+                for (const log of raidGroup.logs) {
+                    time += log.fightLength;
+                }
+
+                if (
+                    !updatedFullClearGuildRanking.time ||
+                    time < updatedFullClearGuildRanking.time
+                ) {
+                    updatedFullClearGuildRanking.time = time;
+                    updatedFullClearGuildRanking.logs = raidGroup.logs;
+                }
+            }
+        }
+
+        if (Number(weekId) !== latestWeekId) {
+            delete updatedFullClearGuildRanking[weekId];
+        }
+    }
+
+    return updatedFullClearGuildRanking;
 }
