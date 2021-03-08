@@ -26,7 +26,8 @@ import {
     getCharacterId,
     addNestedObjectValue,
     getNestedObjectValue,
-    addToCharTotalPerformance
+    addToCharTotalPerformance,
+    updateGuildRanking
 } from "../helpers";
 
 import { MongoClient, Db, ClientSession, ObjectID } from "mongodb";
@@ -490,7 +491,7 @@ class Database {
                             guildData
                                 ? updateGuildData(newGuild, guildData)
                                 : {
-                                      ...newGuild,
+                                      ...updateGuildRanking(newGuild),
                                       raidDays: {
                                           ...newGuild.raidDays,
                                           recent: getRecentGuildRaidDays(

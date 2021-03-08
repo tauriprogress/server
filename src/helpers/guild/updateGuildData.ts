@@ -121,7 +121,7 @@ export function updateGuildData(oldGuild: Guild, newGuild: Guild) {
         updatedGuild.progression.raids
     );
 
-    return updatedGuild;
+    return updateGuildRanking(updatedGuild);
 }
 
 export function updateGuildRanking(guild: Guild) {
