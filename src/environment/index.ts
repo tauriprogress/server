@@ -37,6 +37,7 @@ class Environment {
     readonly logBugs;
     readonly guildFactionBugs;
     readonly characterClassToSpec;
+    readonly difficultyNames;
 
     constructor() {
         if (process.env.REALM_GROUP && isRealmGroup(process.env.REALM_GROUP)) {
@@ -122,6 +123,8 @@ class Environment {
             this.logBugs = constants.tauri.logBugs;
 
             this.guildFactionBugs = constants.tauri.guildFactionBugs;
+
+            this.difficultyNames = constants.tauri.difficultyNames;
         } else {
             this.realms = constants.crystalsong.realms;
 
@@ -144,6 +147,8 @@ class Environment {
             this.logBugs = constants.crystalsong.logBugs;
 
             this.guildFactionBugs = constants.crystalsong.guildFactionBugs;
+
+            this.difficultyNames = constants.crystalsong.difficultyNames;
         }
 
         this.shortRealms = constants.shortRealms;
