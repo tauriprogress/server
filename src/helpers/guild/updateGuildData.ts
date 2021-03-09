@@ -219,11 +219,12 @@ export function fullClearGuildRanking(
             }
 
             if (completed) {
-                let time = 0;
+                raidGroup.logs = raidGroup.logs.sort((a, b) => a.date - b.date);
 
-                for (const log of raidGroup.logs) {
-                    time += log.fightLength;
-                }
+                let time =
+                    (raidGroup.logs[raidGroup.logs.length - 1].date -
+                        raidGroup.logs[0].date) *
+                    1000;
 
                 if (
                     !updatedFullClearGuildRanking.time ||
