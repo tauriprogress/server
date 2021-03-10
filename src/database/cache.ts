@@ -6,6 +6,7 @@ class Cache {
     public character: NodeCache;
     public raidBoss: NodeCache;
     public leaderboard: NodeCache;
+    public guildLeaderboard: NodeCache;
 
     constructor() {
         this.guildList = new NodeCache({
@@ -30,6 +31,12 @@ class Cache {
         });
         this.leaderboard = new NodeCache({
             stdTTL: 0,
+            useClones: false
+        });
+
+        this.guildLeaderboard = new NodeCache({
+            stdTTL: 20 * 60,
+            checkperiod: 60,
             useClones: false
         });
     }

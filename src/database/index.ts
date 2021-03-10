@@ -1231,6 +1231,38 @@ class Database {
             }
         });
     }
+    async getGuildLeaderboard() {
+        return new Promise(async (resolve, reject) => {
+            try {
+                if (!this.db) throw new Error(connectionErrorMessage);
+
+                const cacheId = `guildleaderboard`;
+
+                const cachedData = cache.guildLeaderboard.get(cacheId);
+
+                if (cachedData) {
+                    resolve(cachedData);
+                } else {
+                    const guildLeaderboard = await this.db
+                        .collection("guilds")
+                        .find()
+                        .project({
+                            name: 1,
+                            f: 1,
+                            realm: 1,
+                            ranking: 1
+                        })
+                        .toArray();
+
+                    cache.guildLeaderboard.set(cacheId, guildLeaderboard);
+
+                    resolve(guildLeaderboard);
+                }
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
 
     async getRaidSummary(raidId: number) {
         return new Promise(async (resolve, reject) => {

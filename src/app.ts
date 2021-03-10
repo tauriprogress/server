@@ -42,7 +42,6 @@ const app = express();
             optionsSuccessStatus: 200
         })
     );
-
     app.use(bodyParser.json());
     app.use((req, _1, next) => {
         req.db = db;
@@ -269,6 +268,20 @@ const app = express();
             }
         }
     );
+
+    app.get("/leaderboard/guild", async (_1, res) => {
+        try {
+            res.send({
+                success: true,
+                response: await db.getGuildLeaderboard()
+            });
+        } catch (err) {
+            res.send({
+                success: false,
+                errorstring: err.message
+            });
+        }
+    });
 })();
 
 export default app;
