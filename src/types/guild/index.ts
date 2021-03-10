@@ -92,12 +92,7 @@ export interface GuildRankingFull {
     time: number | false;
     logs: GuildRankingLog[];
     weeks: {
-        [propName: string]: [
-            {
-                members: [];
-                logs: GuildRankingLog[];
-            }
-        ];
+        [propName: string]: GuildRankingRaidGroup[];
     };
 }
 
@@ -111,4 +106,9 @@ export interface GuildRankingLog {
     date: number;
     fightLength: number;
     bossName: string;
+}
+
+export interface GuildRankingRaidGroup {
+    members: string[];
+    logs: GuildRankingLog[];
 }

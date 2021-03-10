@@ -1,3 +1,4 @@
+import { environment } from "../../environment";
 import {
     getRecentGuildRaidDays,
     getGuildContentCompletion,
@@ -5,7 +6,8 @@ import {
     addNestedObjectValue,
     uniqueLogs,
     guildRecentKills,
-    getRaidInfoFromName
+    getRaidInfoFromName,
+    sameMembers
 } from "../../helpers";
 
 import {
@@ -18,7 +20,7 @@ import {
 export function updateGuildData(oldGuild: Guild, newGuild: Guild) {
     let updatedGuild: Guild = {
         ...JSON.parse(JSON.stringify(oldGuild)),
-        ...(({ progression, raidDays, activity, ...others }) => ({
+        ...(({ progression, raidDays, activity, ranking, ...others }) => ({
             ...JSON.parse(JSON.stringify(others)),
             members: newGuild.members.length
                 ? newGuild.members
@@ -121,6 +123,74 @@ export function updateGuildData(oldGuild: Guild, newGuild: Guild) {
         updatedGuild.progression.raids
     );
 
+    for (const raidName in newGuild.ranking) {
+        for (const difficulty in newGuild.ranking[raidName]) {
+            const diffNum = environment.difficultyNames[
+                String(difficulty) as keyof typeof environment.difficultyNames
+            ].includes("10")
+                ? 10
+                : 25;
+            if (!updatedGuild.ranking[raidName]) {
+                updatedGuild.ranking[raidName] = {};
+            }
+            if (!updatedGuild.ranking[raidName][difficulty]) {
+                updatedGuild.ranking[raidName][difficulty] =
+                    newGuild.ranking[raidName][difficulty];
+
+                continue;
+            }
+
+            for (const weekId in newGuild.ranking[raidName][difficulty]
+                .fullClear.weeks) {
+                let oldRaidGroups =
+                    updatedGuild.ranking[raidName][difficulty].fullClear.weeks[
+                        weekId
+                    ];
+
+                let newRaidGroups =
+                    newGuild.ranking[raidName][difficulty].fullClear.weeks[
+                        weekId
+                    ];
+
+                if (!oldRaidGroups) {
+                    updatedGuild.ranking[raidName][difficulty].fullClear.weeks[
+                        weekId
+                    ] = newRaidGroups;
+                    continue;
+                } else {
+                    for (let newGroup of newRaidGroups) {
+                        let added = false;
+                        for (let i = 0; i < oldRaidGroups.length; i++) {
+                            let oldGroup = oldRaidGroups[i];
+                            if (
+                                sameMembers(
+                                    oldGroup.members,
+                                    newGroup.members,
+                                    diffNum
+                                )
+                            ) {
+                                updatedGuild.ranking[raidName][
+                                    difficulty
+                                ].fullClear.weeks[weekId][i] = {
+                                    ...oldGroup,
+                                    logs: [...oldGroup.logs, ...newGroup.logs]
+                                };
+
+                                added = true;
+                                break;
+                            }
+                        }
+
+                        if (!added) {
+                            updatedGuild.ranking[raidName][
+                                difficulty
+                            ].fullClear.weeks[weekId].push(newGroup);
+                        }
+                    }
+                }
+            }
+        }
+    }
     return updateGuildRanking(updatedGuild);
 }
 
@@ -184,10 +254,8 @@ export function fullClearGuildRanking(
     raidName: string
 ): GuildRankingFull {
     const raidInfo = getRaidInfoFromName(raidName);
-
-    let updatedFullClearGuildRanking = JSON.parse(
-        JSON.stringify(fullClearGuildRanking)
-    );
+    let bestTime = fullClearGuildRanking.time;
+    let logs = fullClearGuildRanking.logs;
 
     const latestWeekId = Object.keys(fullClearGuildRanking.weeks).reduce(
         (acc, curr) => {
@@ -223,23 +291,21 @@ export function fullClearGuildRanking(
 
                 let time =
                     (raidGroup.logs[raidGroup.logs.length - 1].date -
-                        raidGroup.logs[0].date) *
+                        (raidGroup.logs[0].date -
+                            raidGroup.logs[0].fightLength / 1000)) *
                     1000;
 
-                if (
-                    !updatedFullClearGuildRanking.time ||
-                    time < updatedFullClearGuildRanking.time
-                ) {
-                    updatedFullClearGuildRanking.time = time;
-                    updatedFullClearGuildRanking.logs = raidGroup.logs;
+                if (!bestTime || time < bestTime) {
+                    bestTime = time;
+                    logs = raidGroup.logs;
                 }
             }
         }
-
-        if (Number(weekId) !== latestWeekId) {
-            delete updatedFullClearGuildRanking[weekId];
-        }
     }
 
-    return updatedFullClearGuildRanking;
+    return {
+        time: bestTime,
+        logs: logs,
+        weeks: { [latestWeekId]: fullClearGuildRanking.weeks[latestWeekId] }
+    };
 }
