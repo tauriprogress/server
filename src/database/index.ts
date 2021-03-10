@@ -1214,7 +1214,7 @@ class Database {
         });
     }
 
-    async getLeaderboard(id: string) {
+    async getCharacterLeaderboard(id: string) {
         return new Promise(async (resolve, reject) => {
             try {
                 if (!this.firstCacheLoad) throw new Error("Loading...");

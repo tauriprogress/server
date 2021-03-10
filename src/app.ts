@@ -13,7 +13,7 @@ import {
     verifyCharacterRecentKills,
     verifyGetCharacterPerformance,
     verifyGetItems,
-    verifyGetLeaderboard,
+    verifyCharacterLeaderboard,
     updateDatabase,
     waitDbCache
 } from "./middlewares";
@@ -251,12 +251,12 @@ const app = express();
     );
 
     app.post(
-        "/getleaderboard",
+        "/leaderboard/character",
         waitDbCache,
-        verifyGetLeaderboard,
+        verifyCharacterLeaderboard,
         async (req, res) => {
             try {
-                let data = await db.getLeaderboard(req.body.dataId);
+                let data = await db.getCharacterLeaderboard(req.body.dataId);
                 res.send({
                     success: true,
                     response: data

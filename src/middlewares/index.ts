@@ -181,7 +181,7 @@ export function verifyCharacterRecentKills(
     }
 }
 
-export function verifyGetLeaderboard(
+export function verifyCharacterLeaderboard(
     req: Request,
     res: Response,
     next: NextFunction
