@@ -12,7 +12,8 @@ import {
     getCharacterId,
     unshiftDateDay,
     guildRecentKills,
-    getGuildId
+    getGuildId,
+    sameMembers
 } from "../helpers";
 import tauriApi from "../tauriApi";
 import {
@@ -22,8 +23,10 @@ import {
     RaidLogWithRealm,
     Guild,
     Character,
-    RaidBoss
+    RaidBoss,
+    GuildRankingFull
 } from "../types";
+import { getLatestWednesday } from "./providers";
 
 export async function getLogs(
     lastLogIds: LastLogIds
@@ -234,6 +237,114 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
                 boss: bossName,
                 difficulty: difficulty
             });
+
+            // guild ranking
+            const guildRankingFullClearCategory = [
+                raidName,
+                difficulty,
+                "fullClear"
+            ];
+
+            const weekId = getLatestWednesday(logDate).getTime();
+
+            let guildRankingFullClear = getNestedObjectValue(
+                guilds[guildId].ranking,
+                guildRankingFullClearCategory
+            ) as GuildRankingFull | false;
+
+            if (!guildRankingFullClear) {
+                guildRankingFullClear = {
+                    time: false,
+                    logs: [],
+                    weeks: {}
+                };
+
+                guildRankingFullClear.weeks[weekId] = [
+                    {
+                        members: log.members.map(member => member.name),
+                        logs: [
+                            {
+                                bossName: bossName,
+                                date: date,
+                                fightLength: fightLength,
+                                id: logId
+                            }
+                        ]
+                    }
+                ];
+            } else if (!guildRankingFullClear.weeks[weekId]) {
+                guildRankingFullClear.weeks[weekId] = [
+                    {
+                        members: log.members.map(member => member.name),
+                        logs: [
+                            {
+                                bossName: bossName,
+                                date: date,
+                                fightLength: fightLength,
+                                id: logId
+                            }
+                        ]
+                    }
+                ];
+            } else {
+                let logAddedToRanking = false;
+
+                for (
+                    let i = 0;
+                    i < guildRankingFullClear.weeks[weekId].length;
+                    i++
+                ) {
+                    let raidGroup = guildRankingFullClear.weeks[weekId][i];
+
+                    const currentDifficulty = environment.difficultyNames[
+                        String(
+                            difficulty
+                        ) as keyof typeof environment.difficultyNames
+                    ].includes("10")
+                        ? 10
+                        : 25;
+
+                    if (
+                        sameMembers(
+                            raidGroup.members,
+                            log.members.map(member => member.name),
+                            currentDifficulty
+                        )
+                    ) {
+                        logAddedToRanking = true;
+
+                        raidGroup.logs.push({
+                            bossName: bossName,
+                            date: date,
+                            fightLength: fightLength,
+                            id: logId
+                        });
+
+                        guildRankingFullClear.weeks[weekId][i] = raidGroup;
+
+                        break;
+                    }
+                }
+
+                if (!logAddedToRanking) {
+                    guildRankingFullClear.weeks[weekId].push({
+                        members: log.members.map(member => member.name),
+                        logs: [
+                            {
+                                bossName: bossName,
+                                date: date,
+                                fightLength: fightLength,
+                                id: logId
+                            }
+                        ]
+                    });
+                }
+            }
+            guilds[guildId].ranking = addNestedObjectValue(
+                guilds[guildId].ranking,
+                guildRankingFullClearCategory,
+                guildRankingFullClear
+            );
 
             let oldGuildBoss = getNestedObjectValue(
                 guilds[guildId],
