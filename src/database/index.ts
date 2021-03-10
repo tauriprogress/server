@@ -996,7 +996,10 @@ class Database {
 
                                 if (!characters[charId]) {
                                     characters[charId] = {
-                                        best: modifiedCharacter,
+                                        best: {
+                                            ...bestOfCharacter,
+                                            topPercent: 0
+                                        },
                                         specs: {}
                                     };
                                 }
