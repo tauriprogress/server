@@ -24,5 +24,8 @@
         "start": "node ./build/start.js",
         "compile": "tsc --project tsconfig.json",
         "dev": "tsc --watch"
+    },
+    "engines": {
+        "node": "14.x"
     }
 }
