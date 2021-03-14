@@ -61,7 +61,10 @@ class TauriApi {
                 } catch (err) {
                     if (err.message !== timeOutErrorMessage) {
                         if (err.message === "guild not found") {
-                            reject(new Error("guild not found"));
+                            reject(new Error(err.message));
+                            break;
+                        } else if (err.message === "character not found") {
+                            reject(new Error(err.message));
                             break;
                         } else {
                             reject(new Error("Api request failed."));
