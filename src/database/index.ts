@@ -194,10 +194,28 @@ class Database {
                           {}
                       )) as DbMaintenance).lastLogIds;
 
-                console.log("db: Requesting logs");
-                let { logs, lastLogIds: newLastLogIds } = await getLogs(
-                    lastLogIds
-                );
+                let oldLogData:
+                    | {
+                          logs: RaidLogWithRealm[];
+                          lastLogIds: { [propName: string]: number };
+                      }
+                    | false = false;
+                if (isInitalization) {
+                    try {
+                        oldLogData = require("../../newLogData.json") as {
+                            logs: RaidLogWithRealm[];
+                            lastLogIds: { [propName: string]: number };
+                        };
+                        console.log("db: Using old log data for initalization");
+                    } catch (err) {
+                        console.log("db: Requesting logs");
+                    }
+                } else {
+                    console.log("db: Requesting logs");
+                }
+                let { logs, lastLogIds: newLastLogIds } = oldLogData
+                    ? oldLogData
+                    : await getLogs(lastLogIds);
 
                 logs = logs.reduce((acc, log) => {
                     let fixedLog: RaidLogWithRealm | false = log;

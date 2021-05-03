@@ -48,7 +48,7 @@ class TauriApi {
                                 errorstring: timeOutErrorMessage
                             });
                         }, 13000);
-                    });
+                    }) as Promise<{ success: boolean; errorstring: string }>;
 
                     const response = await Promise.race([timeOut, apiRequest]);
 

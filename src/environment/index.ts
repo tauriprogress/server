@@ -38,8 +38,15 @@ class Environment {
     readonly guildFactionBugs;
     readonly characterClassToSpec;
     readonly difficultyNames;
+    readonly forceInit;
 
     constructor() {
+        if (process.env.FORCE_INIT && process.env.FORCE_INIT === "true") {
+            this.forceInit = true;
+        } else {
+            this.forceInit = false;
+        }
+
         if (process.env.REALM_GROUP && isRealmGroup(process.env.REALM_GROUP)) {
             this.REALM_GROUP = process.env.REALM_GROUP;
         } else {

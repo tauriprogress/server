@@ -22,14 +22,25 @@ import tauriApi from "./tauriApi";
 
 import { minutesAgo } from "./helpers";
 import { LooseObject } from "./types";
+import { environment } from "./environment";
 
 const app = express();
+const prompt = require("prompt-sync")();
 
 (async function () {
     try {
         await db.connect();
         if (!(await db.isInitalized())) {
             await db.initalizeDatabase();
+        } else if (environment.forceInit) {
+            const confirmation = prompt(
+                "The database is already initalized, are you sure to reinitalize it? (Y/n)"
+            );
+
+            if (confirmation === "y" || confirmation === "Y") {
+                await db.initalizeDatabase();
+                process.exit(0);
+            }
         }
     } catch (err) {
         console.error(err);
