@@ -76,7 +76,7 @@ class TauriApi {
             }
 
             if (currentTry === 3) {
-                reject(timeOutErrorMessage);
+                reject(new Error(timeOutErrorMessage));
             }
         });
     }
