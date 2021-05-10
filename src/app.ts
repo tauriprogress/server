@@ -3,14 +3,6 @@ import * as cors from "cors";
 import * as bodyParser from "body-parser";
 import * as slowDown from "express-slow-down";
 
-const speedLimiter = slowDown({
-    windowMs: 20 * 1000,
-    delayAfter: 20,
-    delayMs: 300,
-    maxDelayMs: 3 * 1000,
-    keyGenerator: () => "1"
-});
-
 import db from "./database";
 
 import {
@@ -29,12 +21,21 @@ import {
 
 import tauriApi from "./tauriApi";
 
-import { minutesAgo } from "./helpers";
+import { minutesAgo, runGC } from "./helpers";
 import { LooseObject } from "./types";
 import { environment } from "./environment";
 
 const app = express();
 const prompt = require("prompt-sync")();
+
+const speedLimiter = slowDown({
+    windowMs: 20 * 1000,
+    delayAfter: 20,
+    delayMs: 300,
+    maxDelayMs: 3 * 1000,
+    keyGenerator: () => "1",
+    onLimitReached: () => runGC()
+});
 
 (async function () {
     try {

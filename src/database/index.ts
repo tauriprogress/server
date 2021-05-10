@@ -1150,6 +1150,8 @@ class Database {
                         leaderboards.specs[specId]
                     );
                 }
+
+                runGC();
             }
         }
     }
