@@ -1,6 +1,15 @@
 import * as express from "express";
 import * as cors from "cors";
 import * as bodyParser from "body-parser";
+import * as slowDown from "express-slow-down";
+
+const speedLimiter = slowDown({
+    windowMs: 20 * 1000,
+    delayAfter: 20,
+    delayMs: 300,
+    maxDelayMs: 3 * 1000,
+    keyGenerator: () => "1"
+});
 
 import db from "./database";
 
@@ -60,6 +69,8 @@ const prompt = require("prompt-sync")();
     });
 
     app.use(updateDatabase);
+
+    app.use(speedLimiter);
 
     app.get("/getguildlist", async (_1, res) => {
         try {
