@@ -27,7 +27,8 @@ import {
     addNestedObjectValue,
     getNestedObjectValue,
     addToCharTotalPerformance,
-    updateGuildRanking
+    updateGuildRanking,
+    runGC
 } from "../helpers";
 
 import { MongoClient, Db, ClientSession, ObjectID } from "mongodb";
@@ -851,6 +852,7 @@ class Database {
         const fullLoad = async (): Promise<true> => {
             return new Promise(async (resolve, reject) => {
                 try {
+                    runGC();
                     for (const raid of environment.currentContent.raids) {
                         let promises = [];
                         for (const boss of raid.bosses) {
@@ -869,6 +871,7 @@ class Database {
 
                             cache.raidBoss.set(cacheId, boss);
                         }
+                        runGC();
                     }
                     resolve(true);
                 } catch (err) {
