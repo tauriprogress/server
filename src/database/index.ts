@@ -191,9 +191,11 @@ class Database {
 
                 const lastLogIds = isInitalization
                     ? {}
-                    : ((await maintenanceCollection.findOne(
-                          {}
-                      )) as DbMaintenance).lastLogIds;
+                    : (
+                          (await maintenanceCollection.findOne(
+                              {}
+                          )) as DbMaintenance
+                      ).lastLogIds;
 
                 let oldLogData:
                     | {
@@ -819,7 +821,8 @@ class Database {
                         );
                     }
 
-                    let fastestKills: DbRaidBossDataResponse[number]["fastestKills"][string][number] = [];
+                    let fastestKills: DbRaidBossDataResponse[number]["fastestKills"][string][number] =
+                        [];
                     for (const realm in boss.fastestKills) {
                         for (const faction in boss.fastestKills[realm]) {
                             const objectKeys = [realm, faction];
@@ -932,8 +935,10 @@ class Database {
                 let leaderboards: {
                     overall: Leaderboard;
                     specs: { [propName: string]: Leaderboard };
+                    roles: { [propName: string]: Leaderboard };
                 } = {
                     overall: {},
+                    roles: {},
                     specs: {}
                 };
                 for (const difficulty of raid.difficulties) {
@@ -941,6 +946,9 @@ class Database {
                         [propName: string]: {
                             best: CharacterOfLeaderboard;
                             specs: {
+                                [propName: string]: CharacterOfLeaderboard;
+                            };
+                            roles: {
                                 [propName: string]: CharacterOfLeaderboard;
                             };
                         };
@@ -984,6 +992,12 @@ class Database {
                                 | CharacterOfLeaderboard
                                 | undefined;
 
+                            let bestOfRoles: {
+                                [propName: string]:
+                                    | CharacterOfLeaderboard
+                                    | undefined;
+                            } = {};
+
                             for (const characterData of characterContainer) {
                                 const currentPerformance =
                                     characterData[combatMetric];
@@ -994,23 +1008,55 @@ class Database {
                                       )
                                     : 0;
 
-                                const modifiedCharacter: CharacterOfLeaderboard = {
-                                    _id: characterData._id,
-                                    class: characterData.class,
-                                    f: characterData.f,
-                                    ilvl: characterData.ilvl,
-                                    name: characterData.name,
-                                    realm: characterData.realm,
-                                    spec: characterData.spec,
-                                    topPercent: currentPercent,
-                                    date: characterData.date
-                                };
+                                const modifiedCharacter: CharacterOfLeaderboard =
+                                    {
+                                        _id: characterData._id,
+                                        class: characterData.class,
+                                        f: characterData.f,
+                                        ilvl: characterData.ilvl,
+                                        name: characterData.name,
+                                        realm: characterData.realm,
+                                        spec: characterData.spec,
+                                        topPercent: currentPercent,
+                                        date: characterData.date
+                                    };
 
                                 if (!bestOfCharacter) {
                                     bestOfCharacter = modifiedCharacter;
                                 } else {
-                                    bestOfCharacter = updateCharacterOfLeaderboard(
-                                        bestOfCharacter,
+                                    bestOfCharacter =
+                                        updateCharacterOfLeaderboard(
+                                            bestOfCharacter,
+                                            modifiedCharacter
+                                        );
+                                }
+
+                                let currentRoleChar =
+                                    bestOfRoles[
+                                        environment.specs[
+                                            String(
+                                                characterData.spec
+                                            ) as keyof typeof environment.specs
+                                        ].role
+                                    ];
+
+                                if (!currentRoleChar) {
+                                    bestOfRoles[
+                                        environment.specs[
+                                            String(
+                                                characterData.spec
+                                            ) as keyof typeof environment.specs
+                                        ].role
+                                    ] = modifiedCharacter;
+                                } else {
+                                    bestOfRoles[
+                                        environment.specs[
+                                            String(
+                                                characterData.spec
+                                            ) as keyof typeof environment.specs
+                                        ].role
+                                    ] = updateCharacterOfLeaderboard(
+                                        currentRoleChar,
                                         modifiedCharacter
                                     );
                                 }
@@ -1021,7 +1067,8 @@ class Database {
                                             ...bestOfCharacter,
                                             topPercent: 0
                                         },
-                                        specs: {}
+                                        specs: {},
+                                        roles: {}
                                     };
                                 }
 
@@ -1034,12 +1081,13 @@ class Database {
                                         characterData.spec
                                     ] = modifiedCharacter;
                                 } else {
-                                    const updatedChar = updateCharacterOfLeaderboard(
-                                        characters[charId].specs[
-                                            characterData.spec
-                                        ],
-                                        modifiedCharacter
-                                    );
+                                    const updatedChar =
+                                        updateCharacterOfLeaderboard(
+                                            characters[charId].specs[
+                                                characterData.spec
+                                            ],
+                                            modifiedCharacter
+                                        );
 
                                     const performance =
                                         characters[charId].specs[
@@ -1058,10 +1106,11 @@ class Database {
                             }
 
                             if (bestOfCharacter) {
-                                const updatedChar = updateCharacterOfLeaderboard(
-                                    characters[charId].best,
-                                    bestOfCharacter
-                                );
+                                const updatedChar =
+                                    updateCharacterOfLeaderboard(
+                                        characters[charId].best,
+                                        bestOfCharacter
+                                    );
 
                                 const performance =
                                     characters[charId].best.topPercent +
@@ -1069,12 +1118,36 @@ class Database {
 
                                 characters[charId].best = updatedChar;
 
-                                characters[
-                                    charId
-                                ].best.topPercent = performance;
+                                characters[charId].best.topPercent =
+                                    performance;
 
                                 if (performance > bestRelativePerformance) {
                                     bestRelativePerformance = performance;
+                                }
+                            }
+
+                            for (const role in bestOfRoles) {
+                                let currentChar = bestOfRoles[role];
+                                if (currentChar) {
+                                    let prevOfRole = characters[charId].roles[
+                                        role
+                                    ] || { ...currentChar, topPercent: 0 };
+
+                                    const updatedChar =
+                                        updateCharacterOfLeaderboard(
+                                            prevOfRole,
+                                            currentChar
+                                        );
+
+                                    const performance =
+                                        prevOfRole.topPercent +
+                                        currentChar.topPercent;
+
+                                    characters[charId].roles[role] =
+                                        updatedChar;
+
+                                    characters[charId].roles[role].topPercent =
+                                        performance;
                                 }
                             }
                         }
@@ -1084,12 +1157,11 @@ class Database {
                         if (!leaderboards.overall[difficulty]) {
                             leaderboards.overall[difficulty] = [];
                         }
-                        characters[
-                            charId
-                        ].best.topPercent = getRelativePerformance(
-                            characters[charId].best.topPercent,
-                            bestRelativePerformance
-                        );
+                        characters[charId].best.topPercent =
+                            getRelativePerformance(
+                                characters[charId].best.topPercent,
+                                bestRelativePerformance
+                            );
 
                         leaderboards.overall[difficulty].push(
                             characters[charId].best
@@ -1104,15 +1176,34 @@ class Database {
                                 leaderboards.specs[specId][difficulty] = [];
                             }
 
-                            characters[charId].specs[
-                                specId
-                            ].topPercent = getRelativePerformance(
-                                characters[charId].specs[specId].topPercent,
-                                bestRelativePerformance
-                            );
+                            characters[charId].specs[specId].topPercent =
+                                getRelativePerformance(
+                                    characters[charId].specs[specId].topPercent,
+                                    bestRelativePerformance
+                                );
 
                             leaderboards.specs[specId][difficulty].push(
                                 characters[charId].specs[specId]
+                            );
+                        }
+
+                        for (const role in characters[charId].roles) {
+                            if (!leaderboards.roles[role]) {
+                                leaderboards.roles[role] = {};
+                            }
+
+                            if (!leaderboards.roles[role][difficulty]) {
+                                leaderboards.roles[role][difficulty] = [];
+                            }
+
+                            characters[charId].roles[role].topPercent =
+                                getRelativePerformance(
+                                    characters[charId].roles[role].topPercent,
+                                    bestRelativePerformance
+                                );
+
+                            leaderboards.roles[role][difficulty].push(
+                                characters[charId].roles[role]
                             );
                         }
                     }
@@ -1123,6 +1214,12 @@ class Database {
 
                     for (const specId in leaderboards.specs) {
                         leaderboards.specs[specId][difficulty].sort(
+                            (a, b) => b.topPercent - a.topPercent
+                        );
+                    }
+
+                    for (const role in leaderboards.roles) {
+                        leaderboards.roles[role][difficulty].sort(
                             (a, b) => b.topPercent - a.topPercent
                         );
                     }
@@ -1148,6 +1245,19 @@ class Database {
                     cache.leaderboard.set(
                         currentLeaderboardId,
                         leaderboards.specs[specId]
+                    );
+                }
+
+                for (let role in leaderboards.roles) {
+                    const currentLeaderboardId = getLeaderboardCacheId(
+                        raid.id,
+                        combatMetric,
+                        role
+                    );
+
+                    cache.leaderboard.set(
+                        currentLeaderboardId,
+                        leaderboards.roles[role]
                     );
                 }
 
@@ -1324,11 +1434,10 @@ class Database {
                                 for (const faction in boss.fastestKills[
                                     realmName
                                 ]) {
-                                    boss.fastestKills[realmName][
-                                        faction
-                                    ] = boss.fastestKills[realmName][
-                                        faction
-                                    ].slice(0, 10);
+                                    boss.fastestKills[realmName][faction] =
+                                        boss.fastestKills[realmName][
+                                            faction
+                                        ].slice(0, 10);
                                 }
                             }
 
@@ -1401,11 +1510,13 @@ class Database {
                                 for (const specId of characterSpecs) {
                                     const spec =
                                         environment.specs[
-                                            (specId as unknown) as keyof typeof environment.specs
+                                            specId as unknown as keyof typeof environment.specs
                                         ];
-                                    const key = (combatMetric === "dps"
-                                        ? "isDps"
-                                        : "isHealer") as keyof typeof spec;
+                                    const key = (
+                                        combatMetric === "dps"
+                                            ? "isDps"
+                                            : "isHealer"
+                                    ) as keyof typeof spec;
 
                                     if (spec && spec[key]) {
                                         for (const realmName of Object.values(
@@ -1416,14 +1527,15 @@ class Database {
                                                     ...currentProjection,
                                                     [`${difficulty}.best${capitalize(
                                                         combatMetric
-                                                    )}.${realmName}.${faction}.${specId}`]: {
-                                                        $arrayElemAt: [
-                                                            `$${difficulty}.best${capitalize(
-                                                                combatMetric
-                                                            )}.${realmName}.${faction}.${characterClass}.${specId}`,
-                                                            0
-                                                        ]
-                                                    }
+                                                    )}.${realmName}.${faction}.${specId}`]:
+                                                        {
+                                                            $arrayElemAt: [
+                                                                `$${difficulty}.best${capitalize(
+                                                                    combatMetric
+                                                                )}.${realmName}.${faction}.${characterClass}.${specId}`,
+                                                                0
+                                                            ]
+                                                        }
                                                 };
                                             }
                                         }
@@ -1640,14 +1752,16 @@ class Database {
                         for (const specId in characterTotal) {
                             for (const combatMetric in characterTotal[specId]) {
                                 const categorization = [specId, combatMetric];
-                                const bestCombatMetricOfTotal = getNestedObjectValue(
-                                    bestTotal,
-                                    categorization
-                                );
-                                const characterCombatMetricOfTotal = getNestedObjectValue(
-                                    characterTotal,
-                                    categorization
-                                );
+                                const bestCombatMetricOfTotal =
+                                    getNestedObjectValue(
+                                        bestTotal,
+                                        categorization
+                                    );
+                                const characterCombatMetricOfTotal =
+                                    getNestedObjectValue(
+                                        characterTotal,
+                                        categorization
+                                    );
                                 const characterPerformanceTotal =
                                     characterPerformance[raidName][difficulty]
                                         .total;
