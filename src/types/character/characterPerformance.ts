@@ -29,4 +29,5 @@ export interface CharPerfData {
     sRank?: number;
     topPercent: number | null;
     hps?: number;
+    race: string;
 }

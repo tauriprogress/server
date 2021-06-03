@@ -12,4 +12,5 @@ export interface CharacterOfLeaderboard {
     ilvl: number;
     topPercent: number;
     date: number;
+    race: string;
 }

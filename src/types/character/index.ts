@@ -12,6 +12,7 @@ export interface Character {
     f: 0 | 1;
     dps?: number;
     hps?: number;
+    race: string;
 }
 
 export * from "./rankedCharacter";

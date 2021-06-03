@@ -163,7 +163,8 @@ export async function requestGuildData(guildName: string, realm: string) {
             name: guild.guildList[memberId].name,
             class: guild.guildList[memberId].class,
             rankName: guild.guildList[memberId].rank_name,
-            lvl: guild.guildList[memberId].level
+            lvl: guild.guildList[memberId].level,
+            race: `${guild.guildList[memberId].race},${guild.guildList[memberId].gender}`
         });
     }
 

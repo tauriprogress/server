@@ -18,6 +18,7 @@ interface GuildMember {
     class: number;
     rankName: string;
     lvl: number;
+    race: string;
 }
 
 interface GuildActivity {

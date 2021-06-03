@@ -28,9 +28,7 @@ import {
 } from "../types";
 import { getLatestWednesday } from "./providers";
 
-export async function getLogs(
-    lastLogIds: LastLogIds
-): Promise<{
+export async function getLogs(lastLogIds: LastLogIds): Promise<{
     logs: RaidLogWithRealm[];
     lastLogIds: { [propName: string]: number };
 }> {
@@ -53,7 +51,8 @@ export async function getLogs(
                         realm: realmName,
                         encounter_data: {
                             ...log.encounter_data,
-                            encounter_name: log.encounter_data.encounter_name.trim()
+                            encounter_name:
+                                log.encounter_data.encounter_name.trim()
                         }
                     }))
                 );
@@ -81,7 +80,8 @@ export async function getLogs(
                         realm: log.realm,
                         encounter_data: {
                             ...logData.response.encounter_data,
-                            encounter_name: logData.response.encounter_data.encounter_name.trim()
+                            encounter_name:
+                                logData.response.encounter_data.encounter_name.trim()
                         }
                     });
 
@@ -427,7 +427,8 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
                             String(
                                 character.race
                             ) as keyof typeof environment.characterRaceToFaction
-                        ] as 0 | 1
+                        ] as 0 | 1,
+                        race: `${character.race},${character.gender}`
                     };
 
                     let combatMetricPerformance;
@@ -450,9 +451,8 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
                                 combatMetric
                             ]
                     ) {
-                        combatMetrics[bossId][combatMetric][
-                            characterId
-                        ] = characterData;
+                        combatMetrics[bossId][combatMetric][characterId] =
+                            characterData;
                     }
 
                     const characterCategorization = [
@@ -516,9 +516,8 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
                                     combatMetricPerformance >
                                         sameCharPerformance
                                 ) {
-                                    categorizedBestOf[
-                                        indexOfSameChar
-                                    ] = characterData;
+                                    categorizedBestOf[indexOfSameChar] =
+                                        characterData;
 
                                     categorizedBestOf
                                         .sort(
@@ -529,20 +528,19 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
                                         .slice(0, 10);
                                 }
                             } else {
-                                bosses[bossId][
-                                    bestOfKey
-                                ] = addNestedObjectValue(
-                                    bosses[bossId][bestOfKey],
-                                    characterCategorization,
-                                    categorizedBestOf
-                                        .concat(characterData)
-                                        .sort(
-                                            (a, b) =>
-                                                (b[combatMetric] || 0) -
-                                                (a[combatMetric] || 0)
-                                        )
-                                        .slice(0, 10)
-                                );
+                                bosses[bossId][bestOfKey] =
+                                    addNestedObjectValue(
+                                        bosses[bossId][bestOfKey],
+                                        characterCategorization,
+                                        categorizedBestOf
+                                            .concat(characterData)
+                                            .sort(
+                                                (a, b) =>
+                                                    (b[combatMetric] || 0) -
+                                                    (a[combatMetric] || 0)
+                                            )
+                                            .slice(0, 10)
+                                    );
                             }
                         }
                     }
@@ -587,10 +585,12 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
                 bosses[bossId].fastestKills = addNestedObjectValue(
                     bosses[bossId].fastestKills,
                     categorization,
-                    (getNestedObjectValue(
-                        bosses[bossId].fastestKills,
-                        categorization
-                    ) as RaidBoss["fastestKills"][string][number])
+                    (
+                        getNestedObjectValue(
+                            bosses[bossId].fastestKills,
+                            categorization
+                        ) as RaidBoss["fastestKills"][string][number]
+                    )
                         .sort((a, b) => a.fightLength - b.fightLength)
                         .slice(0, 50)
                 );
@@ -603,10 +603,12 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
                 bosses[bossId].firstKills = addNestedObjectValue(
                     bosses[bossId].firstKills,
                     categorization,
-                    (getNestedObjectValue(
-                        bosses[bossId].firstKills,
-                        categorization
-                    ) as RaidBoss["firstKills"][string][number])
+                    (
+                        getNestedObjectValue(
+                            bosses[bossId].firstKills,
+                            categorization
+                        ) as RaidBoss["firstKills"][string][number]
+                    )
                         .sort((a, b) => a.date - b.date)
                         .slice(0, 3)
                 );

@@ -1018,7 +1018,8 @@ class Database {
                                         realm: characterData.realm,
                                         spec: characterData.spec,
                                         topPercent: currentPercent,
-                                        date: characterData.date
+                                        date: characterData.date,
+                                        race: characterData.race
                                     };
 
                                 if (!bestOfCharacter) {
