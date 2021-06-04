@@ -168,6 +168,11 @@ export function updateCharacterOfLeaderboard(
             ? previousCharacter.f
             : currentCharacter.f;
 
+    const updatedRace =
+        previousCharacter.date > currentCharacter.date
+            ? previousCharacter.race
+            : currentCharacter.race;
+
     const updatedIlvl =
         previousCharacter.ilvl > currentCharacter.ilvl
             ? previousCharacter.ilvl
@@ -183,6 +188,7 @@ export function updateCharacterOfLeaderboard(
         date: updatedDate,
         f: updatedFaction,
         ilvl: updatedIlvl,
-        topPercent: updatedTopPercent
+        topPercent: updatedTopPercent,
+        race: updatedRace
     };
 }
