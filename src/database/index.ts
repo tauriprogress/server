@@ -359,12 +359,12 @@ class Database {
                     await this.updateGuilds();
                 }
 
-                cache.clearRaidSummary();
-                cache.clearCharacterPerformance();
-
                 this.updateRaidBossCache();
 
                 this.updateLeaderboard();
+
+                cache.clearRaidSummary();
+                cache.clearCharacterPerformance();
 
                 this.isUpdating = false;
                 this.updateStatus = "";
