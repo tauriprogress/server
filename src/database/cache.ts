@@ -3,7 +3,7 @@ import * as NodeCache from "node-cache";
 class Cache {
     public guildList: NodeCache;
     public raidSummary: NodeCache;
-    public character: NodeCache;
+    public characterPerformance: NodeCache;
     public raidBoss: NodeCache;
     public leaderboard: NodeCache;
     public guildLeaderboard: NodeCache;
@@ -19,7 +19,7 @@ class Cache {
             checkperiod: 60,
             useClones: false
         });
-        this.character = new NodeCache({
+        this.characterPerformance = new NodeCache({
             stdTTL: 4 * 60,
             checkperiod: 60,
             useClones: false,

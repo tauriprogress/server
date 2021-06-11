@@ -1468,7 +1468,7 @@ class Database {
 
                 const cacheId = `${characterName}${realm}${raidName}`;
 
-                const cachedData = cache.character.get(cacheId) as
+                const cachedData = cache.characterPerformance.get(cacheId) as
                     | CharacterPerformance
                     | false;
 
@@ -1786,7 +1786,10 @@ class Database {
                         }
                     }
                     try {
-                        cache.character.set(cacheId, characterPerformance);
+                        cache.characterPerformance.set(
+                            cacheId,
+                            characterPerformance
+                        );
                     } catch (err) {
                         console.log("db: Character cache is full");
                     }
