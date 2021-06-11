@@ -24,6 +24,7 @@ import tauriApi from "./tauriApi";
 import { minutesAgo, runGC } from "./helpers";
 import { LooseObject } from "./types";
 import { environment } from "./environment";
+import cache from "./database/cache";
 
 const app = express();
 const prompt = require("prompt-sync")();
@@ -217,19 +218,29 @@ const speedLimiter = slowDown({
             let items: LooseObject = {};
             for (let guid of req.body.ids) {
                 let data;
+                let item = cache.items.get(guid);
 
-                do {
-                    try {
-                        data = await tauriApi.getItemByGuid(
-                            guid,
-                            req.body.realm
-                        );
-                    } catch (err) {
-                        data = err.message;
+                if (!item) {
+                    do {
+                        try {
+                            data = await tauriApi.getItemByGuid(
+                                guid,
+                                req.body.realm
+                            );
+                        } catch (err) {
+                            data = err.message;
+                        }
+                    } while (!data.success && data === "request timed out");
+
+                    if (data.success) {
+                        item = { ...data.response, guid };
+                        cache.items.set(guid, item);
+                    } else {
+                        continue;
                     }
-                } while (!data.success && data === "request timed out");
+                }
 
-                if (data.success) items[guid] = { ...data.response, guid };
+                items[guid] = item;
             }
 
             if (!Object.keys(items).length)

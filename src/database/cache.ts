@@ -9,6 +9,8 @@ class Cache {
 
     public characterPerformance: NodeCache;
 
+    public items: NodeCache;
+
     constructor() {
         this.guildList = new NodeCache({
             stdTTL: 20 * 60,
@@ -32,11 +34,16 @@ class Cache {
             stdTTL: 0,
             useClones: false
         });
-
         this.guildLeaderboard = new NodeCache({
             stdTTL: 20 * 60,
             checkperiod: 60,
             useClones: false
+        });
+        this.items = new NodeCache({
+            stdTTL: 5 * 60,
+            checkperiod: 60,
+            useClones: false,
+            maxKeys: 1500
         });
     }
 
