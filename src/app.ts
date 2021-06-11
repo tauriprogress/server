@@ -33,7 +33,7 @@ const speedLimiter = slowDown({
     windowMs: 20 * 1000,
     delayAfter: 20,
     delayMs: 300,
-    maxDelayMs: 3 * 1000,
+    maxDelayMs: 2 * 1000,
     keyGenerator: () => "1",
     onLimitReached: () => runGC()
 });
