@@ -20,10 +20,9 @@ class Cache {
             useClones: false
         });
         this.characterPerformance = new NodeCache({
-            stdTTL: 4 * 60,
-            checkperiod: 60,
+            stdTTL: 0,
             useClones: false,
-            maxKeys: 150
+            maxKeys: 100
         });
         this.raidBoss = new NodeCache({
             stdTTL: 0,
@@ -43,6 +42,10 @@ class Cache {
 
     clearRaidSummary() {
         this.raidSummary.del(this.raidSummary.keys());
+    }
+
+    clearCharacterPerformance() {
+        this.characterPerformance.del(this.characterPerformance.keys());
     }
 }
 
