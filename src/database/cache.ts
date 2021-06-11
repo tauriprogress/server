@@ -3,10 +3,11 @@ import * as NodeCache from "node-cache";
 class Cache {
     public guildList: NodeCache;
     public raidSummary: NodeCache;
-    public characterPerformance: NodeCache;
     public raidBoss: NodeCache;
     public leaderboard: NodeCache;
     public guildLeaderboard: NodeCache;
+
+    public characterPerformance: NodeCache;
 
     constructor() {
         this.guildList = new NodeCache({
@@ -15,8 +16,7 @@ class Cache {
             useClones: false
         });
         this.raidSummary = new NodeCache({
-            stdTTL: 20 * 60,
-            checkperiod: 60,
+            stdTTL: 0,
             useClones: false
         });
         this.characterPerformance = new NodeCache({
@@ -39,6 +39,10 @@ class Cache {
             checkperiod: 60,
             useClones: false
         });
+    }
+
+    clearRaidSummary() {
+        this.raidSummary.del(this.raidSummary.keys());
     }
 }
 

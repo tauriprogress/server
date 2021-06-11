@@ -359,6 +359,8 @@ class Database {
                     await this.updateGuilds();
                 }
 
+                cache.clearRaidSummary()
+
                 this.updateRaidBossCache();
 
                 this.updateLeaderboard();
