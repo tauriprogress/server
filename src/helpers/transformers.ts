@@ -91,6 +91,19 @@ export function logBugHandler(
                 }
 
                 break;
+            case "overwriteSpec":
+                if (log.log_id === bug.logId && log.realm === bug.realm) {
+                    log.members = log.members.map((member: any) => {
+                        if (member.name === bug.characterName) {
+                            return {
+                                ...member,
+                                spec: bug.specId
+                            };
+                        }
+                        return member;
+                    });
+                }
+                break;
             default:
         }
     }
