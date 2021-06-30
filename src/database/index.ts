@@ -1156,11 +1156,11 @@ class Database {
                             }
                         }
                     }
+                    if (!leaderboards.overall[difficulty]) {
+                        leaderboards.overall[difficulty] = [];
+                    }
 
                     for (const charId in characters) {
-                        if (!leaderboards.overall[difficulty]) {
-                            leaderboards.overall[difficulty] = [];
-                        }
                         characters[charId].best.topPercent =
                             getRelativePerformance(
                                 characters[charId].best.topPercent,
@@ -1217,15 +1217,19 @@ class Database {
                     );
 
                     for (const specId in leaderboards.specs) {
-                        leaderboards.specs[specId][difficulty].sort(
-                            (a, b) => b.topPercent - a.topPercent
-                        );
+                        if (!!leaderboards.specs[specId][difficulty]) {
+                            leaderboards.specs[specId][difficulty].sort(
+                                (a, b) => b.topPercent - a.topPercent
+                            );
+                        }
                     }
 
                     for (const role in leaderboards.roles) {
-                        leaderboards.roles[role][difficulty].sort(
-                            (a, b) => b.topPercent - a.topPercent
-                        );
+                        if (!!leaderboards.roles[role][difficulty]) {
+                            leaderboards.roles[role][difficulty].sort(
+                                (a, b) => b.topPercent - a.topPercent
+                            );
+                        }
                     }
                 }
 
