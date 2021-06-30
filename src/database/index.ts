@@ -1593,10 +1593,9 @@ class Database {
                                     currentBoss[difficulty][
                                         `best${capitalize(combatMetric)}`
                                     ];
-                                const bestOverall =
-                                    currentBoss[difficulty][
-                                        `best${capitalize(combatMetric)}NoCat`
-                                    ];
+                                const bestOverall = currentBoss[difficulty][
+                                    `best${capitalize(combatMetric)}NoCat`
+                                ] || { dps: 0, hps: 0 };
 
                                 let bestOfClass: LooseObject = {};
                                 let bestOfCharacter: LooseObject = {
