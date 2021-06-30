@@ -1438,6 +1438,8 @@ class Database {
                     for (const difficulty of difficulties) {
                         for (const bossData of bosses) {
                             const boss = bossData[difficulty];
+
+                            if (!boss) continue;
                             for (const realmName in boss.fastestKills) {
                                 for (const faction in boss.fastestKills[
                                     realmName
