@@ -13,7 +13,8 @@ import {
     unshiftDateDay,
     guildRecentKills,
     getGuildId,
-    sameMembers
+    sameMembers,
+    validLogDate
 } from "../helpers";
 import tauriApi from "../tauriApi";
 import {
@@ -62,6 +63,7 @@ export async function getLogs(lastLogIds: LastLogIds): Promise<{
                 a.killtime < b.killtime ? -1 : 1
             )) {
                 if (
+                    validLogDate(new Date(log.killtime * 1000)) &&
                     validRaidName(log.mapentry.name) &&
                     validDifficulty(log.mapentry.id, log.difficulty) &&
                     validBossName(

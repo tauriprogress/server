@@ -92,3 +92,24 @@ export function getCurrentSeason() {
 
     return false;
 }
+
+export function validLogDate(date: Date) {
+    if (!environment.seasonal) {
+        return true;
+    }
+
+    const currentSeason = getCurrentSeason();
+
+    if (currentSeason) {
+        const time = date.getTime();
+
+        const start = new Date(currentSeason.start).getTime();
+        const finish = new Date(currentSeason.finish).getTime();
+
+        if (time > start && time < finish) {
+            return true;
+        }
+    }
+
+    return false;
+}
