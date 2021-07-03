@@ -72,3 +72,17 @@ export function sameMembers(
 
     return difficulty * 0.8 <= sameMemberCount;
 }
+
+export function isSeasonRunning() {
+    const currentDate = new Date().getTime();
+    if (environment.seasonal) {
+        for (const season of environment.seasons) {
+            const start = new Date(season.start).getTime();
+            const finish = new Date(season.finish).getTime();
+            if (currentDate > start && currentDate < finish) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
