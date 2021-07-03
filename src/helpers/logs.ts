@@ -84,13 +84,13 @@ export async function getLogs(lastLogIds: LastLogIds): Promise<{
                                 logData.response.encounter_data.encounter_name.trim()
                         }
                     });
-
-                    newLastLogIds = addNestedObjectValue(
-                        newLastLogIds,
-                        [log.realm],
-                        log.log_id
-                    );
                 }
+
+                newLastLogIds = addNestedObjectValue(
+                    newLastLogIds,
+                    [log.realm],
+                    log.log_id
+                );
             }
 
             resolve({
