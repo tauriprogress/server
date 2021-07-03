@@ -40,6 +40,7 @@ class Environment {
     readonly difficultyNames;
     readonly forceInit;
     readonly seasonal;
+    readonly seasons;
 
     constructor() {
         if (process.env.FORCE_INIT && process.env.FORCE_INIT === "true") {
@@ -139,6 +140,8 @@ class Environment {
             this.guildFactionBugs = constants.tauri.guildFactionBugs;
 
             this.difficultyNames = constants.tauri.difficultyNames;
+
+            this.seasons = constants.tauri.seasons;
         } else {
             this.realms = constants.crystalsong.realms;
 
@@ -163,6 +166,8 @@ class Environment {
             this.guildFactionBugs = constants.crystalsong.guildFactionBugs;
 
             this.difficultyNames = constants.crystalsong.difficultyNames;
+
+            this.seasons = constants.crystalsong.seasons;
         }
 
         this.shortRealms = constants.shortRealms;
