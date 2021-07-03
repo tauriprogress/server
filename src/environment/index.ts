@@ -26,7 +26,6 @@ class Environment {
     readonly PORT: number;
 
     readonly defaultRealm: string;
-    readonly raids;
     readonly realms;
     readonly characterClassNames;
     readonly shortRealms;
@@ -47,12 +46,6 @@ class Environment {
             this.forceInit = true;
         } else {
             this.forceInit = false;
-        }
-
-        if (process.env.SEASONAL && process.env.SEASONAL === "true") {
-            this.seasonal = true;
-        } else {
-            this.seasonal = false;
         }
 
         if (process.env.REALM_GROUP && isRealmGroup(process.env.REALM_GROUP)) {
@@ -127,11 +120,7 @@ class Environment {
                     )[0] as keyof typeof constants.tauri.realms
                 ];
 
-            this.raids = constants.tauri.currentContent.raids;
-
             this.characterClassNames = constants.tauri.characterClassNames;
-
-            this.currentContent = constants.tauri.currentContent;
 
             this.specs = constants.tauri.specs;
 
@@ -152,12 +141,8 @@ class Environment {
                     )[0] as keyof typeof constants.crystalsong.realms
                 ];
 
-            this.raids = constants.crystalsong.currentContent.raids;
-
             this.characterClassNames =
                 constants.crystalsong.characterClassNames;
-
-            this.currentContent = constants.crystalsong.currentContent;
 
             this.specs = constants.crystalsong.specs;
 
@@ -177,6 +162,32 @@ class Environment {
         this.characterSpecToClass = constants.characterSpecToClass;
 
         this.characterClassToSpec = constants.characterClassToSpec;
+
+        if (process.env.SEASONAL && process.env.SEASONAL === "true") {
+            this.seasonal = true;
+
+            if (this.REALM_GROUP === "tauri") {
+                const currentContent = {
+                    ...constants.tauri.currentContent,
+                    raids: [constants.tauri.currentContent.raids[0]]
+                };
+                this.currentContent = currentContent;
+            } else {
+                const currentContent = {
+                    ...constants.crystalsong.currentContent,
+                    raids: [constants.crystalsong.currentContent.raids[0]]
+                };
+                this.currentContent = currentContent;
+            }
+        } else {
+            this.seasonal = false;
+
+            if (this.REALM_GROUP === "tauri") {
+                this.currentContent = constants.tauri.currentContent;
+            } else {
+                this.currentContent = constants.crystalsong.currentContent;
+            }
+        }
     }
 }
 
