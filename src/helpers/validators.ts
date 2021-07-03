@@ -1,7 +1,7 @@
 import { environment } from "../environment";
 
 export function validRaidId(raidId: number) {
-    for (const raid of environment.raids) {
+    for (const raid of environment.currentContent.raids) {
         if (raid.id === raidId) {
             return true;
         }
@@ -18,7 +18,7 @@ export function validClass(characterClass: number) {
 }
 
 export function validRaidName(raidName: string) {
-    for (const raid of environment.raids) {
+    for (const raid of environment.currentContent.raids) {
         if (raid.name === raidName) {
             return true;
         }
@@ -27,7 +27,7 @@ export function validRaidName(raidName: string) {
 }
 
 export function validBossName(raidId: number, bossName: string) {
-    for (const raid of environment.raids) {
+    for (const raid of environment.currentContent.raids) {
         if (raid.id === raidId) {
             for (const boss of raid.bosses) {
                 if (boss.name === bossName) {
@@ -40,7 +40,7 @@ export function validBossName(raidId: number, bossName: string) {
 }
 
 export function validDifficulty(raidId: number, difficulty: number) {
-    for (const raid of environment.raids) {
+    for (const raid of environment.currentContent.raids) {
         if (raid.id === raidId) {
             for (const raidDifficulty of raid.difficulties) {
                 if (difficulty === raidDifficulty) {
