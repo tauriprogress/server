@@ -54,7 +54,9 @@ export function getRecentGuildRaidDays(logs: GuildRecentKill[]) {
         if (log.date * 1000 > timeBoundary) {
             let logDate = new Date(log.date * 1000);
 
-            raidDays[unshiftDateDay(logDate.getDay())][logDate.getHours()] += 1;
+            raidDays[unshiftDateDay(logDate.getUTCDay())][
+                logDate.getUTCHours()
+            ] += 1;
         } else {
             break;
         }

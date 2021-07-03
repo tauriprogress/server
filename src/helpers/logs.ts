@@ -227,8 +227,8 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
             guilds[guildId].activity[difficulty] = date;
 
             const logDate = new Date(date * 1000);
-            guilds[guildId].raidDays.total[unshiftDateDay(logDate.getDay())][
-                logDate.getHours()
+            guilds[guildId].raidDays.total[unshiftDateDay(logDate.getUTCDay())][
+                logDate.getUTCHours()
             ] += 1;
 
             guilds[guildId].progression.recentKills.unshift({
