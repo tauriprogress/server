@@ -74,15 +74,21 @@ export function sameMembers(
 }
 
 export function isSeasonRunning() {
+    return !!getCurrentSeason();
+}
+
+export function getCurrentSeason() {
     const currentDate = new Date().getTime();
+
     if (environment.seasonal) {
         for (const season of environment.seasons) {
             const start = new Date(season.start).getTime();
             const finish = new Date(season.finish).getTime();
             if (currentDate > start && currentDate < finish) {
-                return true;
+                return season;
             }
         }
     }
+
     return false;
 }
