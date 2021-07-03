@@ -39,12 +39,19 @@ class Environment {
     readonly characterClassToSpec;
     readonly difficultyNames;
     readonly forceInit;
+    readonly seasonal;
 
     constructor() {
         if (process.env.FORCE_INIT && process.env.FORCE_INIT === "true") {
             this.forceInit = true;
         } else {
             this.forceInit = false;
+        }
+
+        if (process.env.SEASONAL && process.env.SEASONAL === "true") {
+            this.seasonal = true;
+        } else {
+            this.seasonal = false;
         }
 
         if (process.env.REALM_GROUP && isRealmGroup(process.env.REALM_GROUP)) {
