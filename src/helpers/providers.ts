@@ -18,20 +18,23 @@ export function getBossCollectionName(
 }
 
 export function getLatestWednesday(currentDate: Date = new Date()) {
-    const currentDay = currentDate.getDay();
+    const currentDay = currentDate.getUTCDay();
 
     const wednesdayDaysAgo = (currentDay < 3 ? currentDay + 7 : currentDay) - 3;
 
-    let lastWednesdayDate = currentDate.getDate() - wednesdayDaysAgo;
-    if (currentDay === 3 && currentDate.getHours() < 9) {
+    let lastWednesdayDate = currentDate.getUTCDate() - wednesdayDaysAgo;
+
+    if (currentDay === 3 && currentDate.getUTCHours() < 7) {
         lastWednesdayDate -= 7;
     }
 
     return new Date(
-        currentDate.getFullYear(),
-        currentDate.getMonth(),
-        lastWednesdayDate,
-        10
+        Date.UTC(
+            currentDate.getUTCFullYear(),
+            currentDate.getUTCMonth(),
+            lastWednesdayDate,
+            7
+        )
     );
 }
 
