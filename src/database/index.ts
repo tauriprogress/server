@@ -28,7 +28,9 @@ import {
     getNestedObjectValue,
     addToCharTotalPerformance,
     updateGuildRanking,
-    runGC
+    runGC,
+    getDefaultBoss,
+    getRaidBossId
 } from "../helpers";
 
 import { MongoClient, Db, ClientSession, ObjectID } from "mongodb";
@@ -142,6 +144,20 @@ class Database {
 
                     for (const boss of raid.bosses) {
                         for (const difficulty in boss.difficultyIds) {
+                            await this.saveRaidBoss(
+                                getDefaultBoss(
+                                    getRaidBossId(
+                                        boss.difficultyIds[
+                                            difficulty as keyof typeof boss.difficultyIds
+                                        ],
+                                        Number(difficulty)
+                                    ),
+                                    raid.id,
+                                    boss.name,
+                                    Number(difficulty)
+                                )
+                            );
+
                             for (const combatMetric of ["dps", "hps"]) {
                                 const collectionName = getBossCollectionName(
                                     boss.difficultyIds[
@@ -240,6 +256,7 @@ class Database {
                         "db: Saving logs in case something goes wrong in the initalization process to",
                         __dirname
                     );
+
                     fs.writeFileSync(
                         "logData.json",
                         JSON.stringify({ logs, lastLogIds: newLastLogIds })

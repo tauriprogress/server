@@ -134,6 +134,10 @@ export function getBossInfo(raidId: number, bossName: string) {
     }
 }
 
+export function getRaidBossId(bossId: number, difficulty: number) {
+    return `${bossId} ${difficulty}`;
+}
+
 export function getRaidBossCacheId(raidId: number, bossName: string) {
     return `${raidId}${bossName}`;
 }

@@ -1,12 +1,17 @@
 import { RaidBoss } from "../../types";
 export * from "./updateRaidBoss";
 
-export function getDefaultBoss(): RaidBoss {
+export function getDefaultBoss(
+    id = "",
+    raidId = 0,
+    name = "",
+    difficulty = 0
+): RaidBoss {
     return {
-        _id: "",
-        raidId: 0,
-        name: "",
-        difficulty: 0,
+        _id: id,
+        raidId: raidId,
+        name: name,
+        difficulty: difficulty,
         killCount: 0,
         recentKills: [],
         fastestKills: {},

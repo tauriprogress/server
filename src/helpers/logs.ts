@@ -14,7 +14,8 @@ import {
     guildRecentKills,
     getGuildId,
     sameMembers,
-    validLogDate
+    validLogDate,
+    getRaidBossId
 } from "../helpers";
 import tauriApi from "../tauriApi";
 import {
@@ -124,7 +125,7 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
         const raidId = log.mapentry.id;
         const bossName = log.encounter_data.encounter_name;
         const difficulty = Number(log.difficulty);
-        const bossId = `${log.encounter_data.encounter_id} ${difficulty}`;
+        const bossId = getRaidBossId(log.encounter_data.encounter_id, difficulty);
         const realm = log.realm as keyof typeof environment.shortRealms;
         const faction = getLogFaction(log);
         const fightLength = log.fight_time;

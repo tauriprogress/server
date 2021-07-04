@@ -26,7 +26,7 @@
     "scripts": {
         "start": "node --expose-gc ./build/start.js ",
         "compile": "tsc --project tsconfig.json",
-        "dev": "tsc --watch"
+        "dev": "tsc --watch --inlineSourceMap"
     },
     "engines": {
         "node": "14.x"
