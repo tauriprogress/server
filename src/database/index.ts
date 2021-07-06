@@ -316,7 +316,8 @@ class Database {
                         }
                     );
                 } else {
-                    newLastLogIds = { ...lastLogIds };
+                    let completed = false;
+                    let chunkLastLogIds = { ...lastLogIds };
                     const loopSteps = 10;
                     for (
                         let i = 0;
@@ -329,8 +330,8 @@ class Database {
                             start + loopSteps
                         );
                         const processedLogs = processLogs(chunkOfLogs);
-                        newLastLogIds = {
-                            ...newLastLogIds,
+                        chunkLastLogIds = {
+                            ...chunkLastLogIds,
                             ...getLastLogIds(chunkOfLogs)
                         };
                         const session = this.client.startSession();
@@ -342,7 +343,7 @@ class Database {
                                     await this.saveLogs(
                                         processedLogs,
                                         {
-                                            lastLogIds: newLastLogIds,
+                                            lastLogIds: chunkLastLogIds,
                                             updateStarted
                                         },
                                         session
@@ -358,6 +359,10 @@ class Database {
                                     }
                                 }
                             );
+
+                            if (i === Math.ceil(logs.length / loopSteps) - 1) {
+                                completed = true;
+                            }
                         } catch (err) {
                             console.log("transaction error");
                             console.error(err);
@@ -366,6 +371,17 @@ class Database {
                             session.endSession();
                             console.log("db: Transaction session closed");
                         }
+                    }
+
+                    if (completed) {
+                        await maintenanceCollection.updateOne(
+                            {},
+                            {
+                                $set: {
+                                    lastLogIds: newLastLogIds
+                                }
+                            }
+                        );
                     }
                 }
 
