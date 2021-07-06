@@ -506,7 +506,19 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
                                 combatMetric
                             ];
 
-                        if (
+                        if (categorizedBestOf.length < 10) {
+                            bosses[bossId][bestOfKey] = addNestedObjectValue(
+                                bosses[bossId][bestOfKey],
+                                characterCategorization,
+                                categorizedBestOf
+                                    .concat(characterData)
+                                    .sort(
+                                        (a, b) =>
+                                            (b[combatMetric] || 0) -
+                                            (a[combatMetric] || 0)
+                                    )
+                            );
+                        } else if (
                             lastBestPerformance &&
                             combatMetricPerformance > lastBestPerformance
                         ) {
