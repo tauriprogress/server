@@ -319,11 +319,13 @@ class Database {
                     let completed = false;
                     let chunkLastLogIds = { ...lastLogIds };
                     const loopSteps = 10;
-                    for (
-                        let i = 0;
-                        i < Math.ceil(logs.length / loopSteps);
-                        i++
-                    ) {
+                    const loopCount = Math.ceil(logs.length / loopSteps);
+
+                    if (loopCount === 0) {
+                        completed = true;
+                    }
+
+                    for (let i = 1; i <= loopCount; i++) {
                         const start = i * loopSteps;
                         const chunkOfLogs = logs.slice(
                             start,
@@ -360,7 +362,7 @@ class Database {
                                 }
                             );
 
-                            if (i === Math.ceil(logs.length / loopSteps) - 1) {
+                            if (i === loopCount) {
                                 completed = true;
                             }
                         } catch (err) {
