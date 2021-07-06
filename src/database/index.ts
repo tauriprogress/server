@@ -337,16 +337,27 @@ class Database {
 
                         try {
                             console.log("db: Opening new transaction session");
-                            await session.withTransaction(async () => {
-                                await this.saveLogs(
-                                    processedLogs,
-                                    {
-                                        lastLogIds: newLastLogIds,
-                                        updateStarted
+                            await session.withTransaction(
+                                async () => {
+                                    await this.saveLogs(
+                                        processedLogs,
+                                        {
+                                            lastLogIds: newLastLogIds,
+                                            updateStarted
+                                        },
+                                        session
+                                    );
+                                },
+                                {
+                                    readConcern: {
+                                        level: "majority"
                                     },
-                                    session
-                                );
-                            });
+                                    writeConcern: {
+                                        w: "majority",
+                                        j: true
+                                    }
+                                }
+                            );
                         } catch (err) {
                             console.log("transaction error");
                             console.error(err);
