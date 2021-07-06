@@ -44,20 +44,6 @@ export function unshiftDateDay(day: number) {
 }
 
 export function getLogFaction(log: RaidLogWithRealm) {
-    /**
-     * The reasons for this function:
-     *  - There is no reference to the faction the kill took place in
-     *  - The only way to determine faction is to look at guild or character data
-     *  - The guild/character data is unreliable to determine faction
-     *      because it is picked from a relational table at the time of the request based on a guild/char id,
-     *      this means that the guild/char data may change over time
-     *      (eg: guild/char gone through a faction change)
-     *
-     * To determine faction with higher probability,
-     *  this function counts the faction each char belongs to and picks the highest
-     *
-     */
-
     let alliance = 0;
     let horde = 0;
     for (let member of log.members) {

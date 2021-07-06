@@ -125,9 +125,11 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
         const raidId = log.mapentry.id;
         const bossName = log.encounter_data.encounter_name;
         const difficulty = Number(log.difficulty);
-        const bossId = getRaidBossId(log.encounter_data.encounter_id, difficulty);
+        const bossId = getRaidBossId(
+            log.encounter_data.encounter_id,
+            difficulty
+        );
         const realm = log.realm as keyof typeof environment.shortRealms;
-        const faction = getLogFaction(log);
         const fightLength = log.fight_time;
         const date = log.killtime;
 
@@ -136,6 +138,9 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
         const guildId =
             isGuildKill && guildName ? getGuildId(guildName, realm) : undefined;
         const guildFaction = log.guilddata.faction;
+
+        const faction = guildFaction || getLogFaction(log);
+
         const guildBossCategorization = [
             "progression",
             "raids",
