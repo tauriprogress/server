@@ -326,7 +326,7 @@ class Database {
                     }
 
                     for (let i = 1; i <= loopCount; i++) {
-                        const start = i * loopSteps;
+                        const start = (i - 1) * loopSteps;
                         const chunkOfLogs = logs.slice(
                             start,
                             start + loopSteps
