@@ -10,6 +10,7 @@ import {
     verifyGetCharacter,
     verifyGetRaidSummary,
     verifyGetBoss,
+    verifyGetBossKillCount,
     verifyGetLog,
     verifyCharacterRecentKills,
     verifyGetCharacterPerformance,
@@ -177,6 +178,31 @@ const speedLimiter = slowDown({
             });
         }
     });
+
+    app.post(
+        "/getboss/killCount",
+        waitDbCache,
+        verifyGetBossKillCount,
+        async (req, res) => {
+            try {
+                res.send({
+                    success: true,
+                    response: {
+                        killCount: await db.getRaidBossKillCount(
+                            req.body.raidId,
+                            req.body.bossName,
+                            req.body.difficulty
+                        )
+                    }
+                });
+            } catch (err) {
+                res.send({
+                    success: false,
+                    errorstring: err.message
+                });
+            }
+        }
+    );
 
     app.get("/lastupdated", async (_1, res) => {
         try {

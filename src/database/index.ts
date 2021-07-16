@@ -1401,6 +1401,35 @@ class Database {
         });
     }
 
+    async getRaidBossKillCount(
+        raidId: number,
+        bossName: string,
+        difficulty: number
+    ): Promise<number> {
+        return new Promise(async (resolve, reject) => {
+            try {
+                if (!this.db) throw new Error(connectionErrorMessage);
+
+                const cacheId = `${raidId}${bossName}`;
+
+                const cachedData = cache.raidBoss.get(cacheId) as
+                    | RaidBossDataToServe
+                    | false;
+
+                if (cachedData) {
+                    resolve(cachedData[difficulty].killCount);
+                } else {
+                    let bossData = await this.requestRaidBoss(raidId, bossName);
+                    cache.raidBoss.set(cacheId, bossData);
+
+                    resolve(bossData[difficulty].killCount);
+                }
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+
     async getCharacterLeaderboard(id: string) {
         return new Promise(async (resolve, reject) => {
             try {
