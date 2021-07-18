@@ -162,6 +162,33 @@ export function verifyGetBossKillCount(
     }
 }
 
+export function verifyGetBossRecentKills(
+    req: Request,
+    res: Response,
+    next: NextFunction
+) {
+    try {
+        if (!req.body.raidId || !validRaidId(req.body.raidId))
+            throw new Error(`${req.body.raidId} is not a valid raid id.`);
+
+        if (
+            !req.body.bossName ||
+            !validBossName(req.body.raidId, req.body.bossName)
+        )
+            throw new Error(`${req.body.bossName} is not a valid boss name.`);
+
+        if (
+            !req.body.difficulty ||
+            !validDifficulty(req.body.raidId, req.body.difficulty)
+        )
+            throw new Error(`${req.body.difficulty} is not valid difficulty.`);
+
+        next();
+    } catch (err) {
+        res.send({ success: false, errorstring: err.message });
+    }
+}
+
 export function verifyGetLog(req: Request, res: Response, next: NextFunction) {
     try {
         if (!req.body.logId) throw new Error("Invalid log id name.");

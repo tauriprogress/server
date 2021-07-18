@@ -51,7 +51,8 @@ import {
     RaidSummary,
     RaidBossNoRecent,
     CharacterPerformance,
-    CharPerfBossData
+    CharPerfBossData,
+    TrimmedLog
 } from "../types";
 
 const connectionErrorMessage = "Not connected to database.";
@@ -1423,6 +1424,35 @@ class Database {
                     cache.raidBoss.set(cacheId, bossData);
 
                     resolve(bossData[difficulty].killCount);
+                }
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+
+    async getRaidBossRecentKills(
+        raidId: number,
+        bossName: string,
+        difficulty: number
+    ): Promise<TrimmedLog[]> {
+        return new Promise(async (resolve, reject) => {
+            try {
+                if (!this.db) throw new Error(connectionErrorMessage);
+
+                const cacheId = `${raidId}${bossName}`;
+
+                const cachedData = cache.raidBoss.get(cacheId) as
+                    | RaidBossDataToServe
+                    | false;
+
+                if (cachedData) {
+                    resolve(cachedData[difficulty].recentKills);
+                } else {
+                    let bossData = await this.requestRaidBoss(raidId, bossName);
+                    cache.raidBoss.set(cacheId, bossData);
+
+                    resolve(bossData[difficulty].recentKills);
                 }
             } catch (err) {
                 reject(err);
