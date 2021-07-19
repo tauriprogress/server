@@ -1460,6 +1460,35 @@ class Database {
         });
     }
 
+    async getRaidBossFastestKills(
+        raidId: number,
+        bossName: string,
+        difficulty: number
+    ): Promise<TrimmedLog[]> {
+        return new Promise(async (resolve, reject) => {
+            try {
+                if (!this.db) throw new Error(connectionErrorMessage);
+
+                const cacheId = `${raidId}${bossName}`;
+
+                const cachedData = cache.raidBoss.get(cacheId) as
+                    | RaidBossDataToServe
+                    | false;
+
+                if (cachedData) {
+                    resolve(cachedData[difficulty].fastestKills);
+                } else {
+                    let bossData = await this.requestRaidBoss(raidId, bossName);
+                    cache.raidBoss.set(cacheId, bossData);
+
+                    resolve(bossData[difficulty].fastestKills);
+                }
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+
     async getCharacterLeaderboard(id: string) {
         return new Promise(async (resolve, reject) => {
             try {
