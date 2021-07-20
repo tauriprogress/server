@@ -163,7 +163,7 @@ export function validFilters(raidId: number, filters: any) {
         !Array.isArray(filters)
     ) {
         if (
-            !filters.difficulty &&
+            !filters.difficulty ||
             !validDifficulty(raidId, filters.difficulty)
         ) {
             return false;
