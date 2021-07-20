@@ -169,23 +169,23 @@ export function validFilters(raidId: number, filters: any) {
             return false;
         }
 
-        if (!filters.realm && !validRealm(filters.realm)) {
+        if (filters.realm && !validRealm(filters.realm)) {
             return false;
         }
 
-        if (!filters.class && !validClass(filters.class)) {
+        if (filters.class && !validClass(filters.class)) {
             return false;
         }
 
-        if (!filters.spec && !validSpec(filters.spec)) {
+        if (filters.spec && !validSpec(filters.spec)) {
             return false;
         }
 
-        if (!filters.role && !validRole(filters.role)) {
+        if (filters.role && !validRole(filters.role)) {
             return false;
         }
 
-        if (!filters.faction && !validFaction(filters.faction)) {
+        if (filters.faction && !validFaction(filters.faction)) {
             return false;
         }
 
