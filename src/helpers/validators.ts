@@ -229,7 +229,7 @@ export function validLimit(limit: any) {
 
 export function validItemids(ids: any) {
     return (
-        !Array.isArray(ids) &&
+        Array.isArray(ids) &&
         ids.reduce((acc: boolean, curr: any) => {
             if (typeof curr !== "number") {
                 return false;
