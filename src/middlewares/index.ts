@@ -11,8 +11,31 @@ import {
     validCombatMetric,
     validFilters,
     validPage,
-    validPageSize
+    validPageSize,
+    validGuildName,
+    validCharacterName,
+    validLogId,
+    validLimit,
+    validLeaderboardId,
+    validItemids
 } from "../helpers";
+import {
+    ERR_INVALID_BOSS_NAME,
+    ERR_INVALID_CHARACTER_CLASS,
+    ERR_INVALID_CHARACTER_NAME,
+    ERR_INVALID_COMBAT_METRIC,
+    ERR_INVALID_DIFFICULTY,
+    ERR_INVALID_FILTERS,
+    ERR_INVALID_GUILD_NAME,
+    ERR_INVALID_ITEM_IDS,
+    ERR_INVALID_LEADERBOARD_ID,
+    ERR_INVALID_LIMIT,
+    ERR_INVALID_LOG_ID,
+    ERR_INVALID_PAGE,
+    ERR_INVALID_PAGESIZE,
+    ERR_INVALID_RAID_ID,
+    ERR_INVALID_RAID_NAME
+} from "../helpers/errors";
 
 const { capitalize, minutesAgo } = require("../helpers");
 
@@ -35,13 +58,12 @@ export function verifyGetGuild(
     next: NextFunction
 ) {
     try {
-        if (!req.body.guildName) throw new Error("Invalid guild name.");
-        req.body.guildName = req.body.guildName.trim().replace(/\s+/g, " ");
-        if (!req.body.realm) {
+        if (!validGuildName(req.body.guildName)) throw ERR_INVALID_GUILD_NAME;
+
+        if (!validRealm(req.body.realm)) {
             req.body.realm = environment.defaultRealm;
         }
-        req.body.realm = req.body.realm.trim();
-        if (!validRealm(req.body.realm)) throw new Error("Invalid realm name.");
+
         next();
     } catch (err) {
         res.send({
@@ -57,16 +79,15 @@ export function verifyGetCharacter(
     next: NextFunction
 ) {
     try {
-        if (!req.body.characterName) throw new Error("Invalid character name.");
-        req.body.characterName = capitalize(
-            req.body.characterName.trim().replace(/\s+/g, " ")
-        );
+        if (!validCharacterName(req.body.characterName))
+            throw ERR_INVALID_CHARACTER_NAME;
 
-        if (!req.body.realm) {
+        req.body.characterName = capitalize(req.body.characterName);
+
+        if (!validRealm(req.body.realm)) {
             req.body.realm = environment.defaultRealm;
         }
-        req.body.realm = req.body.realm.trim();
-        if (!validRealm(req.body.realm)) throw new Error("Invalid realm name.");
+
         next();
     } catch (err) {
         res.send({ success: false, errorstring: err.message });
@@ -79,25 +100,20 @@ export function verifyGetCharacterPerformance(
     next: NextFunction
 ) {
     try {
-        if (!req.body.characterName) throw new Error("Invalid character name.");
-        req.body.characterName = capitalize(
-            req.body.characterName.trim().replace(/\s+/g, " ")
-        );
+        if (!validCharacterName(req.body.characterName))
+            throw ERR_INVALID_CHARACTER_NAME;
 
-        if (req.body.raidName)
-            req.body.raidName = req.body.raidName.trim().replace(/\s+/g, " ");
+        req.body.characterName = capitalize(req.body.characterName);
 
-        if (!req.body.characterClass || !validClass(req.body.characterClass))
-            throw new Error("Invalid character class");
+        if (!validClass(req.body.characterClass))
+            throw ERR_INVALID_CHARACTER_CLASS;
 
-        if (!validRaidName(req.body.raidName))
-            throw new Error("Invalid raid name.");
+        if (!validRaidName(req.body.raidName)) throw ERR_INVALID_RAID_NAME;
 
-        if (!req.body.realm) {
+        if (!validRealm(req.body.realm)) {
             req.body.realm = environment.defaultRealm;
         }
-        req.body.realm = req.body.realm.trim();
-        if (!validRealm(req.body.realm)) throw new Error("Invalid realm name.");
+
         next();
     } catch (err) {
         res.send({ success: false, errorstring: err.message });
@@ -110,9 +126,7 @@ export function verifyGetRaidSummary(
     next: NextFunction
 ) {
     try {
-        if (!req.body.raidId || !validRaidId(req.body.raidId))
-            throw new Error(`${req.body.raidId} is not a valid raid id.`);
-
+        if (!validRaidId(req.body.raidId)) throw ERR_INVALID_RAID_ID;
         next();
     } catch (err) {
         res.send({
@@ -124,14 +138,10 @@ export function verifyGetRaidSummary(
 
 export function verifyGetBoss(req: Request, res: Response, next: NextFunction) {
     try {
-        if (!req.body.raidId || !validRaidId(req.body.raidId))
-            throw new Error(`${req.body.raidId} is not a valid raid id.`);
+        if (!validRaidId(req.body.raidId)) throw ERR_INVALID_RAID_ID;
 
-        if (
-            !req.body.bossName ||
-            !validBossName(req.body.raidId, req.body.bossName)
-        )
-            throw new Error(`${req.body.bossName} is not a valid boss name.`);
+        if (!validBossName(req.body.raidId, req.body.bossName))
+            throw ERR_INVALID_BOSS_NAME;
 
         next();
     } catch (err) {
@@ -145,20 +155,13 @@ export function verifyGetBossKillCount(
     next: NextFunction
 ) {
     try {
-        if (!req.body.raidId || !validRaidId(req.body.raidId))
-            throw new Error(`${req.body.raidId} is not a valid raid id.`);
+        if (!validRaidId(req.body.raidId)) throw ERR_INVALID_RAID_ID;
 
-        if (
-            !req.body.bossName ||
-            !validBossName(req.body.raidId, req.body.bossName)
-        )
-            throw new Error(`${req.body.bossName} is not a valid boss name.`);
+        if (!validBossName(req.body.raidId, req.body.bossName))
+            throw ERR_INVALID_BOSS_NAME;
 
-        if (
-            !req.body.difficulty ||
-            !validDifficulty(req.body.raidId, req.body.difficulty)
-        )
-            throw new Error(`${req.body.difficulty} is not valid difficulty.`);
+        if (!validDifficulty(req.body.raidId, req.body.difficulty))
+            throw ERR_INVALID_DIFFICULTY;
 
         next();
     } catch (err) {
@@ -172,20 +175,13 @@ export function verifyGetBossRecentKills(
     next: NextFunction
 ) {
     try {
-        if (!req.body.raidId || !validRaidId(req.body.raidId))
-            throw new Error(`${req.body.raidId} is not a valid raid id.`);
+        if (!validRaidId(req.body.raidId)) throw ERR_INVALID_RAID_ID;
 
-        if (
-            !req.body.bossName ||
-            !validBossName(req.body.raidId, req.body.bossName)
-        )
-            throw new Error(`${req.body.bossName} is not a valid boss name.`);
+        if (!validBossName(req.body.raidId, req.body.bossName))
+            throw ERR_INVALID_BOSS_NAME;
 
-        if (
-            !req.body.difficulty ||
-            !validDifficulty(req.body.raidId, req.body.difficulty)
-        )
-            throw new Error(`${req.body.difficulty} is not valid difficulty.`);
+        if (!validDifficulty(req.body.raidId, req.body.difficulty))
+            throw ERR_INVALID_DIFFICULTY;
 
         next();
     } catch (err) {
@@ -199,20 +195,13 @@ export function verifyGetBossFastestKills(
     next: NextFunction
 ) {
     try {
-        if (!req.body.raidId || !validRaidId(req.body.raidId))
-            throw new Error(`${req.body.raidId} is not a valid raid id.`);
+        if (!validRaidId(req.body.raidId)) throw ERR_INVALID_RAID_ID;
 
-        if (
-            !req.body.bossName ||
-            !validBossName(req.body.raidId, req.body.bossName)
-        )
-            throw new Error(`${req.body.bossName} is not a valid boss name.`);
+        if (!validBossName(req.body.raidId, req.body.bossName))
+            throw ERR_INVALID_BOSS_NAME;
 
-        if (
-            !req.body.difficulty ||
-            !validDifficulty(req.body.raidId, req.body.difficulty)
-        )
-            throw new Error(`${req.body.difficulty} is not valid difficulty.`);
+        if (!validDifficulty(req.body.raidId, req.body.difficulty))
+            throw ERR_INVALID_DIFFICULTY;
 
         next();
     } catch (err) {
@@ -226,25 +215,20 @@ export function verifyGetBossCharacters(
     next: NextFunction
 ) {
     try {
-        if (!validRaidId(req.body.raidId))
-            throw new Error(`${req.body.raidId} is not a valid raid id.`);
+        if (!validRaidId(req.body.raidId)) throw ERR_INVALID_RAID_ID;
 
         if (!validBossName(req.body.raidId, req.body.bossName))
-            throw new Error(`${req.body.bossName} is not a valid boss name.`);
+            throw ERR_INVALID_BOSS_NAME;
 
         if (!validCombatMetric(req.body.combatMetric))
-            throw new Error(
-                `${req.body.combatMetric} is not valid combat metric.`
-            );
+            throw ERR_INVALID_COMBAT_METRIC;
 
         if (!validFilters(req.body.raidId, req.body.filters))
-            throw new Error(`Filters were not valid.`);
+            throw ERR_INVALID_FILTERS;
 
-        if (!validPage(req.body.page))
-            throw new Error(`${req.body.page} is not valid page.`);
+        if (!validPage(req.body.page)) throw ERR_INVALID_PAGE;
 
-        if (!validPageSize(req.body.pageSize))
-            throw new Error(`${req.body.pageSize} is not valid page size.`);
+        if (!validPageSize(req.body.pageSize)) throw ERR_INVALID_PAGESIZE;
 
         next();
     } catch (err) {
@@ -254,12 +238,11 @@ export function verifyGetBossCharacters(
 
 export function verifyGetLog(req: Request, res: Response, next: NextFunction) {
     try {
-        if (!req.body.logId) throw new Error("Invalid log id name.");
-        req.body.logId = req.body.logId.trim().replace(/\s+/g, " ");
+        if (!validLogId(req.body.logId)) throw ERR_INVALID_LOG_ID;
 
-        if (!req.body.realm) req.body.realm = environment.defaultRealm;
-        req.body.realm = req.body.realm.trim();
-        if (!validRealm(req.body.realm)) throw new Error("Invalid realm name.");
+        if (!validRealm(req.body.realm)) {
+            req.body.realm = environment.defaultRealm;
+        }
 
         next();
     } catch (err) {
@@ -273,25 +256,26 @@ export function verifyCharacterRecentKills(
     next: NextFunction
 ) {
     try {
-        if (req.body.realm)
-            req.body.realm = req.body.realm.trim().replace(/\s+/g, " ");
-
-        if (!validRealm(req.body.realm)) throw new Error("Invalid raid name.");
-
-        if (!req.body.characterName) throw new Error("Invalid character name.");
-        req.body.characterName = req.body.characterName
-            .trim()
-            .replace(/\s+/g, " ");
-
-        if (req.body.logId) {
-            if (typeof req.body.logId !== "number")
-                throw new Error("The log ID must be a number.");
+        if (!validRealm(req.body.realm)) {
+            req.body.realm = environment.defaultRealm;
         }
 
-        if (req.body.limit) {
-            if (typeof req.body.limit !== "number")
-                throw new Error("The limit must be a number.");
-        }
+        if (!validCharacterName(req.body.characterName))
+            throw ERR_INVALID_CHARACTER_NAME;
+
+        req.body.characterName = capitalize(req.body.characterName);
+
+        if (
+            typeof req.body.logId !== "undefined" &&
+            !validLogId(req.body.logId)
+        )
+            throw ERR_INVALID_LOG_ID;
+
+        if (
+            typeof req.body.limit !== "undefined" &&
+            !validLimit(req.body.limit)
+        )
+            throw ERR_INVALID_LIMIT;
 
         next();
     } catch (err) {
@@ -305,10 +289,8 @@ export function verifyCharacterLeaderboard(
     next: NextFunction
 ) {
     try {
-        if (!req.body.dataId)
-            throw new Error(
-                `${req.body.dataId} is not a valid leaderboard id.`
-            );
+        if (!validLeaderboardId(req.body.dataId))
+            throw ERR_INVALID_LEADERBOARD_ID;
 
         next();
     } catch (err) {
@@ -325,12 +307,11 @@ export function verifyGetItems(
     next: NextFunction
 ) {
     try {
-        if (req.body.realm)
-            req.body.realm = req.body.realm.trim().replace(/\s+/g, " ");
+        if (!validRealm(req.body.realm)) {
+            req.body.realm = environment.defaultRealm;
+        }
 
-        if (!validRealm(req.body.realm)) throw new Error("Invalid realm name.");
-        if (!req.body.ids || !Array.isArray(req.body.ids))
-            throw new Error("Invalid item ids");
+        if (!validItemids(req.body.ids)) throw ERR_INVALID_ITEM_IDS;
 
         next();
     } catch (err) {

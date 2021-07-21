@@ -2,6 +2,12 @@ import fetch from "node-fetch";
 import * as url from "url";
 import { environment } from "../environment";
 import {
+    ERR_CHARACTER_NOT_FOUND,
+    ERR_GUILD_NOT_FOUND,
+    ERR_TAURI_API_FAILURE,
+    ERR_TAURI_API_TIMEOUT
+} from "../helpers/errors";
+import {
     CharacterDataResponse,
     GuildDataResponse,
     CharacterAchievementsResponse,
@@ -30,7 +36,6 @@ class TauriApi {
 
     request<T>(options: Object): Promise<T> {
         return new Promise(async (resolve, reject) => {
-            const timeOutErrorMessage = "Api request timed out.";
             let currentTry = 0;
             while (currentTry < this.retryCount) {
                 try {
@@ -45,7 +50,7 @@ class TauriApi {
                         setTimeout(() => {
                             resolve({
                                 success: false,
-                                errorstring: timeOutErrorMessage
+                                errorstring: ERR_TAURI_API_TIMEOUT.message
                             });
                         }, 13000);
                     }) as Promise<{ success: boolean; errorstring: string }>;
@@ -59,15 +64,15 @@ class TauriApi {
                         throw new Error(response.errorstring);
                     }
                 } catch (err) {
-                    if (err.message !== timeOutErrorMessage) {
+                    if (err.message !== ERR_TAURI_API_TIMEOUT.message) {
                         if (err.message === "guild not found") {
-                            reject(new Error(err.message));
+                            reject(ERR_GUILD_NOT_FOUND);
                             break;
                         } else if (err.message === "character not found") {
-                            reject(new Error(err.message));
+                            reject(ERR_CHARACTER_NOT_FOUND);
                             break;
                         } else {
-                            reject(new Error("Api request failed."));
+                            reject(ERR_TAURI_API_FAILURE);
                             break;
                         }
                     }
@@ -76,7 +81,7 @@ class TauriApi {
             }
 
             if (currentTry === 3) {
-                reject(new Error(timeOutErrorMessage));
+                reject(ERR_TAURI_API_TIMEOUT);
             }
         });
     }

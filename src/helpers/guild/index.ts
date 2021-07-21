@@ -154,8 +154,6 @@ export function getGuildId(guildName: string, realm: string) {
 export async function requestGuildData(guildName: string, realm: string) {
     const response = await tauriApi.getGuildData(guildName, realm);
 
-    if (!response.success) throw new Error(response.errorstring);
-
     const guild = response.response;
 
     let members = [];

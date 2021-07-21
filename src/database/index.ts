@@ -30,7 +30,8 @@ import {
     updateGuildRanking,
     runGC,
     getDefaultBoss,
-    getRaidBossId
+    getRaidBossId,
+    applyCharacterFilters
 } from "../helpers";
 
 import { MongoClient, Db, ClientSession, ObjectID } from "mongodb";
@@ -52,10 +53,17 @@ import {
     RaidBossNoRecent,
     CharacterPerformance,
     CharPerfBossData,
-    TrimmedLog
+    TrimmedLog,
+    Filters,
+    CombatMetric
 } from "../types";
-
-const connectionErrorMessage = "Not connected to database.";
+import {
+    ERR_DATA_NOT_EXIST,
+    ERR_DB_CONNECTION,
+    ERR_DB_UPDATING,
+    ERR_GUILD_NOT_FOUND,
+    ERR_LOADING
+} from "../helpers/errors";
 
 class Database {
     public db: Db | undefined;
@@ -83,6 +91,8 @@ class Database {
         this.updatedRaidBosses = [];
     }
 
+    checkConnection() {}
+
     async connect() {
         try {
             console.log("Connecting to database");
@@ -106,7 +116,7 @@ class Database {
     async initalizeDatabase(): Promise<true> {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!this.db) throw new Error(connectionErrorMessage);
+                if (!this.db) throw ERR_DB_CONNECTION;
 
                 console.log("db: Initalizing database");
                 this.db.dropDatabase();
@@ -191,11 +201,10 @@ class Database {
     async updateDatabase(isInitalization: boolean): Promise<number> {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!this.db) throw new Error(connectionErrorMessage);
-                if (!this.client) throw new Error(connectionErrorMessage);
+                if (!this.db) throw ERR_DB_CONNECTION;
+                if (!this.client) throw ERR_DB_CONNECTION;
 
-                if (this.isUpdating)
-                    throw new Error("db: Database is already updating.");
+                if (this.isUpdating) throw ERR_DB_UPDATING;
 
                 console.log("db: Updating database");
                 this.isUpdating = true;
@@ -297,9 +306,12 @@ class Database {
                             try {
                                 await bossCollection.insertMany(characters);
                             } catch (err) {
+                                console.log("-------------");
                                 console.error(
                                     `Error while tring to save to ${bossId} ${combatMetric}`
                                 );
+                                console.error(err);
+                                console.log("-------------");
                             }
                         }
                     }
@@ -420,7 +432,7 @@ class Database {
                 console.log("db: Database update finished");
                 resolve(minutesAgo(updateStarted));
             } catch (err) {
-                if (err.message !== "Database is already updating") {
+                if (err.message !== ERR_DB_UPDATING.message) {
                     console.error(`Database update error: ${err.message}`);
                     this.isUpdating = false;
                     this.updateStatus = "";
@@ -433,7 +445,7 @@ class Database {
     async getLastUpdated(): Promise<number> {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!this.db) throw new Error(connectionErrorMessage);
+                if (!this.db) throw ERR_DB_CONNECTION;
 
                 const maintenance = (await this.db
                     .collection("maintenance")
@@ -449,7 +461,7 @@ class Database {
     async getLastGuildsUpdate(): Promise<number> {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!this.db) throw new Error(connectionErrorMessage);
+                if (!this.db) throw ERR_DB_CONNECTION;
 
                 const maintenance = (await this.db
                     .collection("maintenance")
@@ -465,7 +477,7 @@ class Database {
     async isInitalized(): Promise<boolean> {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!this.db) throw new Error(connectionErrorMessage);
+                if (!this.db) throw ERR_DB_CONNECTION;
 
                 const maintenance = (await this.db
                     .collection("maintenance")
@@ -481,7 +493,7 @@ class Database {
     async saveRaidBoss(boss: RaidBoss, session?: ClientSession) {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!this.db) throw new Error(connectionErrorMessage);
+                if (!this.db) throw ERR_DB_CONNECTION;
 
                 const raidCollection = this.db.collection(String(boss.raidId));
                 const oldData = (await raidCollection.findOne(
@@ -538,7 +550,7 @@ class Database {
     async saveGuild(newGuild: Guild, session?: ClientSession) {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!this.db) throw new Error(connectionErrorMessage);
+                if (!this.db) throw ERR_DB_CONNECTION;
 
                 let oldGuild = await this.db.collection("guilds").findOne(
                     {
@@ -553,8 +565,8 @@ class Database {
                             newGuild.name,
                             newGuild.realm
                         ).catch(err => {
-                            if (err.message === "guild not found")
-                                throw new Error(err.message);
+                            if (err.message === ERR_GUILD_NOT_FOUND.message)
+                                throw ERR_GUILD_NOT_FOUND;
                             return false as const;
                         });
 
@@ -609,7 +621,7 @@ class Database {
     ) {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!this.db) throw new Error(connectionErrorMessage);
+                if (!this.db) throw ERR_DB_CONNECTION;
 
                 const maintenanceCollection = this.db.collection("maintenance");
                 console.log("db: Saving raid bosses");
@@ -668,7 +680,7 @@ class Database {
     ) {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!this.db) throw new Error(connectionErrorMessage);
+                if (!this.db) throw ERR_DB_CONNECTION;
 
                 const bossCollection = await this.db.collection(
                     `${bossId} ${combatMetric}`
@@ -713,7 +725,7 @@ class Database {
     async updateGuilds() {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!this.db) throw new Error(connectionErrorMessage);
+                if (!this.db) throw ERR_DB_CONNECTION;
 
                 this.updateStatus = "Updating guilds";
 
@@ -753,7 +765,7 @@ class Database {
                     } catch (err) {
                         if (
                             err.message &&
-                            err.message.includes("guild not found")
+                            err.message.includes(ERR_GUILD_NOT_FOUND.message)
                         ) {
                             this.removeGuild(guild._id);
                         } else {
@@ -773,7 +785,7 @@ class Database {
     async removeGuild(guildId: string) {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!this.db) throw new Error(connectionErrorMessage);
+                if (!this.db) throw ERR_DB_CONNECTION;
 
                 await this.db.collection("guilds").deleteOne({
                     _id: guildId
@@ -791,7 +803,7 @@ class Database {
     ): Promise<RaidBossDataToServe> {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!this.db) throw new Error(connectionErrorMessage);
+                if (!this.db) throw ERR_DB_CONNECTION;
 
                 const difficulties = getRaidInfoFromId(raidId).difficulties;
 
@@ -1324,7 +1336,7 @@ class Database {
     async getGuildList() {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!this.db) throw new Error(connectionErrorMessage);
+                if (!this.db) throw ERR_DB_CONNECTION;
 
                 const cacheId = `list`;
 
@@ -1358,14 +1370,14 @@ class Database {
     async getGuild(realm: string, guildName: string) {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!this.db) throw new Error(connectionErrorMessage);
+                if (!this.db) throw ERR_DB_CONNECTION;
 
                 const guild = await this.db.collection("guilds").findOne({
                     name: guildName,
                     realm: realm
                 });
 
-                if (!guild) throw new Error("guild not found");
+                if (!guild) throw ERR_GUILD_NOT_FOUND;
 
                 resolve(guild);
             } catch (err) {
@@ -1380,7 +1392,7 @@ class Database {
     ): Promise<RaidBossDataToServe> {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!this.db) throw new Error(connectionErrorMessage);
+                if (!this.db) throw ERR_DB_CONNECTION;
 
                 const cacheId = `${raidId}${bossName}`;
 
@@ -1409,7 +1421,7 @@ class Database {
     ): Promise<number> {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!this.db) throw new Error(connectionErrorMessage);
+                if (!this.db) throw ERR_DB_CONNECTION;
 
                 const cacheId = `${raidId}${bossName}`;
 
@@ -1438,7 +1450,7 @@ class Database {
     ): Promise<TrimmedLog[]> {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!this.db) throw new Error(connectionErrorMessage);
+                if (!this.db) throw ERR_DB_CONNECTION;
 
                 const cacheId = `${raidId}${bossName}`;
 
@@ -1467,7 +1479,7 @@ class Database {
     ): Promise<TrimmedLog[]> {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!this.db) throw new Error(connectionErrorMessage);
+                if (!this.db) throw ERR_DB_CONNECTION;
 
                 const cacheId = `${raidId}${bossName}`;
 
@@ -1488,16 +1500,70 @@ class Database {
             }
         });
     }
+    async getRaidBossCharacters(
+        raidId: number,
+        bossName: string,
+        combatMetric: CombatMetric,
+        filters: Filters,
+        page: number,
+        pageSize: number
+    ): Promise<{ characters: RankedCharacter[]; itemCount: number }> {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const difficulty = filters.difficulty;
+
+                if (!this.db) throw ERR_DB_CONNECTION;
+
+                const cacheId = `${raidId}${bossName}`;
+
+                const cachedData = cache.raidBoss.get(cacheId) as
+                    | RaidBossDataToServe
+                    | false;
+
+                if (cachedData) {
+                    let characters = applyCharacterFilters(
+                        cachedData[difficulty][combatMetric],
+                        filters
+                    );
+
+                    resolve({
+                        characters: characters.slice(
+                            page * pageSize,
+                            (page + 1) * pageSize
+                        ),
+                        itemCount: characters.length
+                    });
+                } else {
+                    let bossData = await this.requestRaidBoss(raidId, bossName);
+                    cache.raidBoss.set(cacheId, bossData);
+                    let characters = applyCharacterFilters(
+                        bossData[difficulty][combatMetric],
+                        filters
+                    );
+
+                    resolve({
+                        characters: characters.slice(
+                            page * pageSize,
+                            (page + 1) * pageSize
+                        ),
+                        itemCount: characters.length
+                    });
+                }
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
 
     async getCharacterLeaderboard(id: string) {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!this.firstCacheLoad) throw new Error("Loading...");
+                if (!this.firstCacheLoad) throw ERR_LOADING;
 
                 const data = cache.leaderboard.get(id);
 
                 if (!data) {
-                    throw new Error("No data");
+                    throw ERR_DATA_NOT_EXIST;
                 } else {
                     resolve(data);
                 }
@@ -1509,7 +1575,7 @@ class Database {
     async getGuildLeaderboard() {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!this.db) throw new Error(connectionErrorMessage);
+                if (!this.db) throw ERR_DB_CONNECTION;
 
                 const cacheId = `guildleaderboard`;
 
@@ -1542,7 +1608,7 @@ class Database {
     async getRaidSummary(raidId: number) {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!this.db) throw new Error(connectionErrorMessage);
+                if (!this.db) throw ERR_DB_CONNECTION;
 
                 const cacheId = `raidsummary${raidId}`;
 
@@ -1607,7 +1673,7 @@ class Database {
     ): Promise<CharacterPerformance> {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!this.db) throw new Error(connectionErrorMessage);
+                if (!this.db) throw ERR_DB_CONNECTION;
 
                 const cacheId = `${characterName}${realm}${raidName}`;
 

@@ -1,9 +1,11 @@
+import { environment } from "../environment";
 import {
     Character,
     LooseObject,
     RaidLogWithRealm,
     RankedCharacter,
-    CharacterOfLeaderboard
+    CharacterOfLeaderboard,
+    Filters
 } from "../types";
 
 export function addNestedObjectValue<T>(
@@ -204,4 +206,38 @@ export function updateCharacterOfLeaderboard(
         topPercent: updatedTopPercent,
         race: updatedRace
     };
+}
+
+export function applyCharacterFilters(
+    characters: RankedCharacter[],
+    filters: Filters
+) {
+    return characters.filter(character => {
+        if (filters.class !== undefined && character.class !== filters.class) {
+            return false;
+        }
+
+        if (filters.spec !== undefined && character.spec !== filters.spec) {
+            return false;
+        }
+
+        if (filters.faction !== undefined && character.f !== filters.faction) {
+            return false;
+        }
+
+        if (filters.realm !== undefined && character.realm !== filters.realm) {
+            return false;
+        }
+
+        if (
+            filters.role !== undefined &&
+            environment.specs[
+                String(character.spec) as keyof typeof environment.specs
+            ].role !== filters.role
+        ) {
+            return false;
+        }
+
+        return true;
+    });
 }

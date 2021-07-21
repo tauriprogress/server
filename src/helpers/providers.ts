@@ -1,5 +1,10 @@
 import { environment } from "../environment";
 import { LooseObject, RaidLogWithRealm, LastLogIds } from "../types";
+import {
+    ERR_INVALID_BOSS_NAME,
+    ERR_INVALID_RAID_ID,
+    ERR_INVALID_RAID_NAME
+} from "./errors";
 
 export function getCharacterId(
     name: string,
@@ -98,7 +103,7 @@ export function getRaidInfoFromId(raidId: number) {
         }
     }
 
-    throw new Error("Invalid raid id.");
+    throw ERR_INVALID_RAID_ID;
 }
 
 export function getBossInfo(raidId: number, bossName: string) {
@@ -114,9 +119,9 @@ export function getBossInfo(raidId: number, bossName: string) {
         }
     }
     if (idFound) {
-        throw new Error("Invalid raid id.");
+        throw ERR_INVALID_RAID_ID;
     } else {
-        throw new Error("Invalid boss name.");
+        throw ERR_INVALID_BOSS_NAME;
     }
 }
 
@@ -154,5 +159,5 @@ export function getRaidInfoFromName(raidName: string) {
         }
     }
 
-    throw new Error("Invalid raid name.");
+    throw ERR_INVALID_RAID_NAME;
 }

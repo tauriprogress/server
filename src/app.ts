@@ -13,6 +13,7 @@ import {
     verifyGetBossKillCount,
     verifyGetBossRecentKills,
     verifyGetBossFastestKills,
+    verifyGetBossCharacters,
     verifyGetLog,
     verifyCharacterRecentKills,
     verifyGetCharacterPerformance,
@@ -28,6 +29,7 @@ import { minutesAgo, runGC } from "./helpers";
 import { LooseObject } from "./types";
 import { environment } from "./environment";
 import cache from "./database/cache";
+import { ERR_TAURI_API_TIMEOUT, ERR_UNKNOWN } from "./helpers/errors";
 
 const app = express();
 const prompt = require("prompt-sync")();
@@ -111,7 +113,6 @@ const speedLimiter = slowDown({
                 req.body.characterName,
                 req.body.realm
             );
-            if (!character.success) throw new Error(character.errorstring);
 
             res.send({
                 success: true,
@@ -256,6 +257,32 @@ const speedLimiter = slowDown({
         }
     );
 
+    app.post(
+        "/getboss/Characters",
+        waitDbCache,
+        verifyGetBossCharacters,
+        async (req, res) => {
+            try {
+                res.send({
+                    success: true,
+                    response: await db.getRaidBossCharacters(
+                        req.body.raidId,
+                        req.body.bossName,
+                        req.body.combatMetric,
+                        req.body.filters,
+                        req.body.page,
+                        req.body.pageSize
+                    )
+                });
+            } catch (err) {
+                res.send({
+                    success: false,
+                    errorstring: err.message
+                });
+            }
+        }
+    );
+
     app.get("/lastupdated", async (_1, res) => {
         try {
             res.send({
@@ -308,7 +335,7 @@ const speedLimiter = slowDown({
                         } catch (err) {
                             data = err.message;
                         }
-                    } while (!data.success && data === "request timed out");
+                    } while (!data.success && data === ERR_TAURI_API_TIMEOUT);
 
                     if (data.success) {
                         item = { ...data.response, guid };
@@ -321,8 +348,7 @@ const speedLimiter = slowDown({
                 items[guid] = item;
             }
 
-            if (!Object.keys(items).length)
-                throw new Error("Something went wrong...");
+            if (!Object.keys(items).length) throw ERR_UNKNOWN;
 
             res.send({
                 success: true,
