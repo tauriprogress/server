@@ -7,7 +7,11 @@ import {
     validRealm,
     validRaidName,
     validBossName,
-    validDifficulty
+    validDifficulty,
+    validCombatMetric,
+    validFilters,
+    validPage,
+    validPageSize
 } from "../helpers";
 
 const { capitalize, minutesAgo } = require("../helpers");
@@ -209,6 +213,38 @@ export function verifyGetBossFastestKills(
             !validDifficulty(req.body.raidId, req.body.difficulty)
         )
             throw new Error(`${req.body.difficulty} is not valid difficulty.`);
+
+        next();
+    } catch (err) {
+        res.send({ success: false, errorstring: err.message });
+    }
+}
+
+export function verifyGetBossCharacters(
+    req: Request,
+    res: Response,
+    next: NextFunction
+) {
+    try {
+        if (!validRaidId(req.body.raidId))
+            throw new Error(`${req.body.raidId} is not a valid raid id.`);
+
+        if (!validBossName(req.body.raidId, req.body.bossName))
+            throw new Error(`${req.body.bossName} is not a valid boss name.`);
+
+        if (!validCombatMetric(req.body.combatMetric))
+            throw new Error(
+                `${req.body.combatMetric} is not valid combat metric.`
+            );
+
+        if (!validFilters(req.body.raidId, req.body.filters))
+            throw new Error(`Filters were not valid.`);
+
+        if (!validPage(req.body.page))
+            throw new Error(`${req.body.page} is not valid page.`);
+
+        if (!validPageSize(req.body.pageSize))
+            throw new Error(`${req.body.pageSize} is not valid page size.`);
 
         next();
     } catch (err) {

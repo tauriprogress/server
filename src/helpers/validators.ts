@@ -12,6 +12,13 @@ export function validRaidId(raidId: any) {
     return false;
 }
 
+export function validShortRealm(shortRealm: any) {
+    return (
+        typeof shortRealm === "string" &&
+        Object.values(environment.shortRealms).includes(shortRealm)
+    );
+}
+
 export function validRealm(realm: any) {
     return (
         typeof realm === "string" &&
@@ -169,23 +176,23 @@ export function validFilters(raidId: number, filters: any) {
             return false;
         }
 
-        if (filters.realm && !validRealm(filters.realm)) {
+        if (filters.realm !== undefined && !validShortRealm(filters.realm)) {
             return false;
         }
 
-        if (filters.class && !validClass(filters.class)) {
+        if (filters.class !== undefined && !validClass(filters.class)) {
             return false;
         }
 
-        if (filters.spec && !validSpec(filters.spec)) {
+        if (filters.spec !== undefined && !validSpec(filters.spec)) {
             return false;
         }
 
-        if (filters.role && !validRole(filters.role)) {
+        if (filters.role !== undefined && !validRole(filters.role)) {
             return false;
         }
 
-        if (filters.faction && !validFaction(filters.faction)) {
+        if (filters.faction !== undefined && !validFaction(filters.faction)) {
             return false;
         }
 
@@ -193,4 +200,12 @@ export function validFilters(raidId: number, filters: any) {
     }
 
     return false;
+}
+
+export function validPage(page: any) {
+    return typeof page === "number" && page >= 0;
+}
+
+export function validPageSize(pageSize: any) {
+    return typeof pageSize === "number" && pageSize >= 1;
 }
