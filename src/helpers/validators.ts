@@ -1,4 +1,5 @@
 import { environment } from "../environment";
+import { getLeaderboardCacheId } from "./providers";
 
 export function validRaidId(raidId: any) {
     if (typeof raidId === "number") {
@@ -208,4 +209,73 @@ export function validPage(page: any) {
 
 export function validPageSize(pageSize: any) {
     return typeof pageSize === "number" && pageSize >= 1;
+}
+
+export function validGuildName(guildName: any) {
+    return typeof guildName === "string";
+}
+
+export function validCharacterName(characterName: any) {
+    return typeof characterName === "string";
+}
+
+export function validLogId(logId: any) {
+    return typeof logId === "number";
+}
+
+export function validLimit(limit: any) {
+    return typeof limit === "number";
+}
+
+export function validItemids(ids: any) {
+    return (
+        !Array.isArray(ids) &&
+        ids.reduce((acc: boolean, curr: any) => {
+            if (typeof curr !== "number") {
+                return false;
+            }
+
+            return acc;
+        }, true)
+    );
+}
+
+const possibleLeaderboardIds = (() => {
+    let leaderboardIds = [];
+
+    const combatMetrics = ["dps", "hps"];
+    const roles = ["damage", "heal", "tank"];
+    const specs = Object.keys(environment.specs);
+
+    let raidIds = [];
+
+    for (const raid of environment.currentContent.raids) {
+        raidIds.push(raid.id);
+    }
+
+    for (const raidId of raidIds) {
+        for (const combatMetric of combatMetrics) {
+            leaderboardIds.push(getLeaderboardCacheId(raidId, combatMetric));
+            for (const role of roles) {
+                leaderboardIds.push(
+                    getLeaderboardCacheId(raidId, combatMetric, role)
+                );
+            }
+
+            for (const spec of specs) {
+                leaderboardIds.push(
+                    getLeaderboardCacheId(raidId, combatMetric, spec)
+                );
+            }
+        }
+    }
+
+    return leaderboardIds;
+})();
+
+export function validLeaderboardId(leaderboardId: any) {
+    return (
+        typeof leaderboardId === "string" &&
+        possibleLeaderboardIds.includes(leaderboardId)
+    );
 }
