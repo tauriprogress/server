@@ -700,8 +700,8 @@ class Database {
                     const newPerformance = char[combatMetric];
 
                     if (
-                        oldPerformance &&
-                        newPerformance &&
+                        typeof oldPerformance === "number" &&
+                        typeof newPerformance === "number" &&
                         oldPerformance < newPerformance
                     ) {
                         await bossCollection.updateOne(
@@ -1041,7 +1041,7 @@ class Database {
                             charactersOfBoss[charId].push(character);
 
                             if (
-                                currentPerformance &&
+                                typeof currentPerformance === "number" &&
                                 currentPerformance > bestPerformanceOfBoss
                             ) {
                                 bestPerformanceOfBoss = currentPerformance;
