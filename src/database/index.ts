@@ -12,7 +12,6 @@ import {
     getRecentGuildRaidDays,
     getGuildContentCompletion,
     updateGuildData,
-    getLastLogIds,
     minutesAgo,
     getRaidInfoFromId,
     getBossInfo,
@@ -42,7 +41,6 @@ import {
     DbRaidBoss,
     Guild,
     LastLogIds,
-    Character,
     RaidBossDataToServe,
     DbRaidBossDataResponse,
     LooseObject,
@@ -329,74 +327,39 @@ class Database {
                         }
                     );
                 } else {
-                    let completed = false;
-                    let chunkLastLogIds = { ...lastLogIds };
-                    const loopSteps = 10;
-                    const loopCount = Math.ceil(logs.length / loopSteps);
+                    const processedLogs = processLogs(logs);
 
-                    if (loopCount === 0) {
-                        completed = true;
-                    }
+                    const session = this.client.startSession();
 
-                    for (let i = 1; i <= loopCount; i++) {
-                        const start = (i - 1) * loopSteps;
-                        const chunkOfLogs = logs.slice(
-                            start,
-                            start + loopSteps
-                        );
-                        const processedLogs = processLogs(chunkOfLogs);
-                        chunkLastLogIds = {
-                            ...chunkLastLogIds,
-                            ...getLastLogIds(chunkOfLogs)
-                        };
-                        const session = this.client.startSession();
-
-                        try {
-                            console.log("db: Opening new transaction session");
-                            await session.withTransaction(
-                                async () => {
-                                    await this.saveLogs(
-                                        processedLogs,
-                                        {
-                                            lastLogIds: chunkLastLogIds,
-                                            updateStarted
-                                        },
-                                        session
-                                    );
-                                },
-                                {
-                                    readConcern: {
-                                        level: "majority"
+                    try {
+                        console.log("db: Opening new transaction session");
+                        await session.withTransaction(
+                            async () => {
+                                await this.saveLogs(
+                                    processedLogs,
+                                    {
+                                        lastLogIds: newLastLogIds,
+                                        updateStarted
                                     },
-                                    writeConcern: {
-                                        w: "majority",
-                                        j: true
-                                    }
-                                }
-                            );
-
-                            if (i === loopCount) {
-                                completed = true;
-                            }
-                        } catch (err) {
-                            console.log("transaction error");
-                            console.error(err);
-                            break;
-                        } finally {
-                            session.endSession();
-                            console.log("db: Transaction session closed");
-                        }
-                    }
-
-                    if (completed) {
-                        await maintenanceCollection.updateOne(
-                            {},
+                                    session
+                                );
+                            },
                             {
-                                $set: {
-                                    lastLogIds: newLastLogIds
+                                readConcern: {
+                                    level: "majority"
+                                },
+                                writeConcern: {
+                                    w: "majority",
+                                    j: true
                                 }
                             }
                         );
+                    } catch (err) {
+                        console.log("transaction error");
+                        console.error(err);
+                    } finally {
+                        session.endSession();
+                        console.log("db: Transaction session closed");
                     }
                 }
 
@@ -634,22 +597,69 @@ class Database {
                     await this.saveGuild(guilds[guildId], session);
                 }
 
-                console.log("db: Saving chars");
+                const operationsOfBossCollection: LooseObject = {};
+
                 for (const bossId in combatMetrics) {
-                    console.log(`db: to ${bossId}`);
                     for (const combatMetric in combatMetrics[bossId]) {
                         for (const charId in combatMetrics[bossId][
                             combatMetric
                         ]) {
-                            await this.saveChar(
-                                bossId,
-                                combatMetric as "dps" | "hps",
-                                combatMetrics[bossId][combatMetric][charId],
-                                session
+                            const bossCollectionName = `${bossId} ${combatMetric}`;
+
+                            const char =
+                                combatMetrics[bossId][combatMetric][charId];
+
+                            if (
+                                !operationsOfBossCollection[bossCollectionName]
+                            ) {
+                                operationsOfBossCollection[bossCollectionName] =
+                                    [];
+                            }
+
+                            const insertOperation = {
+                                updateOne: {
+                                    filter: { _id: char._id },
+                                    update: {
+                                        $setOnInsert: char
+                                    },
+                                    upsert: true
+                                }
+                            };
+
+                            const updateOperation = {
+                                updateOne: {
+                                    filter: {
+                                        _id: char._id,
+                                        [combatMetric]: {
+                                            $lt: char[combatMetric]
+                                        }
+                                    },
+                                    update: { $set: char }
+                                }
+                            };
+
+                            operationsOfBossCollection[bossCollectionName].push(
+                                insertOperation,
+                                updateOperation
                             );
                         }
                     }
                 }
+
+                console.log("db: Saving chars");
+                for (const bossCollectionName in operationsOfBossCollection) {
+                    console.log(`db: to ${bossCollectionName}`);
+
+                    const bossCollection = await this.db.collection(
+                        bossCollectionName
+                    );
+
+                    await bossCollection.bulkWrite(
+                        operationsOfBossCollection[bossCollectionName],
+                        { session }
+                    );
+                }
+
                 console.log("db: Saving chars done");
 
                 await maintenanceCollection.updateOne(
@@ -669,56 +679,6 @@ class Database {
                 reject(err);
             }
             resolve(true);
-        });
-    }
-
-    async saveChar(
-        bossId: string,
-        combatMetric: "dps" | "hps",
-        char: Character,
-        session?: ClientSession
-    ) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                if (!this.db) throw ERR_DB_CONNECTION;
-
-                const bossCollection = await this.db.collection(
-                    `${bossId} ${combatMetric}`
-                );
-
-                const oldChar: Character = await bossCollection.findOne(
-                    {
-                        _id: char._id
-                    },
-                    { session }
-                );
-
-                if (!oldChar) {
-                    await bossCollection.insertOne(char, { session });
-                } else {
-                    const oldPerformance = oldChar[combatMetric];
-                    const newPerformance = char[combatMetric];
-
-                    if (
-                        typeof oldPerformance === "number" &&
-                        typeof newPerformance === "number" &&
-                        oldPerformance < newPerformance
-                    ) {
-                        await bossCollection.updateOne(
-                            {
-                                _id: char._id
-                            },
-                            {
-                                $set: char
-                            },
-                            { session }
-                        );
-                    }
-                }
-                resolve(true);
-            } catch (err) {
-                reject(err);
-            }
         });
     }
 
