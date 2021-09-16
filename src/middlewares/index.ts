@@ -2,6 +2,8 @@ import { environment } from "../environment";
 import { Request, Response, NextFunction } from "express";
 
 import {
+    capitalize,
+    minutesAgo,
     validRaidId,
     validClass,
     validRealm,
@@ -17,7 +19,8 @@ import {
     validLogId,
     validLimit,
     validLeaderboardId,
-    validItemids
+    validItemids,
+    isError
 } from "../helpers";
 import {
     ERR_INVALID_BOSS_NAME,
@@ -37,8 +40,6 @@ import {
     ERR_INVALID_RAID_NAME
 } from "../helpers/errors";
 
-const { capitalize, minutesAgo } = require("../helpers");
-
 export async function waitDbCache(
     req: Request,
     res: Response,
@@ -48,7 +49,11 @@ export async function waitDbCache(
         await req.db.firstCacheLoad;
         next();
     } catch (err) {
-        res.send({ success: false, errorstring: err.message });
+        isError;
+        res.send({
+            success: false,
+            errorstring: isError(err) ? err.message : err
+        });
     }
 }
 
@@ -68,7 +73,7 @@ export function verifyGetGuild(
     } catch (err) {
         res.send({
             success: false,
-            errorstring: err.message
+            errorstring: isError(err) ? err.message : err
         });
     }
 }
@@ -90,7 +95,10 @@ export function verifyGetCharacter(
 
         next();
     } catch (err) {
-        res.send({ success: false, errorstring: err.message });
+        res.send({
+            success: false,
+            errorstring: isError(err) ? err.message : err
+        });
     }
 }
 
@@ -116,7 +124,10 @@ export function verifyGetCharacterPerformance(
 
         next();
     } catch (err) {
-        res.send({ success: false, errorstring: err.message });
+        res.send({
+            success: false,
+            errorstring: isError(err) ? err.message : err
+        });
     }
 }
 
@@ -131,7 +142,7 @@ export function verifyGetRaidSummary(
     } catch (err) {
         res.send({
             success: false,
-            errorstring: err.message
+            errorstring: isError(err) ? err.message : err
         });
     }
 }
@@ -145,7 +156,10 @@ export function verifyGetBoss(req: Request, res: Response, next: NextFunction) {
 
         next();
     } catch (err) {
-        res.send({ success: false, errorstring: err.message });
+        res.send({
+            success: false,
+            errorstring: isError(err) ? err.message : err
+        });
     }
 }
 
@@ -165,7 +179,10 @@ export function verifyGetBossKillCount(
 
         next();
     } catch (err) {
-        res.send({ success: false, errorstring: err.message });
+        res.send({
+            success: false,
+            errorstring: isError(err) ? err.message : err
+        });
     }
 }
 
@@ -185,7 +202,10 @@ export function verifyGetBossRecentKills(
 
         next();
     } catch (err) {
-        res.send({ success: false, errorstring: err.message });
+        res.send({
+            success: false,
+            errorstring: isError(err) ? err.message : err
+        });
     }
 }
 
@@ -205,7 +225,10 @@ export function verifyGetBossFastestKills(
 
         next();
     } catch (err) {
-        res.send({ success: false, errorstring: err.message });
+        res.send({
+            success: false,
+            errorstring: isError(err) ? err.message : err
+        });
     }
 }
 
@@ -232,7 +255,10 @@ export function verifyGetBossCharacters(
 
         next();
     } catch (err) {
-        res.send({ success: false, errorstring: err.message });
+        res.send({
+            success: false,
+            errorstring: isError(err) ? err.message : err
+        });
     }
 }
 
@@ -246,7 +272,10 @@ export function verifyGetLog(req: Request, res: Response, next: NextFunction) {
 
         next();
     } catch (err) {
-        res.send({ success: false, errorstring: err.message });
+        res.send({
+            success: false,
+            errorstring: isError(err) ? err.message : err
+        });
     }
 }
 
@@ -279,7 +308,10 @@ export function verifyCharacterRecentKills(
 
         next();
     } catch (err) {
-        res.send({ success: false, errorstring: err.message });
+        res.send({
+            success: false,
+            errorstring: isError(err) ? err.message : err
+        });
     }
 }
 
@@ -296,7 +328,7 @@ export function verifyCharacterLeaderboard(
     } catch (err) {
         res.send({
             success: false,
-            errorstring: err.message
+            errorstring: isError(err) ? err.message : err
         });
     }
 }
@@ -315,7 +347,10 @@ export function verifyGetItems(
 
         next();
     } catch (err) {
-        res.send({ success: false, errorstring: err.message });
+        res.send({
+            success: false,
+            errorstring: isError(err) ? err.message : err
+        });
     }
 }
 

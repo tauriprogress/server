@@ -279,3 +279,7 @@ export function validLeaderboardId(leaderboardId: any) {
         possibleLeaderboardIds.includes(leaderboardId)
     );
 }
+
+export function isError(variable: unknown): variable is Error {
+    return variable instanceof Error;
+}

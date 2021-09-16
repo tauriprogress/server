@@ -1,11 +1,12 @@
 import fetch from "node-fetch";
-import * as url from "url";
 import { environment } from "../environment";
+import { isError } from "../helpers";
 import {
     ERR_CHARACTER_NOT_FOUND,
     ERR_GUILD_NOT_FOUND,
     ERR_TAURI_API_FAILURE,
-    ERR_TAURI_API_TIMEOUT
+    ERR_TAURI_API_TIMEOUT,
+    ERR_UNKNOWN
 } from "../helpers/errors";
 import {
     CharacterDataResponse,
@@ -34,26 +35,31 @@ class TauriApi {
         this.retryCount = 3;
     }
 
-    request<T>(options: Object): Promise<T> {
+    request<T extends { success: boolean; errorstring: string }>(
+        options: Object
+    ): Promise<T> {
         return new Promise(async (resolve, reject) => {
             let currentTry = 0;
             while (currentTry < this.retryCount) {
                 try {
                     const apiRequest = fetch(
-                        url.parse(`${this.baseUrl}?apikey=${this.apikey}`),
+                        `${this.baseUrl}?apikey=${this.apikey}`,
                         options
-                    ).then(res => {
+                    ).then((res: any) => {
                         return res.json();
-                    });
+                    }) as Promise<T>;
 
-                    const timeOut = new Promise(resolve => {
+                    const timeOut = new Promise<{
+                        success: false;
+                        errorstring: string;
+                    }>(resolve => {
                         setTimeout(() => {
                             resolve({
                                 success: false,
                                 errorstring: ERR_TAURI_API_TIMEOUT.message
                             });
                         }, 13000);
-                    }) as Promise<{ success: boolean; errorstring: string }>;
+                    });
 
                     const response = await Promise.race([timeOut, apiRequest]);
 
@@ -64,7 +70,10 @@ class TauriApi {
                         throw new Error(response.errorstring);
                     }
                 } catch (err) {
-                    if (err.message !== ERR_TAURI_API_TIMEOUT.message) {
+                    if (
+                        isError(err) &&
+                        err.message !== ERR_TAURI_API_TIMEOUT.message
+                    ) {
                         if (err.message === "guild not found") {
                             reject(ERR_GUILD_NOT_FOUND);
                             break;
@@ -75,6 +84,8 @@ class TauriApi {
                             reject(ERR_TAURI_API_FAILURE);
                             break;
                         }
+                    } else {
+                        reject(ERR_UNKNOWN);
                     }
                 }
                 currentTry++;

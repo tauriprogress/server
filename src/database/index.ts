@@ -30,10 +30,11 @@ import {
     runGC,
     getDefaultBoss,
     getRaidBossId,
-    applyCharacterFilters
+    applyCharacterFilters,
+    isError
 } from "../helpers";
 
-import { MongoClient, Db, ClientSession, ObjectID } from "mongodb";
+import { MongoClient, Db, ClientSession, ObjectId, ReadConcern } from "mongodb";
 import {
     DbMaintenance,
     RaidLogWithRealm,
@@ -94,13 +95,10 @@ class Database {
     async connect() {
         try {
             console.log("Connecting to database");
-            this.client = await MongoClient.connect(
-                `mongodb+srv://${environment.MONGODB_USER}:${environment.MONGODB_PASSWORD}@${environment.MONGODB_ADDRESS}`,
-                {
-                    useUnifiedTopology: true,
-                    useNewUrlParser: true
-                }
+            const client = new MongoClient(
+                `mongodb+srv://${environment.MONGODB_USER}:${environment.MONGODB_PASSWORD}@${environment.MONGODB_ADDRESS}`
             );
+            this.client = await client.connect();
 
             this.db = this.client.db("tauriprogress");
 
@@ -128,7 +126,7 @@ class Database {
                     await maintenanceCollection.deleteMany({});
 
                 const defaultMaintenance: DbMaintenance = {
-                    _id: new ObjectID(),
+                    _id: new ObjectId(),
                     lastUpdated: 0,
                     lastGuildsUpdate: 0,
                     lastLogIds: {},
@@ -345,9 +343,7 @@ class Database {
                                 );
                             },
                             {
-                                readConcern: {
-                                    level: "majority"
-                                },
+                                readConcern: new ReadConcern("majority"),
                                 writeConcern: {
                                     w: "majority",
                                     j: true
@@ -395,8 +391,9 @@ class Database {
                 console.log("db: Database update finished");
                 resolve(minutesAgo(updateStarted));
             } catch (err) {
-                if (err.message !== ERR_DB_UPDATING.message) {
-                    console.error(`Database update error: ${err.message}`);
+                if (!isError(err) || err.message !== ERR_DB_UPDATING.message) {
+                    console.log(`Database update error`);
+                    console.error(err);
                     this.isUpdating = false;
                     this.updateStatus = "";
                 }
@@ -515,12 +512,12 @@ class Database {
             try {
                 if (!this.db) throw ERR_DB_CONNECTION;
 
-                let oldGuild = await this.db.collection("guilds").findOne(
+                let oldGuild = (await this.db.collection("guilds").findOne(
                     {
                         _id: newGuild._id
                     },
                     { session }
-                );
+                )) as Guild;
 
                 if (!oldGuild) {
                     try {
@@ -536,7 +533,7 @@ class Database {
                         await this.db.collection("guilds").insertOne(
                             guildData
                                 ? updateGuildData(newGuild, guildData)
-                                : {
+                                : ({
                                       ...updateGuildRanking(newGuild),
                                       raidDays: {
                                           ...newGuild.raidDays,
@@ -550,7 +547,7 @@ class Database {
                                               newGuild.progression.raids
                                           )
                                       }
-                                  },
+                                  } as any),
                             { session }
                         );
                     } catch (err) {
@@ -689,11 +686,7 @@ class Database {
 
                 this.updateStatus = "Updating guilds";
 
-                const guilds: {
-                    _id: string;
-                    name: string;
-                    realm: string;
-                }[] = await this.db
+                const guilds = (await this.db
                     .collection("guilds")
                     .find({})
                     .project({
@@ -701,7 +694,11 @@ class Database {
                         name: 1,
                         realm: 1
                     })
-                    .toArray();
+                    .toArray()) as {
+                    _id: string;
+                    name: string;
+                    realm: string;
+                }[];
 
                 let total = guilds.length;
                 let current = 0;
@@ -724,6 +721,7 @@ class Database {
                         });
                     } catch (err) {
                         if (
+                            isError(err) &&
                             err.message &&
                             err.message.includes(ERR_GUILD_NOT_FOUND.message)
                         ) {
@@ -808,7 +806,7 @@ class Database {
                     }
                 }
 
-                const dbResponse: DbRaidBossDataResponse = (
+                const dbResponse = (
                     await this.db
                         .collection(String(raidId))
                         .aggregate([
@@ -821,7 +819,7 @@ class Database {
                         ])
                         .project(projection)
                         .toArray()
-                )[0];
+                )[0] as DbRaidBossDataResponse;
 
                 let bossData: RaidBossDataToServe = {
                     _id: dbResponse._id,
