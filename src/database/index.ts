@@ -31,7 +31,8 @@ import {
     getDefaultBoss,
     getRaidBossId,
     applyCharacterFilters,
-    isError
+    isError,
+    sleep
 } from "../helpers";
 
 import { MongoClient, Db, ClientSession, ObjectId, ReadConcern } from "mongodb";
@@ -1172,6 +1173,8 @@ class Database {
                                 }
                             }
                         }
+
+                        await sleep(150);
                     }
                     if (!leaderboards.overall[difficulty]) {
                         leaderboards.overall[difficulty] = [];
