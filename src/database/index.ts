@@ -32,7 +32,8 @@ import {
     getRaidBossId,
     applyCharacterFilters,
     isError,
-    sleep
+    sleep,
+    Lock
 } from "../helpers";
 
 import { MongoClient, Db, ClientSession, ObjectId, ReadConcern } from "mongodb";
@@ -64,6 +65,8 @@ import {
     ERR_GUILD_NOT_FOUND,
     ERR_LOADING
 } from "../helpers/errors";
+
+const raidSummaryLock = new Lock();
 
 class Database {
     public db: Db | undefined;
@@ -204,10 +207,11 @@ class Database {
                 if (this.isUpdating) throw ERR_DB_UPDATING;
 
                 console.log("db: Updating database");
+                const updateStarted = new Date().getTime() / 1000;
                 this.isUpdating = true;
                 this.updateStatus = "Database is updating.";
+                this.lastUpdated = updateStarted;
 
-                const updateStarted = new Date().getTime() / 1000;
                 const maintenanceCollection = await this.db.collection(
                     "maintenance"
                 );
@@ -387,7 +391,6 @@ class Database {
 
                 this.isUpdating = false;
                 this.updateStatus = "";
-                this.lastUpdated = updateStarted;
 
                 console.log("db: Database update finished");
                 resolve(minutesAgo(updateStarted));
@@ -1569,6 +1572,7 @@ class Database {
     async getRaidSummary(raidId: number) {
         return new Promise(async (resolve, reject) => {
             try {
+                await raidSummaryLock.acquire();
                 if (!this.db) throw ERR_DB_CONNECTION;
 
                 const cacheId = `raidsummary${raidId}`;
@@ -1578,6 +1582,7 @@ class Database {
                 if (cachedData) {
                     resolve(cachedData);
                 } else {
+                    console.log("making new request");
                     const difficulties = getRaidInfoFromId(raidId).difficulties;
 
                     const projection = difficulties.reduce(
@@ -1622,6 +1627,8 @@ class Database {
                 }
             } catch (err) {
                 reject(err);
+            } finally {
+                raidSummaryLock.release();
             }
         });
     }
