@@ -588,10 +588,8 @@ class Database {
                 if (!this.db) throw ERR_DB_CONNECTION;
 
                 const maintenanceCollection = this.db.collection("maintenance");
-                console.log("db: Saving raid bosses");
-                for (const bossId in bosses) {
-                    await this.saveRaidBoss(bosses[bossId], session);
-                }
+                await this.bulkWriteRaidBosses(bosses, session);
+                runGC();
 
                 console.log("db: Saving guilds");
                 for (const guildId in guilds) {
@@ -680,6 +678,103 @@ class Database {
                 reject(err);
             }
             resolve(true);
+        });
+    }
+    async bulkWriteRaidBosses(
+        bosses: {
+            [key: string]: RaidBoss;
+        },
+        session?: ClientSession
+    ): Promise<void> {
+        return new Promise(async (resolve, reject) => {
+            try {
+                if (!this.db) throw ERR_DB_CONNECTION;
+                console.log("db: Saving raid bosses");
+                let bossNameOfRaids: LooseObject = {};
+                for (const bossId in bosses) {
+                    if (!bossNameOfRaids[bosses[bossId].raidId]) {
+                        bossNameOfRaids[bosses[bossId].raidId] = [];
+                    }
+                    bossNameOfRaids[bosses[bossId].raidId].push(
+                        bosses[bossId].name
+                    );
+                }
+                let oldBosses: { [key: string]: DbRaidBoss } = {};
+                for (const raidId in bossNameOfRaids) {
+                    for (let boss of await this.db
+                        .collection(String(raidId))
+                        .aggregate(
+                            [
+                                {
+                                    $match: {
+                                        name: {
+                                            $in: bossNameOfRaids[raidId]
+                                        }
+                                    }
+                                }
+                            ],
+                            { session }
+                        )
+                        .toArray()) {
+                        oldBosses[boss.name] = boss as DbRaidBoss;
+                    }
+                }
+
+                let raidBossOperations: LooseObject = {};
+                for (const bossId in bosses) {
+                    if (!raidBossOperations[bosses[bossId].raidId]) {
+                        raidBossOperations[bosses[bossId].raidId] = [];
+                    }
+                    if (oldBosses[bosses[bossId].name]) {
+                        raidBossOperations[bosses[bossId].raidId].push({
+                            updateOne: {
+                                filter: {
+                                    name: bosses[bossId].name
+                                },
+                                update: {
+                                    $set: {
+                                        ...oldBosses[bosses[bossId].name],
+                                        _id: oldBosses[bosses[bossId].name]._id,
+                                        [bosses[bossId].difficulty]:
+                                            updateRaidBoss(
+                                                oldBosses[bosses[bossId].name][
+                                                    bosses[bossId].difficulty
+                                                ],
+                                                bosses[bossId]
+                                            )
+                                    }
+                                }
+                            }
+                        });
+                    } else {
+                        raidBossOperations[bosses[bossId].raidId].push({
+                            updateOne: {
+                                filter: { name: bosses[bossId].name },
+                                update: {
+                                    $setOnInsert: {
+                                        name: bosses[bossId].name,
+                                        [bosses[bossId].difficulty]:
+                                            bosses[bossId]
+                                    }
+                                },
+                                upsert: true
+                            }
+                        });
+                    }
+                }
+
+                for (let raidId in raidBossOperations) {
+                    await this.db
+                        .collection(String(raidId))
+                        .bulkWrite(raidBossOperations[raidId], {
+                            session
+                        });
+                }
+
+                resolve();
+            } catch (err) {
+                reject(err);
+            }
         });
     }
 
@@ -1582,7 +1677,6 @@ class Database {
                 if (cachedData) {
                     resolve(cachedData);
                 } else {
-                    console.log("making new request");
                     const difficulties = getRaidInfoFromId(raidId).difficulties;
 
                     const projection = difficulties.reduce(
