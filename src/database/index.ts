@@ -699,7 +699,7 @@ class Database {
                         bosses[bossId].name
                     );
                 }
-                let oldBosses: { [key: string]: DbRaidBoss } = {};
+                let bossesOfDb: { [key: string]: DbRaidBoss } = {};
                 for (const raidId in bossNameOfRaids) {
                     for (let boss of await this.db
                         .collection(String(raidId))
@@ -716,51 +716,35 @@ class Database {
                             { session }
                         )
                         .toArray()) {
-                        oldBosses[boss.name] = boss as DbRaidBoss;
+                        bossesOfDb[boss.name] = boss as DbRaidBoss;
                     }
                 }
 
                 let raidBossOperations: LooseObject = {};
                 for (const bossId in bosses) {
-                    if (!raidBossOperations[bosses[bossId].raidId]) {
-                        raidBossOperations[bosses[bossId].raidId] = [];
+                    const raidId = bosses[bossId].raidId;
+                    const bossName = bosses[bossId].name;
+                    const difficulty = bosses[bossId].difficulty;
+
+                    if (!raidBossOperations[raidId]) {
+                        raidBossOperations[raidId] = [];
                     }
-                    if (oldBosses[bosses[bossId].name]) {
-                        raidBossOperations[bosses[bossId].raidId].push({
-                            updateOne: {
-                                filter: {
-                                    name: bosses[bossId].name
-                                },
-                                update: {
-                                    $set: {
-                                        ...oldBosses[bosses[bossId].name],
-                                        _id: oldBosses[bosses[bossId].name]._id,
-                                        [bosses[bossId].difficulty]:
-                                            updateRaidBoss(
-                                                oldBosses[bosses[bossId].name][
-                                                    bosses[bossId].difficulty
-                                                ],
-                                                bosses[bossId]
-                                            )
-                                    }
+
+                    raidBossOperations[raidId].push({
+                        updateOne: {
+                            filter: {
+                                name: bossName
+                            },
+                            update: {
+                                $set: {
+                                    [difficulty]: updateRaidBoss(
+                                        bossesOfDb[bossName][difficulty],
+                                        bosses[bossId]
+                                    )
                                 }
                             }
-                        });
-                    } else {
-                        raidBossOperations[bosses[bossId].raidId].push({
-                            updateOne: {
-                                filter: { name: bosses[bossId].name },
-                                update: {
-                                    $setOnInsert: {
-                                        name: bosses[bossId].name,
-                                        [bosses[bossId].difficulty]:
-                                            bosses[bossId]
-                                    }
-                                },
-                                upsert: true
-                            }
-                        });
-                    }
+                        }
+                    });
                 }
 
                 for (let raidId in raidBossOperations) {
@@ -769,6 +753,14 @@ class Database {
                         .bulkWrite(raidBossOperations[raidId], {
                             session
                         });
+                }
+                for (const bossId in bosses) {
+                    const raidId = bosses[bossId].raidId;
+                    const bossName = bosses[bossId].name;
+                    this.updatedRaidBosses.push({
+                        raidId: raidId,
+                        name: bossName
+                    });
                 }
 
                 resolve();
