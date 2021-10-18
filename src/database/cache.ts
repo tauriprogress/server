@@ -5,6 +5,7 @@ import {
     CharacterPerformance,
     RaidBossDataToServe,
     CharacterLeaderboard,
+    GuildLeaderboard,
 } from "../types";
 
 class Cache {
@@ -13,12 +14,12 @@ class Cache {
     public raidBoss: NodeCache;
     public characterLeaderboard: NodeCache;
     public guildLeaderboard: NodeCache;
-
     public characterPerformance: NodeCache;
 
     public items: NodeCache;
 
     public guildListId: string;
+    public guildLeaderboardId: string;
 
     constructor() {
         this.guildListId = "list";
@@ -48,11 +49,14 @@ class Cache {
             stdTTL: 0,
             useClones: false,
         });
+
+        this.guildLeaderboardId = "guildLeaderboard";
         this.guildLeaderboard = new NodeCache({
             stdTTL: 20 * 60,
             checkperiod: 60,
             useClones: false,
         });
+
         this.items = new NodeCache({
             stdTTL: 5 * 60,
             checkperiod: 60,
@@ -69,19 +73,25 @@ class Cache {
     }
 
     getCharacterPerformance(characterId: string) {
-        return cache.characterPerformance.get(
+        return this.characterPerformance.get(
             characterId
         ) as CharacterPerformance;
     }
 
     getRaidBoss(bossId: string) {
-        return cache.raidBoss.get(bossId) as RaidBossDataToServe;
+        return this.raidBoss.get(bossId) as RaidBossDataToServe;
     }
 
     getCharacterLeaderboard(leaderboardId: string) {
-        return cache.characterLeaderboard.get(
+        return this.characterLeaderboard.get(
             leaderboardId
         ) as CharacterLeaderboard;
+    }
+
+    getGuildLeaderboard() {
+        return this.guildLeaderboard.get(
+            this.guildLeaderboardId
+        ) as GuildLeaderboard;
     }
 
     clearRaidSummary() {

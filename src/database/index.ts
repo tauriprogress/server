@@ -58,6 +58,7 @@ import {
     Filters,
     CombatMetric,
     GuildList,
+    GuildLeaderboard,
 } from "../types";
 import {
     ERR_DATA_NOT_EXIST,
@@ -1569,19 +1570,17 @@ class Database {
             }
         });
     }
-    async getGuildLeaderboard() {
+    async getGuildLeaderboard(): Promise<GuildLeaderboard> {
         return new Promise(async (resolve, reject) => {
             try {
                 if (!this.db) throw ERR_DB_CONNECTION;
 
-                const cacheId = `guildleaderboard`;
-
-                const cachedData = cache.guildLeaderboard.get(cacheId);
+                const cachedData = cache.getGuildLeaderboard();
 
                 if (cachedData) {
                     resolve(cachedData);
                 } else {
-                    const guildLeaderboard = await this.db
+                    const guildLeaderboard = (await this.db
                         .collection("guilds")
                         .find()
                         .project({
@@ -1590,9 +1589,12 @@ class Database {
                             realm: 1,
                             ranking: 1,
                         })
-                        .toArray();
+                        .toArray()) as GuildLeaderboard;
 
-                    cache.guildLeaderboard.set(cacheId, guildLeaderboard);
+                    cache.guildLeaderboard.set(
+                        cache.guildLeaderboardId,
+                        guildLeaderboard
+                    );
 
                     resolve(guildLeaderboard);
                 }
