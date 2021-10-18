@@ -1655,15 +1655,13 @@ class Database {
         });
     }
 
-    async getRaidSummary(raidId: number) {
+    async getRaidSummary(raidId: number): Promise<RaidSummary> {
         return new Promise(async (resolve, reject) => {
             try {
                 await raidSummaryLock.acquire();
                 if (!this.db) throw ERR_DB_CONNECTION;
 
-                const cacheId = `raidsummary${raidId}`;
-
-                const cachedData = cache.raidSummary.get(cacheId);
+                const cachedData = cache.getRaidSummary(raidId);
 
                 if (cachedData) {
                     resolve(cachedData);
@@ -1677,7 +1675,7 @@ class Database {
                         {}
                     );
 
-                    let bosses = (await this.db
+                    const bosses = (await this.db
                         .collection(String(raidId))
                         .find({})
                         .project(projection)
@@ -1706,7 +1704,7 @@ class Database {
                         }
                     }
 
-                    cache.raidSummary.set(cacheId, raidSummary);
+                    cache.raidSummary.set(raidId, raidSummary);
 
                     resolve(raidSummary);
                 }
