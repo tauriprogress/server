@@ -4,6 +4,9 @@ export interface ItemResponse {
     errorstring: string;
     response: Item;
 }
+export interface ItemWithGuid extends Item {
+    guid: number;
+}
 
 export interface Item {
     isCata: boolean;

@@ -22,7 +22,6 @@ import {
     updateDatabase,
     waitDbCache,
 } from "./middlewares";
-
 import tauriApi from "./tauriApi";
 
 import { isError, minutesAgo, runGC } from "./helpers";
@@ -322,7 +321,7 @@ const speedLimiter = slowDown({
         try {
             let items: LooseObject = {};
             for (let guid of req.body.ids) {
-                let item = cache.items.get(guid);
+                let item = cache.getItem(guid);
 
                 if (!item) {
                     const data = await tauriApi.getItemByGuid(

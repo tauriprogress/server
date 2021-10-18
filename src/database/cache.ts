@@ -6,6 +6,7 @@ import {
     RaidBossDataToServe,
     CharacterLeaderboard,
     GuildLeaderboard,
+    ItemWithGuid,
 } from "../types";
 
 class Cache {
@@ -92,6 +93,10 @@ class Cache {
         return this.guildLeaderboard.get(
             this.guildLeaderboardId
         ) as GuildLeaderboard;
+    }
+
+    getItem(itemId: number) {
+        return this.items.get(itemId) as ItemWithGuid;
     }
 
     clearRaidSummary() {
