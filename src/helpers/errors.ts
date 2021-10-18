@@ -1,4 +1,4 @@
-export const ERR_UNKNOWN = new Error("Unkown wrong.");
+export const ERR_UNKNOWN = new Error("Unkown error.");
 
 export const ERR_DB_CONNECTION = new Error(
     "Database connection is not established."
