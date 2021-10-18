@@ -20,7 +20,7 @@ import {
     verifyGetItems,
     verifyCharacterLeaderboard,
     updateDatabase,
-    waitDbCache
+    waitDbCache,
 } from "./middlewares";
 
 import tauriApi from "./tauriApi";
@@ -40,7 +40,7 @@ const speedLimiter = slowDown({
     delayMs: 300,
     maxDelayMs: 2 * 1000,
     keyGenerator: () => "1",
-    onLimitReached: () => runGC()
+    onLimitReached: () => runGC(),
 });
 
 (async function () {
@@ -66,7 +66,7 @@ const speedLimiter = slowDown({
     app.use(
         cors({
             origin: "https://tauriprogress.github.io",
-            optionsSuccessStatus: 200
+            optionsSuccessStatus: 200,
         })
     );
     app.use(bodyParser.json());
@@ -83,12 +83,12 @@ const speedLimiter = slowDown({
         try {
             res.send({
                 success: true,
-                response: await db.getGuildList()
+                response: await db.getGuildList(),
             });
         } catch (err) {
             res.send({
                 success: false,
-                errorstring: isError(err) ? err.message : err
+                errorstring: isError(err) ? err.message : err,
             });
         }
     });
@@ -97,12 +97,12 @@ const speedLimiter = slowDown({
         try {
             res.send({
                 success: true,
-                response: await db.getGuild(req.body.realm, req.body.guildName)
+                response: await db.getGuild(req.body.realm, req.body.guildName),
             });
         } catch (err) {
             res.send({
                 success: false,
-                errorstring: isError(err) ? err.message : err
+                errorstring: isError(err) ? err.message : err,
             });
         }
     });
@@ -116,12 +116,12 @@ const speedLimiter = slowDown({
 
             res.send({
                 success: true,
-                response: { ...character.response }
+                response: { ...character.response },
             });
         } catch (err) {
             res.send({
                 success: false,
-                errorstring: isError(err) ? err.message : err
+                errorstring: isError(err) ? err.message : err,
             });
         }
     });
@@ -140,12 +140,12 @@ const speedLimiter = slowDown({
                 );
                 res.send({
                     success: true,
-                    response: { ...performance }
+                    response: { ...performance },
                 });
             } catch (err) {
                 res.send({
                     success: false,
-                    errorstring: isError(err) ? err.message : err
+                    errorstring: isError(err) ? err.message : err,
                 });
             }
         }
@@ -155,12 +155,12 @@ const speedLimiter = slowDown({
         try {
             res.send({
                 success: true,
-                response: await db.getRaidSummary(req.body.raidId)
+                response: await db.getRaidSummary(req.body.raidId),
             });
         } catch (err) {
             res.send({
                 success: false,
-                errorstring: isError(err) ? err.message : err
+                errorstring: isError(err) ? err.message : err,
             });
         }
     });
@@ -172,12 +172,12 @@ const speedLimiter = slowDown({
                 response: await db.getRaidBoss(
                     req.body.raidId,
                     req.body.bossName
-                )
+                ),
             });
         } catch (err) {
             res.send({
                 success: false,
-                errorstring: isError(err) ? err.message : err
+                errorstring: isError(err) ? err.message : err,
             });
         }
     });
@@ -195,13 +195,13 @@ const speedLimiter = slowDown({
                             req.body.raidId,
                             req.body.bossName,
                             req.body.difficulty
-                        )
-                    }
+                        ),
+                    },
                 });
             } catch (err) {
                 res.send({
                     success: false,
-                    errorstring: isError(err) ? err.message : err
+                    errorstring: isError(err) ? err.message : err,
                 });
             }
         }
@@ -220,13 +220,13 @@ const speedLimiter = slowDown({
                             req.body.raidId,
                             req.body.bossName,
                             req.body.difficulty
-                        )
-                    }
+                        ),
+                    },
                 });
             } catch (err) {
                 res.send({
                     success: false,
-                    errorstring: isError(err) ? err.message : err
+                    errorstring: isError(err) ? err.message : err,
                 });
             }
         }
@@ -245,13 +245,13 @@ const speedLimiter = slowDown({
                             req.body.raidId,
                             req.body.bossName,
                             req.body.difficulty
-                        )
-                    }
+                        ),
+                    },
                 });
             } catch (err) {
                 res.send({
                     success: false,
-                    errorstring: isError(err) ? err.message : err
+                    errorstring: isError(err) ? err.message : err,
                 });
             }
         }
@@ -272,12 +272,12 @@ const speedLimiter = slowDown({
                         req.body.filters,
                         req.body.page,
                         req.body.pageSize
-                    )
+                    ),
                 });
             } catch (err) {
                 res.send({
                     success: false,
-                    errorstring: isError(err) ? err.message : err
+                    errorstring: isError(err) ? err.message : err,
                 });
             }
         }
@@ -290,13 +290,13 @@ const speedLimiter = slowDown({
                 response: {
                     lastUpdated: minutesAgo(await db.getLastUpdated()),
                     isUpdating: db.isUpdating,
-                    status: db.updateStatus
-                }
+                    status: db.updateStatus,
+                },
             });
         } catch (err) {
             res.send({
                 success: false,
-                errorstring: isError(err) ? err.message : err
+                errorstring: isError(err) ? err.message : err,
             });
         }
     });
@@ -308,12 +308,12 @@ const speedLimiter = slowDown({
             ).response;
             res.send({
                 success: true,
-                response: { ...log, realm: req.body.realm }
+                response: { ...log, realm: req.body.realm },
             });
         } catch (err) {
             res.send({
                 success: false,
-                errorstring: isError(err) ? err.message : err
+                errorstring: isError(err) ? err.message : err,
             });
         }
     });
@@ -347,12 +347,12 @@ const speedLimiter = slowDown({
 
             res.send({
                 success: true,
-                response: items
+                response: items,
             });
         } catch (err) {
             res.send({
                 success: false,
-                errorstring: isError(err) ? err.message : err
+                errorstring: isError(err) ? err.message : err,
             });
         }
     });
@@ -371,12 +371,12 @@ const speedLimiter = slowDown({
                             req.body.logId,
                             req.body.limit
                         )
-                    ).response
+                    ).response,
                 });
             } catch (err) {
                 res.send({
                     success: false,
-                    errorstring: isError(err) ? err.message : err
+                    errorstring: isError(err) ? err.message : err,
                 });
             }
         }
@@ -391,12 +391,12 @@ const speedLimiter = slowDown({
                 let data = await db.getCharacterLeaderboard(req.body.dataId);
                 res.send({
                     success: true,
-                    response: data
+                    response: data,
                 });
             } catch (err) {
                 res.send({
                     success: false,
-                    errorstring: isError(err) ? err.message : err
+                    errorstring: isError(err) ? err.message : err,
                 });
             }
         }
@@ -406,12 +406,12 @@ const speedLimiter = slowDown({
         try {
             res.send({
                 success: true,
-                response: await db.getGuildLeaderboard()
+                response: await db.getGuildLeaderboard(),
             });
         } catch (err) {
             res.send({
                 success: false,
-                errorstring: isError(err) ? err.message : err
+                errorstring: isError(err) ? err.message : err,
             });
         }
     });
