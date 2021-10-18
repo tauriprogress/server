@@ -1444,16 +1444,14 @@ class Database {
             try {
                 if (!this.db) throw ERR_DB_CONNECTION;
 
-                const cacheId = `${raidId}${bossName}`;
+                const cacheId = getRaidBossCacheId(raidId, bossName);
 
-                const cachedData = cache.raidBoss.get(cacheId) as
-                    | RaidBossDataToServe
-                    | false;
+                const cachedData = cache.getRaidBoss(cacheId);
 
                 if (cachedData) {
                     resolve(cachedData);
                 } else {
-                    let bossData = await this.requestRaidBoss(raidId, bossName);
+                    const bossData = await this.requestRaidBoss(raidId, bossName);
                     cache.raidBoss.set(cacheId, bossData);
 
                     resolve(bossData);

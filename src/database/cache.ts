@@ -1,6 +1,10 @@
 import * as NodeCache from "node-cache";
-import { GuildList, RaidSummary, CharacterPerformance } from "../types";
-
+import {
+    GuildList,
+    RaidSummary,
+    CharacterPerformance,
+    RaidBossDataToServe,
+} from "../types";
 
 class Cache {
     public guildList: NodeCache;
@@ -20,37 +24,39 @@ class Cache {
         this.guildList = new NodeCache({
             stdTTL: 20 * 60,
             checkperiod: 60,
-            useClones: false
+            useClones: false,
         });
 
         this.raidSummary = new NodeCache({
             stdTTL: 0,
-            useClones: false
+            useClones: false,
         });
 
         this.characterPerformance = new NodeCache({
             stdTTL: 0,
             useClones: false,
-            maxKeys: 100
+            maxKeys: 100,
         });
+
         this.raidBoss = new NodeCache({
             stdTTL: 0,
-            useClones: false
+            useClones: false,
         });
+
         this.leaderboard = new NodeCache({
             stdTTL: 0,
-            useClones: false
+            useClones: false,
         });
         this.guildLeaderboard = new NodeCache({
             stdTTL: 20 * 60,
             checkperiod: 60,
-            useClones: false
+            useClones: false,
         });
         this.items = new NodeCache({
             stdTTL: 5 * 60,
             checkperiod: 60,
             useClones: false,
-            maxKeys: 1500
+            maxKeys: 1500,
         });
     }
     getGuildList() {
@@ -58,11 +64,17 @@ class Cache {
     }
 
     getRaidSummary(raidId: number) {
-        return this.raidSummary.get(raidId) as RaidSummary
+        return this.raidSummary.get(raidId) as RaidSummary;
     }
 
     getCharacterPerformance(characterId: string) {
-        return cache.characterPerformance.get(characterId) as CharacterPerformance
+        return cache.characterPerformance.get(
+            characterId
+        ) as CharacterPerformance;
+    }
+
+    getRaidBoss(bossId: string) {
+        return cache.raidBoss.get(bossId) as RaidBossDataToServe;
     }
 
     clearRaidSummary() {
