@@ -66,37 +66,37 @@ class Cache {
         });
     }
     getGuildList() {
-        return this.guildList.get(this.guildListId) as GuildList;
+        return this.guildList.get(this.guildListId) as GuildList | undefined;
     }
 
     getRaidSummary(raidId: number) {
-        return this.raidSummary.get(raidId) as RaidSummary;
+        return this.raidSummary.get(raidId) as RaidSummary | undefined;
     }
 
     getCharacterPerformance(characterId: string) {
-        return this.characterPerformance.get(
-            characterId
-        ) as CharacterPerformance;
+        return this.characterPerformance.get(characterId) as
+            | CharacterPerformance
+            | undefined;
     }
 
     getRaidBoss(bossId: string) {
-        return this.raidBoss.get(bossId) as RaidBossDataToServe;
+        return this.raidBoss.get(bossId) as RaidBossDataToServe | undefined;
     }
 
     getCharacterLeaderboard(leaderboardId: string) {
-        return this.characterLeaderboard.get(
-            leaderboardId
-        ) as CharacterLeaderboard;
+        return this.characterLeaderboard.get(leaderboardId) as
+            | CharacterLeaderboard
+            | undefined;
     }
 
     getGuildLeaderboard() {
-        return this.guildLeaderboard.get(
-            this.guildLeaderboardId
-        ) as GuildLeaderboard;
+        return this.guildLeaderboard.get(this.guildLeaderboardId) as
+            | GuildLeaderboard
+            | undefined;
     }
 
     getItem(itemId: number) {
-        return this.items.get(itemId) as ItemWithGuid;
+        return this.items.get(itemId) as ItemWithGuid | undefined;
     }
 
     clearRaidSummary() {
