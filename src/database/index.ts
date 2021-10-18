@@ -33,7 +33,7 @@ import {
     applyCharacterFilters,
     isError,
     sleep,
-    Lock
+    Lock,
 } from "../helpers";
 
 import { MongoClient, Db, ClientSession, ObjectId, ReadConcern } from "mongodb";
@@ -57,14 +57,14 @@ import {
     TrimmedLog,
     Filters,
     CombatMetric,
-    GuildList
+    GuildList,
 } from "../types";
 import {
     ERR_DATA_NOT_EXIST,
     ERR_DB_CONNECTION,
     ERR_DB_UPDATING,
     ERR_GUILD_NOT_FOUND,
-    ERR_LOADING
+    ERR_LOADING,
 } from "../helpers/errors";
 
 const raidSummaryLock = new Lock();
@@ -135,7 +135,7 @@ class Database {
                     lastUpdated: 0,
                     lastGuildsUpdate: 0,
                     lastLogIds: {},
-                    isInitalized: true
+                    isInitalized: true,
                 };
 
                 maintenanceCollection.insertOne(defaultMaintenance);
@@ -326,8 +326,8 @@ class Database {
                                 lastUpdated: updateStarted,
                                 lastLogIds: newLastLogIds,
                                 lastGuildsUpdate: updateStarted,
-                                isInitalized: true
-                            }
+                                isInitalized: true,
+                            },
                         }
                     );
                 } else {
@@ -343,7 +343,7 @@ class Database {
                                     processedLogs,
                                     {
                                         lastLogIds: newLastLogIds,
-                                        updateStarted
+                                        updateStarted,
                                     },
                                     session
                                 );
@@ -352,8 +352,8 @@ class Database {
                                 readConcern: new ReadConcern("majority"),
                                 writeConcern: {
                                     w: "majority",
-                                    j: true
-                                }
+                                    j: true,
+                                },
                             }
                         );
                     } catch (err) {
@@ -375,8 +375,8 @@ class Database {
                         {},
                         {
                             $set: {
-                                lastGuildsUpdate: this.lastGuildsUpdate
-                            }
+                                lastGuildsUpdate: this.lastGuildsUpdate,
+                            },
                         }
                     );
 
@@ -463,7 +463,7 @@ class Database {
                 const raidCollection = this.db.collection(String(boss.raidId));
                 const oldData = (await raidCollection.findOne(
                     {
-                        name: boss.name
+                        name: boss.name,
                     },
                     { session: session }
                 )) as DbRaidBoss | null;
@@ -472,10 +472,10 @@ class Database {
                     await raidCollection.insertOne(
                         {
                             name: boss.name,
-                            [boss.difficulty]: boss
+                            [boss.difficulty]: boss,
                         },
                         {
-                            session
+                            session,
                         }
                     );
                 } else {
@@ -485,24 +485,24 @@ class Database {
 
                     await raidCollection.updateOne(
                         {
-                            name: boss.name
+                            name: boss.name,
                         },
                         {
                             $set: {
                                 ...oldData,
                                 _id: oldData._id,
-                                [boss.difficulty]: updatedBoss
-                            }
+                                [boss.difficulty]: updatedBoss,
+                            },
                         },
                         {
-                            session
+                            session,
                         }
                     );
                 }
 
                 this.updatedRaidBosses.push({
                     raidId: boss.raidId,
-                    name: boss.name
+                    name: boss.name,
                 });
 
                 resolve(true);
@@ -519,7 +519,7 @@ class Database {
 
                 let oldGuild = (await this.db.collection("guilds").findOne(
                     {
-                        _id: newGuild._id
+                        _id: newGuild._id,
                     },
                     { session }
                 )) as Guild;
@@ -529,7 +529,7 @@ class Database {
                         let guildData = await requestGuildData(
                             newGuild.name,
                             newGuild.realm
-                        ).catch(err => {
+                        ).catch((err) => {
                             if (err.message === ERR_GUILD_NOT_FOUND.message)
                                 throw ERR_GUILD_NOT_FOUND;
                             return false as const;
@@ -544,14 +544,14 @@ class Database {
                                           ...newGuild.raidDays,
                                           recent: getRecentGuildRaidDays(
                                               newGuild.progression.recentKills
-                                          )
+                                          ),
                                       },
                                       progression: {
                                           ...newGuild.progression,
                                           completion: getGuildContentCompletion(
                                               newGuild.progression.raids
-                                          )
-                                      }
+                                          ),
+                                      },
                                   } as any),
                             { session }
                         );
@@ -561,10 +561,10 @@ class Database {
                 } else {
                     await this.db.collection("guilds").updateOne(
                         {
-                            _id: newGuild._id
+                            _id: newGuild._id,
                         },
                         {
-                            $set: updateGuildData(oldGuild, newGuild)
+                            $set: updateGuildData(oldGuild, newGuild),
                         },
                         { session }
                     );
@@ -580,7 +580,7 @@ class Database {
         { bosses, guilds, combatMetrics }: ReturnType<typeof processLogs>,
         {
             lastLogIds,
-            updateStarted
+            updateStarted,
         }: { lastLogIds: LastLogIds; updateStarted: number },
         session?: ClientSession
     ) {
@@ -620,10 +620,10 @@ class Database {
                                 updateOne: {
                                     filter: { _id: char._id },
                                     update: {
-                                        $setOnInsert: char
+                                        $setOnInsert: char,
                                     },
-                                    upsert: true
-                                }
+                                    upsert: true,
+                                },
                             };
 
                             const updateOperation = {
@@ -631,11 +631,11 @@ class Database {
                                     filter: {
                                         _id: char._id,
                                         [combatMetric]: {
-                                            $lt: char[combatMetric]
-                                        }
+                                            $lt: char[combatMetric],
+                                        },
                                     },
-                                    update: { $set: char }
-                                }
+                                    update: { $set: char },
+                                },
                             };
 
                             operationsOfBossCollection[bossCollectionName].push(
@@ -668,11 +668,11 @@ class Database {
                         $set: {
                             lastUpdated: updateStarted,
                             lastLogIds: lastLogIds,
-                            isInitalized: true
-                        }
+                            isInitalized: true,
+                        },
                     },
                     {
-                        session
+                        session,
                     }
                 );
             } catch (err) {
@@ -709,10 +709,10 @@ class Database {
                                 {
                                     $match: {
                                         name: {
-                                            $in: bossNameOfRaids[raidId]
-                                        }
-                                    }
-                                }
+                                            $in: bossNameOfRaids[raidId],
+                                        },
+                                    },
+                                },
                             ],
                             { session }
                         )
@@ -734,17 +734,17 @@ class Database {
                     raidBossOperations[raidId].push({
                         updateOne: {
                             filter: {
-                                name: bossName
+                                name: bossName,
                             },
                             update: {
                                 $set: {
                                     [difficulty]: updateRaidBoss(
                                         bossesOfDb[bossName][difficulty],
                                         bosses[bossId]
-                                    )
-                                }
-                            }
-                        }
+                                    ),
+                                },
+                            },
+                        },
                     });
                 }
 
@@ -752,7 +752,7 @@ class Database {
                     await this.db
                         .collection(String(raidId))
                         .bulkWrite(raidBossOperations[raidId], {
-                            session
+                            session,
                         });
                 }
                 for (const bossId in bosses) {
@@ -760,7 +760,7 @@ class Database {
                     const bossName = bosses[bossId].name;
                     this.updatedRaidBosses.push({
                         raidId: raidId,
-                        name: bossName
+                        name: bossName,
                     });
                 }
 
@@ -784,7 +784,7 @@ class Database {
                     .project({
                         _id: 1,
                         name: 1,
-                        realm: 1
+                        realm: 1,
                     })
                     .toArray()) as {
                     _id: string;
@@ -809,7 +809,7 @@ class Database {
 
                         await this.saveGuild({
                             ...newGuild,
-                            _id: guild._id
+                            _id: guild._id,
                         });
                     } catch (err) {
                         if (
@@ -838,7 +838,7 @@ class Database {
                 if (!this.db) throw ERR_DB_CONNECTION;
 
                 await this.db.collection("guilds").deleteOne({
-                    _id: guildId
+                    _id: guildId,
                 });
                 resolve(true);
             } catch (err) {
@@ -862,7 +862,7 @@ class Database {
                         ...acc,
                         [`${difficulty}.bestDps`]: 0,
                         [`${difficulty}.bestHps`]: 0,
-                        [`${difficulty}.firstKills`]: 0
+                        [`${difficulty}.firstKills`]: 0,
                     };
                 }, {});
 
@@ -888,12 +888,12 @@ class Database {
                                 pipeline: [
                                     {
                                         $sort: {
-                                            [combatMetric]: -1
-                                        }
-                                    }
+                                            [combatMetric]: -1,
+                                        },
+                                    },
                                 ],
-                                as: `${difficulty}.${combatMetric}`
-                            }
+                                as: `${difficulty}.${combatMetric}`,
+                            },
                         });
                     }
                 }
@@ -904,10 +904,10 @@ class Database {
                         .aggregate([
                             {
                                 $match: {
-                                    name: bossName
-                                }
+                                    name: bossName,
+                                },
                             },
-                            ...lookUps
+                            ...lookUps,
                         ])
                         .project(projection)
                         .toArray()
@@ -915,7 +915,7 @@ class Database {
 
                 let bossData: RaidBossDataToServe = {
                     _id: dbResponse._id,
-                    name: dbResponse.name
+                    name: dbResponse.name,
                 };
 
                 for (const difficulty of difficulties) {
@@ -924,7 +924,7 @@ class Database {
                         ...boss,
                         fastestKills: [],
                         dps: [],
-                        hps: []
+                        hps: [],
                     };
                     for (let combatMetric of ["dps", "hps"] as const) {
                         newBoss[combatMetric] = applyCharacterPerformanceRanks(
@@ -1051,7 +1051,7 @@ class Database {
                 } = {
                     overall: {},
                     roles: {},
-                    specs: {}
+                    specs: {},
                 };
                 for (const difficulty of raid.difficulties) {
                     let characters: {
@@ -1131,7 +1131,7 @@ class Database {
                                         spec: characterData.spec,
                                         topPercent: currentPercent,
                                         date: characterData.date,
-                                        race: characterData.race
+                                        race: characterData.race,
                                     };
 
                                 if (!bestOfCharacter) {
@@ -1178,10 +1178,10 @@ class Database {
                                     characters[charId] = {
                                         best: {
                                             ...bestOfCharacter,
-                                            topPercent: 0
+                                            topPercent: 0,
                                         },
                                         specs: {},
-                                        roles: {}
+                                        roles: {},
                                     };
                                 }
 
@@ -1395,7 +1395,7 @@ class Database {
                 if (guildList) {
                     resolve(guildList);
                 } else {
-                    const guildList = await this.db
+                    const guildList = (await this.db
                         .collection("guilds")
                         .find()
                         .project({
@@ -1403,9 +1403,9 @@ class Database {
                             f: 1,
                             realm: 1,
                             activity: 1,
-                            ["progression.completion"]: 1
+                            ["progression.completion"]: 1,
                         })
-                        .toArray() as GuildList;
+                        .toArray()) as GuildList;
 
                     cache.guildList.set(cache.guildListId, guildList);
 
@@ -1424,7 +1424,7 @@ class Database {
 
                 const guild = await this.db.collection("guilds").findOne({
                     name: guildName,
-                    realm: realm
+                    realm: realm,
                 });
 
                 if (!guild) throw ERR_GUILD_NOT_FOUND;
@@ -1581,7 +1581,7 @@ class Database {
                             page * pageSize,
                             (page + 1) * pageSize
                         ),
-                        itemCount: characters.length
+                        itemCount: characters.length,
                     });
                 } else {
                     let bossData = await this.requestRaidBoss(raidId, bossName);
@@ -1596,7 +1596,7 @@ class Database {
                             page * pageSize,
                             (page + 1) * pageSize
                         ),
-                        itemCount: characters.length
+                        itemCount: characters.length,
                     });
                 }
             } catch (err) {
@@ -1641,7 +1641,7 @@ class Database {
                             name: 1,
                             f: 1,
                             realm: 1,
-                            ranking: 1
+                            ranking: 1,
                         })
                         .toArray();
 
@@ -1737,7 +1737,7 @@ class Database {
                         bossCount,
                         bosses,
                         id: raidId,
-                        difficulties
+                        difficulties,
                     } = getRaidInfoFromName(raidName);
                     const characterSpecs =
                         environment.characterClassToSpec[characterClass];
@@ -1750,11 +1750,11 @@ class Database {
                         let projection = {};
                         for (const difficulty in bossInfo.difficultyIds) {
                             let currentProjection: LooseObject = {
-                                [`${difficulty}.characterData`]: 1
+                                [`${difficulty}.characterData`]: 1,
                             };
                             for (const combatMetric of [
                                 "dps",
-                                "hps"
+                                "hps",
                             ] as const) {
                                 currentProjection[
                                     `${difficulty}.best${capitalize(
@@ -1792,9 +1792,9 @@ class Database {
                                                                 `$${difficulty}.best${capitalize(
                                                                     combatMetric
                                                                 )}.${realmName}.${faction}.${characterClass}.${specId}`,
-                                                                0
-                                                            ]
-                                                        }
+                                                                0,
+                                                            ],
+                                                        },
                                                 };
                                             }
                                         }
@@ -1802,18 +1802,18 @@ class Database {
                                 }
                                 projection = {
                                     ...projection,
-                                    ...currentProjection
+                                    ...currentProjection,
                                 };
                             }
                         }
                         aggregations[bossInfo.name].unshift(
                             {
                                 $match: {
-                                    name: bossInfo.name
-                                }
+                                    name: bossInfo.name,
+                                },
                             },
                             {
-                                $project: projection
+                                $project: projection,
                             }
                         );
                     }
@@ -1823,8 +1823,8 @@ class Database {
                             .collection(String(raidId))
                             .aggregate([
                                 {
-                                    $facet: aggregations
-                                }
+                                    $facet: aggregations,
+                                },
                             ])
                             .toArray()
                     )[0];
@@ -1838,7 +1838,7 @@ class Database {
 
                             for (const combatMetric of [
                                 "dps",
-                                "hps"
+                                "hps",
                             ] as const) {
                                 const bestCombatMetricOfBoss =
                                     currentBoss[difficulty][
@@ -1850,13 +1850,13 @@ class Database {
 
                                 let bestOfClass: LooseObject = {};
                                 let bestOfCharacter: LooseObject = {
-                                    [combatMetric]: 0
+                                    [combatMetric]: 0,
                                 };
 
                                 for (const specId of characterSpecs) {
                                     let bestOfSpec: LooseObject = {};
                                     let characterSpecData: LooseObject = {
-                                        [combatMetric]: 0
+                                        [combatMetric]: 0,
                                     };
 
                                     for (const realmName in bestCombatMetricOfBoss) {
@@ -1902,7 +1902,7 @@ class Database {
 
                                     const charData =
                                         bossData.find(
-                                            character =>
+                                            (character) =>
                                                 character._id ===
                                                 getCharacterId(
                                                     characterName,
@@ -1922,7 +1922,7 @@ class Database {
                                         topPercent: getRelativePerformance(
                                             charData[combatMetric],
                                             bestOfSpec[combatMetric]
-                                        )
+                                        ),
                                     };
 
                                     const categorization = [
@@ -1930,7 +1930,7 @@ class Database {
                                         difficulty,
                                         boss.name,
                                         specId,
-                                        combatMetric
+                                        combatMetric,
                                     ];
 
                                     characterPerformance = addNestedObjectValue(
@@ -1955,7 +1955,7 @@ class Database {
                                 const categorization = [
                                     raidName,
                                     difficulty,
-                                    boss.name
+                                    boss.name,
                                 ];
 
                                 characterPerformance = addNestedObjectValue(
@@ -1966,7 +1966,7 @@ class Database {
                                         topPercent: getRelativePerformance(
                                             bestOfCharacter[combatMetric],
                                             bestOfClass[combatMetric]
-                                        )
+                                        ),
                                     }
                                 );
 
@@ -1990,7 +1990,7 @@ class Database {
                                         topPercent: getRelativePerformance(
                                             bestOfCharacter[combatMetric],
                                             bestOverall[combatMetric]
-                                        )
+                                        ),
                                     }
                                 );
                                 bestTotal = addToCharTotalPerformance(
@@ -2036,7 +2036,7 @@ class Database {
                                         topPercent: getRelativePerformance(
                                             characterCombatMetricOfTotal,
                                             bestCombatMetricOfTotal
-                                        )
+                                        ),
                                     }
                                 ) as CharPerfBossData;
                             }
