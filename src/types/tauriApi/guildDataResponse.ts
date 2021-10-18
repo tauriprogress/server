@@ -17,7 +17,7 @@ export interface GuildData {
     guildEmblemObject: string;
     GrantAccess: boolean;
     faction: number;
-    guildList: { [key: string]: GuildList };
+    guildList: { [key: string]: GuildMember };
     guildMembersCount: number;
     gRanks: { [key: string]: GRank };
     name: string;
@@ -28,7 +28,7 @@ export interface GRank {
     rname: string;
 }
 
-export interface GuildList {
+export interface GuildMember {
     realm: string;
     class: number;
     race: number;

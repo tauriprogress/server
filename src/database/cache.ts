@@ -1,4 +1,6 @@
 import * as NodeCache from "node-cache";
+import { GuildList } from "../types";
+
 
 class Cache {
     public guildList: NodeCache;
@@ -11,12 +13,16 @@ class Cache {
 
     public items: NodeCache;
 
+    public guildListId: string;
+
     constructor() {
+        this.guildListId = "list";
         this.guildList = new NodeCache({
             stdTTL: 20 * 60,
             checkperiod: 60,
             useClones: false
         });
+
         this.raidSummary = new NodeCache({
             stdTTL: 0,
             useClones: false
@@ -45,6 +51,9 @@ class Cache {
             useClones: false,
             maxKeys: 1500
         });
+    }
+    getGuildList() {
+        return this.guildList.get(this.guildListId) as GuildList;
     }
 
     clearRaidSummary() {

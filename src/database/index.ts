@@ -56,7 +56,8 @@ import {
     CharPerfBossData,
     TrimmedLog,
     Filters,
-    CombatMetric
+    CombatMetric,
+    GuildList
 } from "../types";
 import {
     ERR_DATA_NOT_EXIST,
@@ -1384,17 +1385,15 @@ class Database {
         }
     }
 
-    async getGuildList() {
+    async getGuildList(): Promise<GuildList> {
         return new Promise(async (resolve, reject) => {
             try {
                 if (!this.db) throw ERR_DB_CONNECTION;
 
-                const cacheId = `list`;
+                const guildList = cache.getGuildList();
 
-                const cachedData = cache.guildList.get(cacheId);
-
-                if (cachedData) {
-                    resolve(cachedData);
+                if (guildList) {
+                    resolve(guildList);
                 } else {
                     const guildList = await this.db
                         .collection("guilds")
@@ -1406,9 +1405,9 @@ class Database {
                             activity: 1,
                             ["progression.completion"]: 1
                         })
-                        .toArray();
+                        .toArray() as GuildList;
 
-                    cache.guildList.set(cacheId, guildList);
+                    cache.guildList.set(cache.guildListId, guildList);
 
                     resolve(guildList);
                 }

@@ -13,6 +13,17 @@ export interface Guild {
     ranking: Ranking;
 }
 
+export type GuildList = GuildOfGuildList[]
+
+export interface GuildOfGuildList {
+    _id: string;
+    f: 0 | 1;
+    realm: string;
+    name: string;
+    activity: GuildActivity;
+    progression: Omit<GuildProgression, "recentKills" | "raids">;
+}
+
 interface GuildMember {
     name: string;
     class: number;
