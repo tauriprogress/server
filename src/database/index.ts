@@ -1473,20 +1473,9 @@ class Database {
             try {
                 if (!this.db) throw ERR_DB_CONNECTION;
 
-                const cacheId = `${raidId}${bossName}`;
+                const bossData = await this.getRaidBoss(raidId, bossName);
 
-                const cachedData = cache.raidBoss.get(cacheId) as
-                    | RaidBossDataToServe
-                    | false;
-
-                if (cachedData) {
-                    resolve(cachedData[difficulty].killCount);
-                } else {
-                    let bossData = await this.requestRaidBoss(raidId, bossName);
-                    cache.raidBoss.set(cacheId, bossData);
-
-                    resolve(bossData[difficulty].killCount);
-                }
+                resolve(bossData[difficulty].killCount);
             } catch (err) {
                 reject(err);
             }
@@ -1502,20 +1491,9 @@ class Database {
             try {
                 if (!this.db) throw ERR_DB_CONNECTION;
 
-                const cacheId = `${raidId}${bossName}`;
+                const bossData = await this.getRaidBoss(raidId, bossName);
 
-                const cachedData = cache.raidBoss.get(cacheId) as
-                    | RaidBossDataToServe
-                    | false;
-
-                if (cachedData) {
-                    resolve(cachedData[difficulty].recentKills);
-                } else {
-                    let bossData = await this.requestRaidBoss(raidId, bossName);
-                    cache.raidBoss.set(cacheId, bossData);
-
-                    resolve(bossData[difficulty].recentKills);
-                }
+                resolve(bossData[difficulty].recentKills);
             } catch (err) {
                 reject(err);
             }
@@ -1531,20 +1509,9 @@ class Database {
             try {
                 if (!this.db) throw ERR_DB_CONNECTION;
 
-                const cacheId = `${raidId}${bossName}`;
+                const bossData = await this.getRaidBoss(raidId, bossName);
 
-                const cachedData = cache.raidBoss.get(cacheId) as
-                    | RaidBossDataToServe
-                    | false;
-
-                if (cachedData) {
-                    resolve(cachedData[difficulty].fastestKills);
-                } else {
-                    let bossData = await this.requestRaidBoss(raidId, bossName);
-                    cache.raidBoss.set(cacheId, bossData);
-
-                    resolve(bossData[difficulty].fastestKills);
-                }
+                resolve(bossData[difficulty].fastestKills);
             } catch (err) {
                 reject(err);
             }
@@ -1564,41 +1531,20 @@ class Database {
 
                 if (!this.db) throw ERR_DB_CONNECTION;
 
-                const cacheId = `${raidId}${bossName}`;
+                const bossData = await this.getRaidBoss(raidId, bossName);
 
-                const cachedData = cache.raidBoss.get(cacheId) as
-                    | RaidBossDataToServe
-                    | false;
+                const characters = applyCharacterFilters(
+                    bossData[difficulty][combatMetric],
+                    filters
+                );
 
-                if (cachedData) {
-                    let characters = applyCharacterFilters(
-                        cachedData[difficulty][combatMetric],
-                        filters
-                    );
-
-                    resolve({
-                        characters: characters.slice(
-                            page * pageSize,
-                            (page + 1) * pageSize
-                        ),
-                        itemCount: characters.length,
-                    });
-                } else {
-                    let bossData = await this.requestRaidBoss(raidId, bossName);
-                    cache.raidBoss.set(cacheId, bossData);
-                    let characters = applyCharacterFilters(
-                        bossData[difficulty][combatMetric],
-                        filters
-                    );
-
-                    resolve({
-                        characters: characters.slice(
-                            page * pageSize,
-                            (page + 1) * pageSize
-                        ),
-                        itemCount: characters.length,
-                    });
-                }
+                resolve({
+                    characters: characters.slice(
+                        page * pageSize,
+                        (page + 1) * pageSize
+                    ),
+                    itemCount: characters.length,
+                });
             } catch (err) {
                 reject(err);
             }
