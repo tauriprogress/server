@@ -1,5 +1,5 @@
 import * as NodeCache from "node-cache";
-import { GuildList, RaidSummary } from "../types";
+import { GuildList, RaidSummary, CharacterPerformance } from "../types";
 
 
 class Cache {
@@ -59,6 +59,10 @@ class Cache {
 
     getRaidSummary(raidId: number) {
         return this.raidSummary.get(raidId) as RaidSummary
+    }
+
+    getCharacterPerformance(characterId: string) {
+        return cache.characterPerformance.get(characterId) as CharacterPerformance
     }
 
     clearRaidSummary() {

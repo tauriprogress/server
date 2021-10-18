@@ -1728,9 +1728,7 @@ class Database {
 
                 const cacheId = `${characterName}${realm}${raidName}`;
 
-                const cachedData = cache.characterPerformance.get(cacheId) as
-                    | CharacterPerformance
-                    | false;
+                const cachedData = cache.getCharacterPerformance(cacheId);
 
                 if (cachedData) {
                     resolve(cachedData);
