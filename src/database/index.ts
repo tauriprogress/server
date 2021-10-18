@@ -47,7 +47,7 @@ import {
     RaidBossDataToServe,
     DbRaidBossDataResponse,
     LooseObject,
-    Leaderboard,
+    CharacterLeaderboard,
     RankedCharacter,
     CharacterOfLeaderboard,
     RaidSummary,
@@ -1045,9 +1045,9 @@ class Database {
         for (const combatMetric of ["dps", "hps"] as const) {
             for (const raid of environment.currentContent.raids) {
                 let leaderboards: {
-                    overall: Leaderboard;
-                    specs: { [propName: string]: Leaderboard };
-                    roles: { [propName: string]: Leaderboard };
+                    overall: CharacterLeaderboard;
+                    specs: { [propName: string]: CharacterLeaderboard };
+                    roles: { [propName: string]: CharacterLeaderboard };
                 } = {
                     overall: {},
                     roles: {},
@@ -1349,7 +1349,7 @@ class Database {
                     combatMetric
                 );
 
-                cache.leaderboard.set(
+                cache.characterLeaderboard.set(
                     overallLeaderboardId,
                     leaderboards.overall
                 );
@@ -1361,7 +1361,7 @@ class Database {
                         specId
                     );
 
-                    cache.leaderboard.set(
+                    cache.characterLeaderboard.set(
                         currentLeaderboardId,
                         leaderboards.specs[specId]
                     );
@@ -1374,7 +1374,7 @@ class Database {
                         role
                     );
 
-                    cache.leaderboard.set(
+                    cache.characterLeaderboard.set(
                         currentLeaderboardId,
                         leaderboards.roles[role]
                     );
@@ -1451,7 +1451,10 @@ class Database {
                 if (cachedData) {
                     resolve(cachedData);
                 } else {
-                    const bossData = await this.requestRaidBoss(raidId, bossName);
+                    const bossData = await this.requestRaidBoss(
+                        raidId,
+                        bossName
+                    );
                     cache.raidBoss.set(cacheId, bossData);
 
                     resolve(bossData);
@@ -1549,12 +1552,12 @@ class Database {
         });
     }
 
-    async getCharacterLeaderboard(id: string) {
+    async getCharacterLeaderboard(id: string): Promise<CharacterLeaderboard> {
         return new Promise(async (resolve, reject) => {
             try {
                 if (!this.firstCacheLoad) throw ERR_LOADING;
 
-                const data = cache.leaderboard.get(id);
+                const data = cache.getCharacterLeaderboard(id);
 
                 if (!data) {
                     throw ERR_DATA_NOT_EXIST;

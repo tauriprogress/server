@@ -1,4 +1,4 @@
-export interface Leaderboard {
+export interface CharacterLeaderboard {
     [propName: number]: CharacterOfLeaderboard[];
 }
 

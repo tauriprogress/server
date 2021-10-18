@@ -4,13 +4,14 @@ import {
     RaidSummary,
     CharacterPerformance,
     RaidBossDataToServe,
+    CharacterLeaderboard,
 } from "../types";
 
 class Cache {
     public guildList: NodeCache;
     public raidSummary: NodeCache;
     public raidBoss: NodeCache;
-    public leaderboard: NodeCache;
+    public characterLeaderboard: NodeCache;
     public guildLeaderboard: NodeCache;
 
     public characterPerformance: NodeCache;
@@ -43,7 +44,7 @@ class Cache {
             useClones: false,
         });
 
-        this.leaderboard = new NodeCache({
+        this.characterLeaderboard = new NodeCache({
             stdTTL: 0,
             useClones: false,
         });
@@ -75,6 +76,12 @@ class Cache {
 
     getRaidBoss(bossId: string) {
         return cache.raidBoss.get(bossId) as RaidBossDataToServe;
+    }
+
+    getCharacterLeaderboard(leaderboardId: string) {
+        return cache.characterLeaderboard.get(
+            leaderboardId
+        ) as CharacterLeaderboard;
     }
 
     clearRaidSummary() {
