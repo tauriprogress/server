@@ -23,7 +23,7 @@ import {
 } from "./middlewares";
 import tauriApi from "./tauriApi";
 
-import { isError, minutesAgo, runGC } from "./helpers";
+import { isError, minutesAgo } from "./helpers";
 import { LooseObject } from "./types";
 import { environment } from "./environment";
 import cache from "./database/cache";
@@ -33,12 +33,10 @@ const app = express();
 const prompt = require("prompt-sync")();
 
 const speedLimiter = slowDown({
-    windowMs: 20 * 1000,
-    delayAfter: 20,
+    windowMs: 40 * 1000,
+    delayAfter: 15,
     delayMs: 300,
     maxDelayMs: 2 * 1000,
-    keyGenerator: () => "1",
-    onLimitReached: () => runGC(),
 });
 
 (async function () {
@@ -67,6 +65,9 @@ const speedLimiter = slowDown({
             optionsSuccessStatus: 200,
         })
     );
+
+    app.use(speedLimiter);
+
     app.use(bodyParser.json());
     app.use((req, _1, next) => {
         req.db = db;
@@ -74,8 +75,6 @@ const speedLimiter = slowDown({
     });
 
     app.use(updateDatabase);
-
-    app.use(speedLimiter);
 
     app.get("/getguildlist", async (_1, res) => {
         try {
