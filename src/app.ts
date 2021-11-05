@@ -9,7 +9,6 @@ import {
     verifyGetGuild,
     verifyGetCharacter,
     verifyGetRaidSummary,
-    verifyGetBoss,
     verifyGetBossKillCount,
     verifyGetBossRecentKills,
     verifyGetBossFastestKills,
@@ -155,23 +154,6 @@ const speedLimiter = slowDown({
             res.send({
                 success: true,
                 response: await db.getRaidSummary(req.body.raidId),
-            });
-        } catch (err) {
-            res.send({
-                success: false,
-                errorstring: isError(err) ? err.message : err,
-            });
-        }
-    });
-
-    app.post("/getboss", waitDbCache, verifyGetBoss, async (req, res) => {
-        try {
-            res.send({
-                success: true,
-                response: await db.getRaidBoss(
-                    req.body.raidId,
-                    req.body.bossName
-                ),
             });
         } catch (err) {
             res.send({
