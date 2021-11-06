@@ -34,6 +34,7 @@ import {
     isError,
     sleep,
     Lock,
+    getRaidBossSummary,
 } from "../helpers";
 
 import { MongoClient, Db, ClientSession, ObjectId, ReadConcern } from "mongodb";
@@ -51,7 +52,6 @@ import {
     RankedCharacter,
     CharacterOfLeaderboard,
     RaidSummary,
-    RaidBossNoRecent,
     CharacterPerformance,
     CharPerfBossData,
     TrimmedLog,
@@ -858,15 +858,6 @@ class Database {
 
                 const difficulties = getRaidInfoFromId(raidId).difficulties;
 
-                const projection = difficulties.reduce((acc, difficulty) => {
-                    return {
-                        ...acc,
-                        [`${difficulty}.bestDps`]: 0,
-                        [`${difficulty}.bestHps`]: 0,
-                        [`${difficulty}.firstKills`]: 0,
-                    };
-                }, {});
-
                 const bossInfo = getBossInfo(raidId, bossName);
 
                 let lookUps = [];
@@ -910,7 +901,6 @@ class Database {
                             },
                             ...lookUps,
                         ])
-                        .project(projection)
                         .toArray()
                 )[0] as DbRaidBossDataResponse;
 
@@ -923,7 +913,7 @@ class Database {
                     const boss = dbResponse[difficulty];
                     let newBoss: RaidBossDataToServe[number] = {
                         ...boss,
-                        fastestKills: [],
+                        fiftyFastestKills: [],
                         dps: [],
                         hps: [],
                     };
@@ -949,7 +939,7 @@ class Database {
                         }
                     }
 
-                    newBoss.fastestKills = fastestKills
+                    newBoss.fiftyFastestKills = fastestKills
                         .sort((a, b) => {
                             return a.fightLength - b.fightLength;
                         })
@@ -1513,7 +1503,7 @@ class Database {
 
                 const bossData = await this.getRaidBoss(raidId, bossName);
 
-                resolve(bossData[difficulty].fastestKills);
+                resolve(bossData[difficulty].fiftyFastestKills);
             } catch (err) {
                 reject(err);
             }
@@ -1617,39 +1607,17 @@ class Database {
                 } else {
                     const difficulties = getRaidInfoFromId(raidId).difficulties;
 
-                    const projection = difficulties.reduce(
-                        (acc, difficulty) => {
-                            return { ...acc, [`${difficulty}.recentKills`]: 0 };
-                        },
-                        {}
-                    );
-
-                    const bosses = (await this.db
-                        .collection(String(raidId))
-                        .find({})
-                        .project(projection)
-                        .toArray()) as {
-                        [propName: number]: RaidBossNoRecent;
-                    }[];
-
                     let raidSummary: RaidSummary = {};
-                    for (const difficulty of difficulties) {
-                        for (const bossData of bosses) {
-                            const boss = bossData[difficulty];
 
-                            if (!boss) continue;
-                            for (const realmName in boss.fastestKills) {
-                                for (const faction in boss.fastestKills[
-                                    realmName
-                                ]) {
-                                    boss.fastestKills[realmName][faction] =
-                                        boss.fastestKills[realmName][
-                                            faction
-                                        ].slice(0, 10);
-                                }
-                            }
-
-                            raidSummary[boss._id] = boss;
+                    const bosses = getRaidInfoFromId(raidId).bosses;
+                    for (const bossInfo of bosses) {
+                        let bossData = await this.getRaidBoss(
+                            raidId,
+                            bossInfo.name
+                        );
+                        for (const difficulty of difficulties) {
+                            raidSummary[bossData[difficulty]._id] =
+                                getRaidBossSummary(bossData[difficulty]);
                         }
                     }
 

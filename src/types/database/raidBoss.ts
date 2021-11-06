@@ -11,17 +11,13 @@ export interface DbRaidBoss {
 export interface RaidBossDataToServe {
     _id: ObjectId;
     name: string;
-    [propName: number]: ModifiedRaidBoss;
+    [propName: number]: ExtendedRaidBoss;
 }
 
-interface ModifiedRaidBoss
-    extends Omit<
-        RaidBoss,
-        "bestHps" | "bestDps" | "firstKills" | "fastestKills"
-    > {
+export interface ExtendedRaidBoss extends RaidBoss {
     dps: RankedCharacter[];
     hps: RankedCharacter[];
-    fastestKills: TrimmedLog[];
+    fiftyFastestKills: TrimmedLog[];
 }
 
 export interface DbRaidBossDataResponse {
@@ -30,8 +26,7 @@ export interface DbRaidBossDataResponse {
     [propName: number]: DbRaidBossResponse;
 }
 
-interface DbRaidBossResponse
-    extends Omit<RaidBoss, "bestHps" | "bestDps" | "firstKills"> {
+interface DbRaidBossResponse extends RaidBoss {
     dps: Character[];
     hps: Character[];
 }

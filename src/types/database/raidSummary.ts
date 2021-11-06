@@ -1,7 +1,11 @@
 import { RaidBoss } from "../../types";
 
 export interface RaidSummary {
-    [propName: string]: RaidBossNoRecent;
+    [propName: string]: RaidBossForSummary;
 }
 
-export interface RaidBossNoRecent extends Omit<RaidBoss, "recentKills"> {}
+export interface RaidBossForSummary
+    extends Omit<
+        RaidBoss,
+        "killCount" | "recentKills" | "bestDpsNoCat" | "bestHpsNoCat"
+    > {}
