@@ -6,7 +6,7 @@ export function updateRaidBoss(oldBoss: RaidBoss, boss: RaidBoss) {
     let updatedRaidBoss: RaidBoss = {
         ...JSON.parse(JSON.stringify(oldBoss)),
         recentKills: boss.recentKills.concat(oldBoss.recentKills).slice(0, 50),
-        killCount: oldBoss.killCount + boss.killCount
+        killCount: oldBoss.killCount + boss.killCount,
     };
 
     for (const realm in boss.fastestKills) {
@@ -17,10 +17,8 @@ export function updateRaidBoss(oldBoss: RaidBoss, boss: RaidBoss) {
                 getNestedObjectValue(oldBoss.fastestKills, categorization) ||
                 [];
 
-            const newLogs: typeof boss.fastestKills[string][number] = getNestedObjectValue(
-                boss.fastestKills,
-                categorization
-            );
+            const newLogs: typeof boss.fastestKills[string][number] =
+                getNestedObjectValue(boss.fastestKills, categorization);
 
             const updatedLogs = oldLogs
                 .concat(newLogs)
@@ -42,10 +40,8 @@ export function updateRaidBoss(oldBoss: RaidBoss, boss: RaidBoss) {
             const oldLogs: typeof oldBoss.firstKills[string][number] =
                 getNestedObjectValue(oldBoss.firstKills, categorization) || [];
 
-            const newLogs: typeof boss.firstKills[string][number] = getNestedObjectValue(
-                boss.firstKills,
-                categorization
-            );
+            const newLogs: typeof boss.firstKills[string][number] =
+                getNestedObjectValue(boss.firstKills, categorization);
 
             const updatedLogs = oldLogs
                 .concat(newLogs)
@@ -91,7 +87,7 @@ export function updateRaidBoss(oldBoss: RaidBoss, boss: RaidBoss) {
                             realm,
                             faction,
                             characterClass,
-                            characterSpec
+                            characterSpec,
                         ];
 
                         const oldBestsOfCombatMetric: typeof oldBoss[typeof bestOfKey][string][number][number][number] =
@@ -104,7 +100,7 @@ export function updateRaidBoss(oldBoss: RaidBoss, boss: RaidBoss) {
 
                         for (const bestCharacter of [
                             ...oldBestsOfCombatMetric,
-                            ...newBestsOfCombatMetric
+                            ...newBestsOfCombatMetric,
                         ]) {
                             const currentPerformance =
                                 bestCharacter[combatMetric];
@@ -117,9 +113,8 @@ export function updateRaidBoss(oldBoss: RaidBoss, boss: RaidBoss) {
                                             combatMetric
                                         ])
                             ) {
-                                bestCharacters[
-                                    bestCharacter._id
-                                ] = bestCharacter;
+                                bestCharacters[bestCharacter._id] =
+                                    bestCharacter;
                             }
                         }
 
