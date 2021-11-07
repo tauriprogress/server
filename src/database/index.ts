@@ -1659,99 +1659,17 @@ class Database {
                     const characterSpecs =
                         environment.characterClassToSpec[characterClass];
 
-                    let aggregations: LooseObject = {};
-
                     let characterPerformance: CharacterPerformance = {};
-
-                    for (const bossInfo of bosses) {
-                        let projection = {};
-                        for (const difficulty in bossInfo.difficultyIds) {
-                            let currentProjection: LooseObject = {
-                                [`${difficulty}.characterData`]: 1,
-                            };
-                            for (const combatMetric of [
-                                "dps",
-                                "hps",
-                            ] as const) {
-                                currentProjection[
-                                    `${difficulty}.best${capitalize(
-                                        combatMetric
-                                    )}NoCat`
-                                ] = 1;
-
-                                if (!aggregations[bossInfo.name]) {
-                                    aggregations[bossInfo.name] = [];
-                                }
-
-                                for (const specId of characterSpecs) {
-                                    const spec =
-                                        environment.specs[
-                                            specId as unknown as keyof typeof environment.specs
-                                        ];
-                                    const key = (
-                                        combatMetric === "dps"
-                                            ? "isDps"
-                                            : "isHealer"
-                                    ) as keyof typeof spec;
-
-                                    if (spec && spec[key]) {
-                                        for (const realmName of Object.values(
-                                            environment.realms
-                                        )) {
-                                            for (const faction of [0, 1]) {
-                                                currentProjection = {
-                                                    ...currentProjection,
-                                                    [`${difficulty}.best${capitalize(
-                                                        combatMetric
-                                                    )}.${realmName}.${faction}.${specId}`]:
-                                                        {
-                                                            $arrayElemAt: [
-                                                                `$${difficulty}.best${capitalize(
-                                                                    combatMetric
-                                                                )}.${realmName}.${faction}.${characterClass}.${specId}`,
-                                                                0,
-                                                            ],
-                                                        },
-                                                };
-                                            }
-                                        }
-                                    }
-                                }
-                                projection = {
-                                    ...projection,
-                                    ...currentProjection,
-                                };
-                            }
-                        }
-                        aggregations[bossInfo.name].unshift(
-                            {
-                                $match: {
-                                    name: bossInfo.name,
-                                },
-                            },
-                            {
-                                $project: projection,
-                            }
-                        );
-                    }
-
-                    let data = (
-                        await this.db
-                            .collection(String(raidId))
-                            .aggregate([
-                                {
-                                    $facet: aggregations,
-                                },
-                            ])
-                            .toArray()
-                    )[0];
 
                     for (const difficulty of difficulties) {
                         let characterTotal: LooseObject = {};
                         let bestTotal: LooseObject = {};
 
                         for (const boss of bosses) {
-                            const currentBoss = data[boss.name][0];
+                            const currentBoss = await this.getRaidBoss(
+                                raidId,
+                                boss.name
+                            );
 
                             for (const combatMetric of [
                                 "dps",
@@ -1759,10 +1677,14 @@ class Database {
                             ] as const) {
                                 const bestCombatMetricOfBoss =
                                     currentBoss[difficulty][
-                                        `best${capitalize(combatMetric)}`
+                                        `best${capitalize(combatMetric)}` as
+                                            | "bestDps"
+                                            | "bestHps"
                                     ];
                                 const bestOverall = currentBoss[difficulty][
-                                    `best${capitalize(combatMetric)}NoCat`
+                                    `best${capitalize(combatMetric)}NoCat` as
+                                        | "bestDpsNoCat"
+                                        | "bestHpsNoCat"
                                 ] || { dps: 0, hps: 0 };
 
                                 let bestOfClass: LooseObject = {};
@@ -1780,31 +1702,57 @@ class Database {
                                         for (const faction in bestCombatMetricOfBoss[
                                             realmName
                                         ]) {
+                                            if (
+                                                !bestCombatMetricOfBoss[
+                                                    realmName
+                                                ][faction][characterClass] ||
+                                                !bestCombatMetricOfBoss[
+                                                    realmName
+                                                ][faction][characterClass][
+                                                    specId
+                                                ]
+                                            ) {
+                                                continue;
+                                            }
+
                                             const currentBest =
                                                 bestCombatMetricOfBoss[
                                                     realmName
-                                                ][faction][specId];
+                                                ][faction][characterClass][
+                                                    specId
+                                                ][0];
 
-                                            if (currentBest) {
-                                                if (
-                                                    !bestOfSpec[combatMetric] ||
-                                                    bestOfSpec[combatMetric] <
-                                                        currentBest[
+                                            if (
+                                                currentBest &&
+                                                currentBest[combatMetric]
+                                            ) {
+                                                const currentBestCombatMetric =
+                                                    currentBest[combatMetric];
+                                                if (currentBestCombatMetric) {
+                                                    if (
+                                                        !bestOfSpec[
                                                             combatMetric
-                                                        ]
-                                                ) {
-                                                    bestOfSpec = currentBest;
-                                                }
-                                                if (
-                                                    !bestOfClass[
-                                                        combatMetric
-                                                    ] ||
-                                                    bestOfClass[combatMetric] <
-                                                        currentBest[
+                                                        ] ||
+                                                        bestOfSpec[
                                                             combatMetric
-                                                        ]
-                                                ) {
-                                                    bestOfClass = currentBest;
+                                                        ] <
+                                                            currentBestCombatMetric
+                                                    ) {
+                                                        bestOfSpec =
+                                                            currentBest;
+                                                    }
+                                                    if (
+                                                        !bestOfClass[
+                                                            combatMetric
+                                                        ] ||
+                                                        bestOfClass[
+                                                            combatMetric
+                                                        ] <
+                                                            currentBestCombatMetric
+                                                    ) {
+                                                        bestOfClass =
+                                                            currentBest;
+                                                    }
                                                 }
                                             }
                                         }
@@ -1906,14 +1854,14 @@ class Database {
                                         ...bestOfCharacter,
                                         topPercent: getRelativePerformance(
                                             bestOfCharacter[combatMetric],
-                                            bestOverall[combatMetric]
+                                            bestOverall[combatMetric] || 0
                                         ),
                                     }
                                 );
                                 bestTotal = addToCharTotalPerformance(
                                     bestTotal,
                                     ["noSpec", combatMetric],
-                                    bestOverall[combatMetric]
+                                    bestOverall[combatMetric] || 0
                                 );
 
                                 characterTotal = addToCharTotalPerformance(
