@@ -6,7 +6,7 @@ import {
     ERR_GUILD_NOT_FOUND,
     ERR_TAURI_API_FAILURE,
     ERR_TAURI_API_TIMEOUT,
-    ERR_UNKNOWN
+    ERR_UNKNOWN,
 } from "../helpers/errors";
 import {
     CharacterDataResponse,
@@ -19,7 +19,7 @@ import {
     GuildLastRaidLogsResponse,
     RaidBossRankedLogsResponse,
     ItemResponse,
-    CharacterTalentsResponse
+    CharacterTalentsResponse,
 } from "../types";
 
 class TauriApi {
@@ -52,11 +52,11 @@ class TauriApi {
                     const timeOut = new Promise<{
                         success: false;
                         errorstring: string;
-                    }>(resolve => {
+                    }>((resolve) => {
                         setTimeout(() => {
                             resolve({
                                 success: false,
-                                errorstring: ERR_TAURI_API_TIMEOUT.message
+                                errorstring: ERR_TAURI_API_TIMEOUT.message,
                             });
                         }, 13000);
                     });
@@ -106,10 +106,10 @@ class TauriApi {
                     url: "character-sheet",
                     params: {
                         r: realm,
-                        n: name
-                    }
+                        n: name,
+                    },
                 })
-            )
+            ),
         });
     }
 
@@ -122,10 +122,10 @@ class TauriApi {
                     url: "character-achievements",
                     params: {
                         r: realm,
-                        n: name
-                    }
+                        n: name,
+                    },
                 })
-            )
+            ),
         });
     }
 
@@ -145,10 +145,10 @@ class TauriApi {
                         r: realm,
                         cn: characterName,
                         from: logId,
-                        limit: limit
-                    }
+                        limit: limit,
+                    },
                 })
-            )
+            ),
         });
     }
 
@@ -161,10 +161,10 @@ class TauriApi {
                     url: "character-talents",
                     params: {
                         r: realm,
-                        n: name
-                    }
+                        n: name,
+                    },
                 })
-            )
+            ),
         });
     }
 
@@ -176,10 +176,10 @@ class TauriApi {
                     secret: this.apisecret,
                     url: "raid-maps",
                     params: {
-                        r: realm
-                    }
+                        r: realm,
+                    },
                 })
-            )
+            ),
         });
     }
 
@@ -192,14 +192,14 @@ class TauriApi {
                     url: "raid-log",
                     params: {
                         r: realm,
-                        id: id
-                    }
+                        id: id,
+                    },
                 })
-            )
+            ),
         });
     }
 
-    getRaidLastLogs(lastLogId: number = 0, realm: string) {
+    getRaidLastLogs(lastLogId: number = 0, realm: string, limit: number = 0) {
         return this.request<LastRaidLogsResponse>({
             method: "POST",
             body: encodeURIComponent(
@@ -208,10 +208,11 @@ class TauriApi {
                     url: "raid-last",
                     params: {
                         r: realm,
-                        from: lastLogId
-                    }
+                        from: lastLogId,
+                        limit: limit,
+                    },
                 })
-            )
+            ),
         });
     }
 
@@ -233,10 +234,10 @@ class TauriApi {
                         encounter: bossId,
                         difficulty: difficulty,
                         from: logId,
-                        limit: limit
-                    }
+                        limit: limit,
+                    },
                 })
-            )
+            ),
         });
     }
 
@@ -249,10 +250,10 @@ class TauriApi {
                     url: "guild-info",
                     params: {
                         r: realm,
-                        gn: name
-                    }
+                        gn: name,
+                    },
                 })
-            )
+            ),
         });
     }
 
@@ -272,10 +273,10 @@ class TauriApi {
                         r: realm,
                         gn: guildName,
                         from: logId,
-                        limit: limit
-                    }
+                        limit: limit,
+                    },
                 })
-            )
+            ),
         });
     }
 
@@ -299,10 +300,10 @@ class TauriApi {
                         encounter: bossId,
                         difficulty: difficulty,
                         from: logId,
-                        limit: limit
-                    }
+                        limit: limit,
+                    },
                 })
-            )
+            ),
         });
     }
 
@@ -315,10 +316,10 @@ class TauriApi {
                     url: "item-tooltip",
                     params: {
                         r: "[HU] Tauri WoW Server",
-                        e: id
-                    }
+                        e: id,
+                    },
                 })
-            )
+            ),
         });
     }
 
@@ -331,10 +332,10 @@ class TauriApi {
                     url: "item-tooltip",
                     params: {
                         r: realm,
-                        i: guid
-                    }
+                        i: guid,
+                    },
                 })
-            )
+            ),
         });
     }
 }
