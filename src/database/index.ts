@@ -1,4 +1,3 @@
-import * as fs from "fs";
 import { environment } from "../environment";
 import cache from "./cache";
 
@@ -35,6 +34,10 @@ import {
     sleep,
     Lock,
     getRaidBossSummary,
+    loadLogsFromFile,
+    getLastLogsIdsFromFile,
+    writeLogsToFile,
+    updateLastLogIdsOfFile,
 } from "../helpers";
 
 import { MongoClient, Db, ClientSession, ObjectId, ReadConcern } from "mongodb";
@@ -234,9 +237,9 @@ class Database {
                     | false = false;
                 if (isInitalization) {
                     try {
-                        oldLogData = require("../../newLogData.json") as {
-                            logs: RaidLogWithRealm[];
-                            lastLogIds: { [propName: string]: number };
+                        oldLogData = {
+                            logs: await loadLogsFromFile(),
+                            lastLogIds: getLastLogsIdsFromFile(),
                         };
                         console.log("db: Using old log data for initalization");
                     } catch (err) {
@@ -265,15 +268,13 @@ class Database {
                 }, [] as RaidLogWithRealm[]);
 
                 if (isInitalization) {
-                    console.log(
-                        "db: Saving logs in case something goes wrong in the initalization process to",
-                        __dirname
-                    );
-
-                    fs.writeFileSync(
-                        "logData.json",
-                        JSON.stringify({ logs, lastLogIds: newLastLogIds })
-                    );
+                    if (!oldLogData) {
+                        console.log(
+                            "db: Saving logs in case something goes wrong in the initalization process to"
+                        );
+                        writeLogsToFile(logs);
+                        updateLastLogIdsOfFile(newLastLogIds);
+                    }
 
                     console.log("db: Processing logs");
                     const { bosses, guilds, combatMetrics } = processLogs(logs);
