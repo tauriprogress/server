@@ -734,9 +734,10 @@ export function updateLastLogIdsOfFile(newIds: LastLogIds) {
     fs.writeFileSync(pathToLastLogIds, JSON.stringify(updatedIds));
 }
 
-export function writeLogsToFile(logs: RaidLogWithRealm[]) {
-    ensureFile(pathToLogs);
-    const writer = fs.createWriteStream(pathToLogs, {
+export function writeLogsToFile(logs: RaidLogWithRealm[], filePath?: string) {
+    let path = filePath || pathToLogs;
+    ensureFile(path);
+    const writer = fs.createWriteStream(path, {
         flags: "a",
     });
     for (let i = 0; i < logs.length; i++) {
