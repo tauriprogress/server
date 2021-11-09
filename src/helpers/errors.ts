@@ -28,3 +28,4 @@ export const ERR_INVALID_LOG_ID = new Error("Invalid log ID.");
 export const ERR_INVALID_LIMIT = new Error("Invalid limit.");
 export const ERR_INVALID_LEADERBOARD_ID = new Error("Invalid leaderboard ID");
 export const ERR_INVALID_ITEM_IDS = new Error("Invalid item ids.");
+export const ERR_FILE_DOES_NOT_EXIST = new Error("File doesn't exist.");

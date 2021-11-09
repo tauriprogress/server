@@ -1,3 +1,7 @@
+import * as fs from "fs";
+
+import { once } from "events";
+import { createInterface } from "readline";
 import { environment } from "../environment";
 import {
     addNestedObjectValue,
@@ -15,7 +19,8 @@ import {
     getGuildId,
     sameMembers,
     validLogDate,
-    getRaidBossId
+    getRaidBossId,
+    ensureFile,
 } from "../helpers";
 import tauriApi from "../tauriApi";
 import {
@@ -26,9 +31,12 @@ import {
     Guild,
     Character,
     RaidBoss,
-    GuildRankingFull
+    GuildRankingFull,
 } from "../types";
 import { getLatestWednesday } from "./providers";
+import { ERR_FILE_DOES_NOT_EXIST } from "../helpers/errors";
+
+import { pathToLastLogIds, pathToLogs } from "../constants";
 
 export async function getLogs(lastLogIds: LastLogIds): Promise<{
     logs: RaidLogWithRealm[];
@@ -48,14 +56,14 @@ export async function getLogs(lastLogIds: LastLogIds): Promise<{
                 );
 
                 unfilteredLogs = unfilteredLogs.concat(
-                    data.response.logs.map(log => ({
+                    data.response.logs.map((log) => ({
                         ...log,
                         realm: realmName,
                         encounter_data: {
                             ...log.encounter_data,
                             encounter_name:
-                                log.encounter_data.encounter_name.trim()
-                        }
+                                log.encounter_data.encounter_name.trim(),
+                        },
                     }))
                 );
             }
@@ -84,8 +92,8 @@ export async function getLogs(lastLogIds: LastLogIds): Promise<{
                         encounter_data: {
                             ...logData.response.encounter_data,
                             encounter_name:
-                                logData.response.encounter_data.encounter_name.trim()
-                        }
+                                logData.response.encounter_data.encounter_name.trim(),
+                        },
                     });
                 }
 
@@ -98,7 +106,7 @@ export async function getLogs(lastLogIds: LastLogIds): Promise<{
 
             resolve({
                 logs,
-                lastLogIds: { ...lastLogIds, ...newLastLogIds }
+                lastLogIds: { ...lastLogIds, ...newLastLogIds },
             });
         } catch (err) {
             reject(err);
@@ -146,7 +154,7 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
             "raids",
             raidName,
             difficulty,
-            bossName
+            bossName,
         ];
 
         const trimmedLog = {
@@ -156,7 +164,7 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
                 : undefined,
             fightLength: fightLength,
             realm: realm,
-            date: date
+            date: date,
         };
 
         // create boss
@@ -173,7 +181,7 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
                 _id: bossId,
                 raidId: raidId,
                 name: bossName,
-                difficulty: difficulty
+                difficulty: difficulty,
             };
         }
 
@@ -227,7 +235,7 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
                     _id: guildId,
                     name: guildName,
                     f: guildFaction,
-                    realm: realm
+                    realm: realm,
                 };
             }
 
@@ -243,14 +251,14 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
                 id: logId,
                 date: date,
                 boss: bossName,
-                difficulty: difficulty
+                difficulty: difficulty,
             });
 
             // guild ranking
             const guildRankingFullClearCategory = [
                 raidName,
                 difficulty,
-                "fullClear"
+                "fullClear",
             ];
 
             const weekId = getLatestWednesday(logDate).getTime();
@@ -264,35 +272,35 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
                 guildRankingFullClear = {
                     time: false,
                     logs: [],
-                    weeks: {}
+                    weeks: {},
                 };
 
                 guildRankingFullClear.weeks[weekId] = [
                     {
-                        members: log.members.map(member => member.name),
+                        members: log.members.map((member) => member.name),
                         logs: [
                             {
                                 bossName: bossName,
                                 date: date,
                                 fightLength: fightLength,
-                                id: logId
-                            }
-                        ]
-                    }
+                                id: logId,
+                            },
+                        ],
+                    },
                 ];
             } else if (!guildRankingFullClear.weeks[weekId]) {
                 guildRankingFullClear.weeks[weekId] = [
                     {
-                        members: log.members.map(member => member.name),
+                        members: log.members.map((member) => member.name),
                         logs: [
                             {
                                 bossName: bossName,
                                 date: date,
                                 fightLength: fightLength,
-                                id: logId
-                            }
-                        ]
-                    }
+                                id: logId,
+                            },
+                        ],
+                    },
                 ];
             } else {
                 let logAddedToRanking = false;
@@ -315,7 +323,7 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
                     if (
                         sameMembers(
                             raidGroup.members,
-                            log.members.map(member => member.name),
+                            log.members.map((member) => member.name),
                             currentDifficulty
                         )
                     ) {
@@ -325,7 +333,7 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
                             bossName: bossName,
                             date: date,
                             fightLength: fightLength,
-                            id: logId
+                            id: logId,
                         });
 
                         guildRankingFullClear.weeks[weekId][i] = raidGroup;
@@ -336,15 +344,15 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
 
                 if (!logAddedToRanking) {
                     guildRankingFullClear.weeks[weekId].push({
-                        members: log.members.map(member => member.name),
+                        members: log.members.map((member) => member.name),
                         logs: [
                             {
                                 bossName: bossName,
                                 date: date,
                                 fightLength: fightLength,
-                                id: logId
-                            }
-                        ]
+                                id: logId,
+                            },
+                        ],
                     });
                 }
             }
@@ -391,9 +399,9 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
                         {
                             id: logId,
                             fightLength: fightLength,
-                            date: date
-                        }
-                    ]
+                            date: date,
+                        },
+                    ],
                 }
             ) as Guild;
         }
@@ -436,7 +444,7 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
                                 character.race
                             ) as keyof typeof environment.characterRaceToFaction
                         ] as 0 | 1,
-                        race: `${character.race},${character.gender}`
+                        race: `${character.race},${character.gender}`,
                     };
 
                     let combatMetricPerformance;
@@ -467,7 +475,7 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
                         realm,
                         characterData.f,
                         characterData.class,
-                        characterData.spec
+                        characterData.spec,
                     ];
 
                     const bestOfNoCatKey =
@@ -523,7 +531,7 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
                             combatMetricPerformance > lastBestPerformance
                         ) {
                             const indexOfSameChar = categorizedBestOf.findIndex(
-                                data => data._id === characterData._id
+                                (data) => data._id === characterData._id
                             );
 
                             if (indexOfSameChar >= 0) {
@@ -571,7 +579,7 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
                             [
                                 ...guildBossCategorization,
                                 combatMetric,
-                                characterId
+                                characterId,
                             ]
                         );
 
@@ -584,7 +592,7 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
                                 [
                                     ...guildBossCategorization,
                                     combatMetric,
-                                    characterId
+                                    characterId,
                                 ],
                                 characterData
                             ) as Guild;
@@ -666,6 +674,68 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
     return {
         guilds,
         bosses,
-        combatMetrics
+        combatMetrics,
     };
+}
+
+export async function loadLogsFromFile(): Promise<RaidLogWithRealm[]> {
+    return new Promise(async (resolve, reject) => {
+        try {
+            if (!fs.existsSync(pathToLogs)) {
+                throw ERR_FILE_DOES_NOT_EXIST;
+            }
+
+            let logs: RaidLogWithRealm[] = [];
+
+            const rl = createInterface({
+                input: fs.createReadStream(pathToLogs),
+                crlfDelay: Infinity,
+            });
+
+            rl.on("line", (line) => {
+                logs.push(JSON.parse(line));
+            });
+
+            await once(rl, "close");
+
+            resolve(logs);
+        } catch (err) {
+            reject(err);
+        }
+    });
+}
+
+export function getLastLogsIdsFromFile(): LastLogIds {
+    ensureFile(pathToLastLogIds);
+
+    try {
+        return require(pathToLastLogIds);
+    } catch (err) {
+        return {};
+    }
+}
+
+export function updateLastLogIdsOfFile(newIds: LastLogIds) {
+    const oldIds = getLastLogsIdsFromFile();
+
+    const updatedIds: LastLogIds = { ...oldIds, ...newIds };
+
+    fs.writeFileSync(pathToLastLogIds, JSON.stringify(updatedIds));
+}
+
+export function writeLogsToFile(logs: RaidLogWithRealm[]) {
+    ensureFile(pathToLogs);
+    const writer = fs.createWriteStream(pathToLogs, {
+        flags: "a",
+    });
+    for (let i = 0; i < logs.length; i++) {
+        writer.write(JSON.stringify(logs[i]) + "\r\n");
+    }
+}
+
+export async function updateLogsOfFile() {
+    const oldLastLogIds = getLastLogsIdsFromFile();
+    const { lastLogIds, logs } = await getLogs(oldLastLogIds);
+    updateLastLogIdsOfFile(lastLogIds);
+    writeLogsToFile(logs);
 }
