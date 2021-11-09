@@ -5,7 +5,7 @@ import {
     RaidLogWithRealm,
     RankedCharacter,
     CharacterOfLeaderboard,
-    Filters
+    Filters,
 } from "../types";
 
 export function addNestedObjectValue<T>(
@@ -64,7 +64,7 @@ export function logBugHandler(
                     ) {
                         return {
                             ...member,
-                            [bug.changeKey.key]: bug.changeKey.value
+                            [bug.changeKey.key]: bug.changeKey.value,
                         };
                     }
                     return member;
@@ -93,13 +93,26 @@ export function logBugHandler(
                 }
 
                 break;
+
+            case "ignoreCharacter":
+                log.members = log.members.filter((member: LooseObject) => {
+                    if (
+                        member.name === bug.characterName &&
+                        log.realm === bug.realm
+                    ) {
+                        return false;
+                    }
+                    return true;
+                });
+                break;
+
             case "overwriteSpec":
                 if (log.log_id === bug.logId && log.realm === bug.realm) {
                     log.members = log.members.map((member: any) => {
                         if (member.name === bug.characterName) {
                             return {
                                 ...member,
-                                spec: bug.specId
+                                spec: bug.specId,
                             };
                         }
                         return member;
@@ -162,7 +175,7 @@ export function applyCharacterPerformanceRanks(
             ...character,
             rank: i + 1,
             cRank: classes[character.class],
-            sRank: specs[character.spec]
+            sRank: specs[character.spec],
         });
     }
 
@@ -204,7 +217,7 @@ export function updateCharacterOfLeaderboard(
         f: updatedFaction,
         ilvl: updatedIlvl,
         topPercent: updatedTopPercent,
-        race: updatedRace
+        race: updatedRace,
     };
 }
 
@@ -212,7 +225,7 @@ export function applyCharacterFilters(
     characters: RankedCharacter[],
     filters: Filters
 ) {
-    return characters.filter(character => {
+    return characters.filter((character) => {
         if (filters.class !== undefined && character.class !== filters.class) {
             return false;
         }
