@@ -332,8 +332,6 @@ class Database {
                         }
                     );
                 } else {
-                    const processedLogs = processLogs(logs);
-
                     const session = this.client.startSession();
 
                     try {
@@ -341,7 +339,7 @@ class Database {
                         await session.withTransaction(
                             async () => {
                                 await this.saveLogs(
-                                    processedLogs,
+                                    processLogs(logs),
                                     {
                                         lastLogIds: newLastLogIds,
                                         updateStarted,
@@ -384,9 +382,10 @@ class Database {
                     await this.updateGuilds();
                 }
 
-                this.updateRaidBossCache();
-
-                this.updateLeaderboard();
+                await this.updateRaidBossCache();
+                runGC();
+                await this.updateLeaderboard();
+                runGC();
 
                 cache.clearRaidSummary();
                 cache.clearCharacterPerformance();
@@ -958,7 +957,6 @@ class Database {
         const fullLoad = async (): Promise<true> => {
             return new Promise(async (resolve, reject) => {
                 try {
-                    runGC();
                     for (const raid of environment.currentContent.raids) {
                         let promises = [];
                         for (const boss of raid.bosses) {
@@ -977,7 +975,6 @@ class Database {
 
                             cache.raidBoss.set(cacheId, boss);
                         }
-                        runGC();
                     }
                     resolve(true);
                 } catch (err) {
@@ -1060,9 +1057,11 @@ class Database {
                     let bestRelativePerformance = 0;
 
                     for (const bossInfo of raid.bosses) {
-                        let boss = cache.raidBoss.get(
+                        let boss = cache.getRaidBoss(
                             getRaidBossCacheId(raid.id, bossInfo.name)
-                        ) as RaidBossDataToServe;
+                        );
+
+                        if (!boss) continue;
 
                         let charactersOfBoss: {
                             [propName: string]: RankedCharacter[];
@@ -1370,8 +1369,6 @@ class Database {
                         leaderboards.roles[role]
                     );
                 }
-
-                runGC();
             }
         }
     }
