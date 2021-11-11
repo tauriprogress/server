@@ -23,7 +23,7 @@ import {
 } from "./middlewares";
 import tauriApi from "./tauriApi";
 
-import { isError, minutesAgo } from "./helpers";
+import { isError, minutesAgo, sleep } from "./helpers";
 import { LooseObject } from "./types";
 import { environment } from "./environment";
 import cache from "./database/cache";
@@ -41,6 +41,7 @@ const speedLimiter = slowDown({
 
 (async function () {
     try {
+        await sleep(10000);
         await db.connect();
         if (!(await db.isInitalized())) {
             await db.initalizeDatabase();
