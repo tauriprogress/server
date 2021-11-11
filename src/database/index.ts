@@ -1034,7 +1034,7 @@ class Database {
         for (const combatMetric of ["dps", "hps"] as const) {
             for (const raid of environment.currentContent.raids) {
                 let leaderboards: {
-                    overall: CharacterLeaderboard;
+                    overall?: CharacterLeaderboard;
                     specs: { [propName: string]: CharacterLeaderboard };
                     roles: { [propName: string]: CharacterLeaderboard };
                 } = {
@@ -1258,6 +1258,9 @@ class Database {
 
                         await sleep(150);
                     }
+                    if (!leaderboards.overall) {
+                        leaderboards.overall = {};
+                    }
                     if (!leaderboards.overall[difficulty]) {
                         leaderboards.overall[difficulty] = [];
                     }
@@ -1345,6 +1348,8 @@ class Database {
                     leaderboards.overall
                 );
 
+                delete leaderboards.overall;
+
                 for (let specId in leaderboards.specs) {
                     const currentLeaderboardId = getLeaderboardCacheId(
                         raid.id,
@@ -1356,6 +1361,9 @@ class Database {
                         currentLeaderboardId,
                         leaderboards.specs[specId]
                     );
+
+                    delete leaderboards.specs[specId];
+                    runGC();
                 }
 
                 for (let role in leaderboards.roles) {
@@ -1369,6 +1377,9 @@ class Database {
                         currentLeaderboardId,
                         leaderboards.roles[role]
                     );
+
+                    delete leaderboards.specs[role];
+                    runGC();
                 }
             }
         }
