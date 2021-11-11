@@ -1005,17 +1005,20 @@ class Database {
                     const bossesToUpdate = getBossesToUpdate();
 
                     for (let bossData of bossesToUpdate) {
-                        let boss = await this.requestRaidBoss(
+                        const cacheId = getRaidBossCacheId(
                             bossData.raidId,
                             bossData.name
                         );
 
-                        const cacheId = getRaidBossCacheId(
-                            bossData.raidId,
-                            boss.name
+                        cache.raidBoss.set(
+                            cacheId,
+                            await this.requestRaidBoss(
+                                bossData.raidId,
+                                bossData.name
+                            )
                         );
 
-                        cache.raidBoss.set(cacheId, boss);
+                        runGC();
                     }
 
                     this.updatedRaidBosses = [];
