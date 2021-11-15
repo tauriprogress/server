@@ -252,20 +252,7 @@ class Database {
                     ? oldLogData
                     : await getLogs(lastLogIds);
 
-                logs = logs.reduce((acc, log) => {
-                    let fixedLog: RaidLogWithRealm | false = log;
-                    for (const bug of environment.logBugs) {
-                        if (fixedLog) {
-                            fixedLog = logBugHandler(fixedLog, bug);
-                        }
-                    }
-
-                    if (fixedLog) {
-                        acc.push(fixedLog);
-                    }
-
-                    return acc;
-                }, [] as RaidLogWithRealm[]);
+                logs = logBugHandler(logs)
 
                 if (isInitalization) {
                     if (!oldLogData) {
@@ -824,6 +811,8 @@ class Database {
                             console.error(err);
                         }
                     }
+
+                    runGC();
                 }
 
                 resolve(true);
@@ -1258,7 +1247,7 @@ class Database {
                                 }
                             }
                         }
-
+                        runGC();
                         await sleep(150);
                     }
                     if (!leaderboards.overall) {

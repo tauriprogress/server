@@ -33,97 +33,105 @@ export function capitalize(string: string) {
     return capitalized.length === string.length ? capitalized : string;
 }
 
-export function logBugHandler(
-    log: LooseObject,
-    bug: LooseObject
-): RaidLogWithRealm | false {
-    if (log) {
-        switch (bug.type) {
-            case "log":
-                if (log.log_id === bug.logId && log.realm === bug.realm) {
-                    return false;
-                }
+export function logBugHandler(logs: RaidLogWithRealm[]): RaidLogWithRealm[] {
+    return logs.reduce((acc, log) => {
+        let fixedLog: RaidLogWithRealm = JSON.parse(JSON.stringify(log));
 
-                break;
-            case "boss":
-                if (
-                    log.encounter_data.encounter_id === bug.boss &&
-                    log.killtime > bug.date.from &&
-                    log.killtime < bug.date.to
-                ) {
-                    return false;
-                }
-
-                break;
-            case "spec":
-                log.members = log.members.map((member: any) => {
+        for (const bug of environment.logBugs) {
+            switch (bug.type) {
+                case "ignoreLogOfId":
                     if (
-                        member.spec === bug.specId &&
-                        log.killtime > bug.date.from &&
-                        log.killtime < bug.date.to
+                        bug.id === fixedLog.log_id &&
+                        bug.realm === fixedLog.realm
                     ) {
-                        return {
-                            ...member,
-                            [bug.changeKey.key]: bug.changeKey.value,
-                        };
+                        return acc;
                     }
-                    return member;
-                });
-
-                break;
-
-            case "guildData":
-                if (bug.guildIds[log.guildid]) {
-                    const key = bug.changeKey.key as keyof typeof log;
-
-                    log[key] = bug.changeKey.value;
-                    log.guildid = bug.id;
-                }
-                break;
-            case "date":
-                if (log.log_id === bug.id) {
-                    log[bug.changeKey.key] = bug.changeKey.value;
-                }
-                break;
-            case "ignoreLogOfCharacter":
-                for (const member of log.members) {
-                    if (member.name === bug.characterName) {
-                        return false;
-                    }
-                }
-
-                break;
-
-            case "ignoreCharacter":
-                log.members = log.members.filter((member: LooseObject) => {
+                    break;
+                case "ignoreBossOfDate":
                     if (
-                        member.name === bug.characterName &&
-                        log.realm === bug.realm
+                        bug.bossId === fixedLog.encounter_data.encounter_id &&
+                        bug.date.from < fixedLog.killtime &&
+                        bug.date.to > fixedLog.killtime
                     ) {
-                        return false;
+                        return acc;
                     }
-                    return true;
-                });
-                break;
-
-            case "overwriteSpec":
-                if (log.log_id === bug.logId && log.realm === bug.realm) {
-                    log.members = log.members.map((member: any) => {
-                        if (member.name === bug.characterName) {
+                    break;
+                case "changeSpecDmgDoneOfDate":
+                    fixedLog.members = fixedLog.members.map((member: any) => {
+                        if (
+                            member.spec === bug.specId &&
+                            bug.date.from < fixedLog.killtime &&
+                            bug.date.to > fixedLog.killtime
+                        ) {
                             return {
                                 ...member,
-                                spec: bug.specId,
+                                dmg_done: bug.changeTo,
                             };
                         }
                         return member;
                     });
-                }
-                break;
-            default:
-        }
-    }
 
-    return log as RaidLogWithRealm;
+                    break;
+                case "ignoreLogOfCharacter":
+                    for (const member of fixedLog.members) {
+                        if (
+                            bug.name === member.name &&
+                            bug.realm === fixedLog.realm
+                        ) {
+                            return acc;
+                        }
+                    }
+
+                    break;
+                case "overwriteSpecOfCharacter":
+                    if (
+                        bug.logId === fixedLog.log_id &&
+                        bug.realm === fixedLog.realm
+                    ) {
+                        fixedLog.members = fixedLog.members.map(
+                            (member: any) => {
+                                if (bug.characterName === member.name) {
+                                    return {
+                                        ...member,
+                                        spec: bug.specId,
+                                    };
+                                }
+                                return member;
+                            }
+                        );
+                    }
+                    break;
+
+                case "ignoreCharacter":
+                    fixedLog.members = fixedLog.members.filter((member) => {
+                        if (
+                            bug.name === member.name &&
+                            bug.realm === fixedLog.realm
+                        ) {
+                            return false;
+                        }
+                        return true;
+                    });
+                    break;
+                case "changeKilltimeOfLog":
+                    if (bug.id === fixedLog.log_id) {
+                        fixedLog.killtime = bug.changeTo;
+                    }
+                    break;
+
+                case "changeGuildData":
+                    if (bug.guildIds[fixedLog.guildid]) {
+                        fixedLog.guilddata = bug.changeTo;
+                        fixedLog.guildid = bug.id;
+                    }
+                    break;
+            }
+        }
+
+        acc.push(fixedLog);
+
+        return acc;
+    }, [] as RaidLogWithRealm[]);
 }
 
 export function uniqueLogs<T extends { id: number }>(logs: T[]): T[] {
