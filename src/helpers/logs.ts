@@ -5,8 +5,6 @@ import { createInterface } from "readline";
 import { environment } from "../environment";
 import {
     addNestedObjectValue,
-    validBossName,
-    validDifficulty,
     validRaidName,
     getDefaultBoss,
     getDefaultGuild,
@@ -18,9 +16,9 @@ import {
     guildRecentKills,
     getGuildId,
     sameMembers,
-    validLogDate,
     getRaidBossId,
     ensureFile,
+    validRaidLog,
 } from "../helpers";
 import tauriApi from "../tauriApi";
 import {
@@ -71,16 +69,7 @@ export async function getLogs(lastLogIds: LastLogIds): Promise<{
             for (let log of unfilteredLogs.sort((a, b) =>
                 a.killtime < b.killtime ? -1 : 1
             )) {
-                if (
-                    validLogDate(new Date(log.killtime * 1000)) &&
-                    validRaidName(log.mapentry.name) &&
-                    validDifficulty(log.mapentry.id, log.difficulty) &&
-                    validBossName(
-                        log.mapentry.id,
-                        log.encounter_data.encounter_name
-                    ) &&
-                    log.fight_time > 10000
-                ) {
+                if (validRaidLog(log)) {
                     const logData = await tauriApi.getRaidLog(
                         log.log_id,
                         log.realm

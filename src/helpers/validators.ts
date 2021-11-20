@@ -1,4 +1,5 @@
 import { environment } from "../environment";
+import { LastRaidLogWithRealm } from "../types";
 import { getLeaderboardCacheId } from "./providers";
 
 export function validRaidId(raidId: any) {
@@ -282,4 +283,17 @@ export function validLeaderboardId(leaderboardId: any) {
 
 export function isError(variable: unknown): variable is Error {
     return variable instanceof Error;
+}
+
+export function validRaidLog(log: LastRaidLogWithRealm) {
+    if (
+        validLogDate(new Date(log.killtime * 1000)) &&
+        validRaidName(log.mapentry.name) &&
+        validDifficulty(log.mapentry.id, log.difficulty) &&
+        validBossName(log.mapentry.id, log.encounter_data.encounter_name) &&
+        log.fight_time > 10000
+    ) {
+        return true;
+    }
+    return false;
 }
