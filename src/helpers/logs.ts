@@ -719,9 +719,10 @@ export function getLastLogsIdsFromFile(): LastLogIds {
 export function updateLastLogIdsOfFile(newIds: LastLogIds) {
     const oldIds = getLastLogsIdsFromFile();
 
-    const updatedIds: LastLogIds = { ...oldIds, ...newIds };
-
-    fs.writeFileSync(pathToLastLogIds, JSON.stringify(updatedIds));
+    fs.writeFileSync(
+        pathToLastLogIds,
+        JSON.stringify({ ...oldIds, ...newIds })
+    );
 }
 
 export function writeLogsToFile(logs: RaidLogWithRealm[], filePath?: string) {
@@ -731,6 +732,13 @@ export function writeLogsToFile(logs: RaidLogWithRealm[], filePath?: string) {
         flags: "a",
     });
     for (let i = 0; i < logs.length; i++) {
-        writer.write(JSON.stringify(logs[i]) + "\r\n");
+        writeLogToFile(writer, logs[i]);
     }
+}
+
+export function writeLogToFile(
+    writer: fs.WriteStream,
+    log: RaidLogWithRealm
+): void {
+    writer.write(JSON.stringify(log) + "\r\n");
 }
