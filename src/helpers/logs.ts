@@ -38,10 +38,7 @@ import { ERR_FILE_DOES_NOT_EXIST } from "../helpers/errors";
 
 import { pathToLastLogIds, pathToLogs } from "../constants";
 
-export async function getLogs(
-    lastLogIds: LastLogIds,
-    numOfLogs?: number
-): Promise<{
+export async function getLogs(lastLogIds: LastLogIds): Promise<{
     logs: RaidLogWithRealm[];
     lastLogIds: { [propName: string]: number };
 }> {
@@ -50,14 +47,12 @@ export async function getLogs(
             let unfilteredLogs: Array<LastRaidLogWithRealm> = [];
             let logs: Array<RaidLogWithRealm> = [];
             let newLastLogIds: LastLogIds = {};
-            let counter = 0;
 
             for (const realmName of Object.values(environment.realms)) {
                 const lastLogId = lastLogIds[realmName];
                 const data = await tauriApi.getRaidLastLogs(
                     lastLogId | 0,
-                    realmName,
-                    numOfLogs
+                    realmName
                 );
 
                 unfilteredLogs = unfilteredLogs.concat(
@@ -86,10 +81,6 @@ export async function getLogs(
                     ) &&
                     log.fight_time > 10000
                 ) {
-                    if (counter === numOfLogs) {
-                        break;
-                    }
-
                     const logData = await tauriApi.getRaidLog(
                         log.log_id,
                         log.realm
@@ -104,7 +95,6 @@ export async function getLogs(
                                 logData.response.encounter_data.encounter_name.trim(),
                         },
                     });
-                    counter++;
                 }
 
                 newLastLogIds = addNestedObjectValue(
@@ -745,9 +735,9 @@ export function writeLogsToFile(logs: RaidLogWithRealm[], filePath?: string) {
     }
 }
 
-export async function updateLogsOfFile(numOfLogs = 0) {
+export async function updateLogsOfFile() {
     const oldLastLogIds = getLastLogsIdsFromFile();
-    const { lastLogIds, logs } = await getLogs(oldLastLogIds, numOfLogs);
+    const { lastLogIds, logs } = await getLogs(oldLastLogIds);
 
     updateLastLogIdsOfFile(lastLogIds);
     writeLogsToFile(logs);
