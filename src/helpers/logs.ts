@@ -734,13 +734,3 @@ export function writeLogsToFile(logs: RaidLogWithRealm[], filePath?: string) {
         writer.write(JSON.stringify(logs[i]) + "\r\n");
     }
 }
-
-export async function updateLogsOfFile() {
-    const oldLastLogIds = getLastLogsIdsFromFile();
-    const { lastLogIds, logs } = await getLogs(oldLastLogIds);
-
-    updateLastLogIdsOfFile(lastLogIds);
-    writeLogsToFile(logs);
-
-    return lastLogIds;
-}
