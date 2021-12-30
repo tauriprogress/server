@@ -87,7 +87,16 @@ for (const realm of realmNames) {
                     logData.realm
                 );
                 if (response.success) {
-                    writeLogToFile(writer, response.response);
+                    const log = response.response;
+                    writeLogToFile(writer, {
+                        ...log,
+                        realm: logData.realm,
+                        encounter_data: {
+                            ...log.encounter_data,
+                            encounter_name:
+                                log.encounter_data.encounter_name.trim(),
+                        },
+                    });
                 } else {
                     throw new Error(response.errorstring);
                 }

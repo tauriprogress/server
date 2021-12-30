@@ -252,7 +252,7 @@ class Database {
                     ? oldLogData
                     : await getLogs(lastLogIds);
 
-                logs = logBugHandler(logs)
+                logs = logBugHandler(logs);
 
                 if (isInitalization) {
                     if (!oldLogData) {

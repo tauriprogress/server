@@ -20,7 +20,7 @@
         "node-cache": "^5.1.2",
         "node-fetch": "^2.6.2",
         "prompt-sync": "^4.2.0",
-        "tauriprogress-constants": "^4.1.19",
+        "tauriprogress-constants": "^4.1.21",
         "typescript": "^4.4.3"
     },
     "scripts": {
@@ -29,6 +29,6 @@
         "dev": "tsc --watch --sourceMap"
     },
     "engines": {
-        "node": "14.x"
+        "node": "16.x"
     }
 }
