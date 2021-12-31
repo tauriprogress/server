@@ -486,80 +486,61 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
 
                     const bestOfKey =
                         combatMetric === "dps" ? "bestDps" : "bestHps";
-                    const categorizedBestOf = getNestedObjectValue(
+                    let categorizedBestOf = getNestedObjectValue(
                         bosses[bossId][bestOfKey],
                         characterCategorization
                     ) as Character[];
+                    let categorizedBestOfUpdated = false;
 
                     if (!categorizedBestOf) {
-                        bosses[bossId][bestOfKey] = addNestedObjectValue(
-                            bosses[bossId][bestOfKey],
-                            characterCategorization,
-                            [characterData]
-                        );
+                        categorizedBestOfUpdated = true;
+                        categorizedBestOf = [characterData];
                     } else {
                         const lastBestPerformance =
                             categorizedBestOf[categorizedBestOf.length - 1][
                                 combatMetric
                             ];
+                        const indexOfSameChar = categorizedBestOf.findIndex(
+                            (data) => data._id === characterData._id
+                        );
 
-                        if (categorizedBestOf.length < 10) {
-                            bosses[bossId][bestOfKey] = addNestedObjectValue(
-                                bosses[bossId][bestOfKey],
-                                characterCategorization,
-                                categorizedBestOf
-                                    .concat(characterData)
-                                    .sort(
-                                        (a, b) =>
-                                            (b[combatMetric] || 0) -
-                                            (a[combatMetric] || 0)
-                                    )
-                            );
+                        if (indexOfSameChar >= 0) {
+                            const sameCharPerformance =
+                                categorizedBestOf[indexOfSameChar][
+                                    combatMetric
+                                ];
+                            if (
+                                sameCharPerformance &&
+                                combatMetricPerformance > sameCharPerformance
+                            ) {
+                                categorizedBestOf[indexOfSameChar] =
+                                    characterData;
+                                categorizedBestOfUpdated = true;
+                            }
+                        } else if (categorizedBestOf.length < 10) {
+                            categorizedBestOf.push(characterData);
+                            categorizedBestOfUpdated = true;
                         } else if (
                             lastBestPerformance &&
                             combatMetricPerformance > lastBestPerformance
                         ) {
-                            const indexOfSameChar = categorizedBestOf.findIndex(
-                                (data) => data._id === characterData._id
-                            );
-
-                            if (indexOfSameChar >= 0) {
-                                const sameCharPerformance =
-                                    categorizedBestOf[indexOfSameChar][
-                                        combatMetric
-                                    ];
-                                if (
-                                    sameCharPerformance &&
-                                    combatMetricPerformance >
-                                        sameCharPerformance
-                                ) {
-                                    categorizedBestOf[indexOfSameChar] =
-                                        characterData;
-
-                                    categorizedBestOf
-                                        .sort(
-                                            (a, b) =>
-                                                (b[combatMetric] || 0) -
-                                                (a[combatMetric] || 0)
-                                        )
-                                        .slice(0, 10);
-                                }
-                            } else {
-                                bosses[bossId][bestOfKey] =
-                                    addNestedObjectValue(
-                                        bosses[bossId][bestOfKey],
-                                        characterCategorization,
-                                        categorizedBestOf
-                                            .concat(characterData)
-                                            .sort(
-                                                (a, b) =>
-                                                    (b[combatMetric] || 0) -
-                                                    (a[combatMetric] || 0)
-                                            )
-                                            .slice(0, 10)
-                                    );
-                            }
+                            categorizedBestOf.push(characterData);
+                            categorizedBestOfUpdated = true;
                         }
+                    }
+
+                    if (categorizedBestOfUpdated) {
+                        bosses[bossId][bestOfKey] = addNestedObjectValue(
+                            bosses[bossId][bestOfKey],
+                            characterCategorization,
+                            categorizedBestOf
+                                .sort(
+                                    (a, b) =>
+                                        (b[combatMetric] || 0) -
+                                        (a[combatMetric] || 0)
+                                )
+                                .slice(0, 10)
+                        );
                     }
 
                     if (isGuildKill && guildId) {
