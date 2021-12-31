@@ -505,12 +505,14 @@ class Database {
             try {
                 if (!this.db) throw ERR_DB_CONNECTION;
 
-                let oldGuild = (await this.db.collection("guilds").findOne(
-                    {
-                        _id: newGuild._id,
-                    },
-                    { session }
-                )) as Guild;
+                let oldGuild = await this.db
+                    .collection<Guild>("guilds")
+                    .findOne(
+                        {
+                            _id: newGuild._id,
+                        },
+                        { session }
+                    );
 
                 if (!oldGuild) {
                     try {
@@ -547,7 +549,7 @@ class Database {
                         console.error(err);
                     }
                 } else {
-                    await this.db.collection("guilds").updateOne(
+                    await this.db.collection<Guild>("guilds").updateOne(
                         {
                             _id: newGuild._id,
                         },
@@ -827,7 +829,7 @@ class Database {
             try {
                 if (!this.db) throw ERR_DB_CONNECTION;
 
-                await this.db.collection("guilds").deleteOne({
+                await this.db.collection<Guild>("guilds").deleteOne({
                     _id: guildId,
                 });
                 resolve(true);

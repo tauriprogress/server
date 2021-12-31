@@ -13,7 +13,7 @@ export interface Guild {
     ranking: Ranking;
 }
 
-export type GuildList = GuildOfGuildList[]
+export type GuildList = GuildOfGuildList[];
 
 export interface GuildOfGuildList {
     _id: string;
