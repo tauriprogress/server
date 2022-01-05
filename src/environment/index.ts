@@ -7,7 +7,7 @@ const defaultPort = 3001;
 
 const realmGroups = {
     tauri: "",
-    crystalsong: ""
+    crystalsong: "",
 };
 
 type realmGroupType = keyof typeof realmGroups;
@@ -110,83 +110,42 @@ class Environment {
             this.PORT = defaultPort;
         }
 
-        if (this.REALM_GROUP === "tauri") {
-            this.realms = constants.tauri.realms;
+        const realmGroupEnv =
+            this.REALM_GROUP === "tauri"
+                ? constants.tauri
+                : constants.crystalsong;
 
-            this.defaultRealm =
-                constants.tauri.realms[
-                    Object.keys(
-                        constants.tauri.realms
-                    )[0] as keyof typeof constants.tauri.realms
-                ];
-
-            this.characterClassNames = constants.tauri.characterClassNames;
-
-            this.specs = constants.tauri.specs;
-
-            this.logBugs = constants.tauri.logBugs;
-
-            this.guildFactionBugs = constants.tauri.guildFactionBugs;
-
-            this.difficultyNames = constants.tauri.difficultyNames;
-
-            this.seasons = constants.tauri.seasons;
-        } else {
-            this.realms = constants.crystalsong.realms;
-
-            this.defaultRealm =
-                constants.crystalsong.realms[
-                    Object.keys(
-                        constants.crystalsong.realms
-                    )[0] as keyof typeof constants.crystalsong.realms
-                ];
-
-            this.characterClassNames =
-                constants.crystalsong.characterClassNames;
-
-            this.specs = constants.crystalsong.specs;
-
-            this.logBugs = constants.crystalsong.logBugs;
-
-            this.guildFactionBugs = constants.crystalsong.guildFactionBugs;
-
-            this.difficultyNames = constants.crystalsong.difficultyNames;
-
-            this.seasons = constants.crystalsong.seasons;
-        }
+        this.realms = realmGroupEnv.realms;
+        this.characterClassNames = realmGroupEnv.characterClassNames;
+        this.specs = realmGroupEnv.specs;
+        this.logBugs = realmGroupEnv.logBugs;
+        this.guildFactionBugs = realmGroupEnv.guildFactionBugs;
+        this.difficultyNames = realmGroupEnv.difficultyNames;
+        this.seasons = realmGroupEnv.seasons;
+        this.defaultRealm =
+            realmGroupEnv.realms[
+                Object.keys(
+                    realmGroupEnv.realms
+                )[0] as keyof typeof realmGroupEnv.realms
+            ];
 
         this.shortRealms = constants.shortRealms;
-
         this.characterRaceToFaction = constants.characterRaceToFaction;
-
         this.characterSpecToClass = constants.characterSpecToClass;
-
         this.characterClassToSpec = constants.characterClassToSpec;
 
         if (process.env.SEASONAL && process.env.SEASONAL === "true") {
             this.seasonal = true;
 
-            if (this.REALM_GROUP === "tauri") {
-                const currentContent = {
-                    ...constants.tauri.currentContent,
-                    raids: [constants.tauri.currentContent.raids[0]]
-                };
-                this.currentContent = currentContent;
-            } else {
-                const currentContent = {
-                    ...constants.crystalsong.currentContent,
-                    raids: [constants.crystalsong.currentContent.raids[0]]
-                };
-                this.currentContent = currentContent;
-            }
+            const currentContent = {
+                ...realmGroupEnv.currentContent,
+                raids: [realmGroupEnv.currentContent.raids[0]],
+            };
+
+            this.currentContent = currentContent;
         } else {
             this.seasonal = false;
-
-            if (this.REALM_GROUP === "tauri") {
-                this.currentContent = constants.tauri.currentContent;
-            } else {
-                this.currentContent = constants.crystalsong.currentContent;
-            }
+            this.currentContent = realmGroupEnv.currentContent;
         }
     }
 }
