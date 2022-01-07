@@ -1,23 +1,26 @@
-import * as constants from "tauriprogress-constants";
+import constants, { realmGroups } from "tauriprogress-constants";
 
 import * as dotenv from "dotenv";
 dotenv.config();
 
 const defaultPort = 3001;
 
-const realmGroups = {
-    tauri: "",
-    crystalsong: "",
-};
+type RealmGroup = typeof realmGroups[number];
 
-type realmGroupType = keyof typeof realmGroups;
+function isRealmGroup(str: string): str is RealmGroup {
+    let index = -1;
+    for (let i = 0; i < realmGroups.length; i++) {
+        const realmGroup = realmGroups[i];
+        if (realmGroup === str) {
+            index = i;
+        }
+    }
 
-function isRealmGroup(x: string): x is realmGroupType {
-    return realmGroups.hasOwnProperty(x);
+    return index > -1 ? true : false;
 }
 
 class Environment {
-    readonly REALM_GROUP: realmGroupType;
+    readonly REALM_GROUP: RealmGroup;
     readonly TAURI_API_KEY: string;
     readonly TAURI_API_SECRET: string;
     readonly MONGODB_USER: string;
@@ -25,17 +28,17 @@ class Environment {
     readonly MONGODB_ADDRESS: string;
     readonly PORT: number;
 
-    readonly defaultRealm: string;
+    readonly defaultRealm;
     readonly realms;
     readonly characterClassNames;
     readonly shortRealms;
     readonly currentContent;
-    readonly characterRaceToFaction;
+    readonly characterRaceFaction;
     readonly specs;
-    readonly characterSpecToClass;
+    readonly characterSpecClass;
     readonly logBugs;
     readonly guildFactionBugs;
-    readonly characterClassToSpec;
+    readonly characterClassSpecs;
     readonly difficultyNames;
     readonly forceInit;
     readonly seasonal;
@@ -122,17 +125,12 @@ class Environment {
         this.guildFactionBugs = realmGroupEnv.guildFactionBugs;
         this.difficultyNames = realmGroupEnv.difficultyNames;
         this.seasons = realmGroupEnv.seasons;
-        this.defaultRealm =
-            realmGroupEnv.realms[
-                Object.keys(
-                    realmGroupEnv.realms
-                )[0] as keyof typeof realmGroupEnv.realms
-            ];
+        this.defaultRealm = realmGroupEnv.realms[0];
 
         this.shortRealms = constants.shortRealms;
-        this.characterRaceToFaction = constants.characterRaceToFaction;
-        this.characterSpecToClass = constants.characterSpecToClass;
-        this.characterClassToSpec = constants.characterClassToSpec;
+        this.characterRaceFaction = constants.characterRaceFaction;
+        this.characterSpecClass = constants.characterSpecClass;
+        this.characterClassSpecs = constants.characterClassSpecs;
 
         if (process.env.SEASONAL && process.env.SEASONAL === "true") {
             this.seasonal = true;
@@ -151,5 +149,4 @@ class Environment {
 }
 
 const environment = new Environment();
-
-export { environment };
+export default environment;
