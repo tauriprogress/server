@@ -23,6 +23,6 @@ export interface HealCharacterDocument extends DefaultCharacterDocument {
     hps: number;
 }
 
-type CharacterDocument = DamageCharacterDocument | HealCharacterDocument;
+export type CharacterDocument = DamageCharacterDocument | HealCharacterDocument;
 
 export default CharacterDocument;
