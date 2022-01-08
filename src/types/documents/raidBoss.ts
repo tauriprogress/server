@@ -1,0 +1,42 @@
+import {
+    Difficulty,
+    RaidId,
+    TrimmedLog,
+    Realm,
+    Faction,
+    ClassId,
+    CharacterDocument,
+    SpecId,
+} from "..";
+import { raidBossId } from "../../helpers";
+
+export default interface RaidBossDocument extends Document {
+    _id: ReturnType<typeof raidBossId>;
+    raidId: RaidId;
+    name: string;
+    difficulty: Difficulty;
+    killCount: number;
+    recentKills: TrimmedLog[];
+    fastestKills: CategorizedTrimmedLogs;
+    firstKills: CategorizedTrimmedLogs;
+    bestDps: CategorizedCharacter;
+    bestHps: CategorizedCharacter;
+    bestDpsNoCat?: CharacterDocument[];
+    bestHpsNoCat?: CharacterDocument[];
+}
+
+type CategorizedTrimmedLogs = {
+    [key in Realm]: {
+        [key in Faction]: TrimmedLog[];
+    };
+};
+
+type CategorizedCharacter = {
+    [key in Realm]: {
+        [key in Faction]: {
+            [key in ClassId]: {
+                [key in SpecId]?: CharacterDocument[];
+            };
+        };
+    };
+};
