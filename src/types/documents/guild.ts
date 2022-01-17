@@ -23,7 +23,7 @@ interface GuildMember {
     race: string;
 }
 
-interface GuildActivity {
+export interface GuildActivity {
     [propName: number]: number;
 }
 

@@ -124,7 +124,7 @@ class Database {
                 if (!this.db) throw ERR_DB_CONNECTION;
 
                 console.log("db: Initalizing database");
-                this.db.dropDatabase();
+                await this.db.dropDatabase();
 
                 console.log("db: Creating maintenance collection");
                 const maintenanceCollection = await this.db.collection(
