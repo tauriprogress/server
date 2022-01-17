@@ -14,5 +14,6 @@ export type SpecId = keyof typeof environment.characterSpecClass;
 export type Difficulty = KeyOfUnion<typeof environment.difficultyNames>;
 export type RaidName = typeof raidNames[number];
 export type RaidId = typeof raidIds[number];
+export type LeaderboardType = "Global" | "Spec" | "Role";
 
 export * from "./looseObject";
