@@ -13,6 +13,9 @@ export interface DefaultCharacterDocument extends Document {
     logId: number;
     f: Faction;
     race: string;
+    rank: number;
+    cRank: number;
+    sRank: number;
 }
 
 export interface DamageCharacterDocument extends DefaultCharacterDocument {
