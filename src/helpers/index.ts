@@ -8,3 +8,4 @@ export * from "./characterPerformance";
 export * from "./utils";
 export * from "./lock";
 export * from "./ids";
+export * from "./documents";

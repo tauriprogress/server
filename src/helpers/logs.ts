@@ -2,7 +2,7 @@ import * as fs from "fs";
 
 import { once } from "events";
 import { createInterface } from "readline";
-import { environment } from "../environment";
+import environment from "../environment";
 import {
     addNestedObjectValue,
     validRaidName,
@@ -19,6 +19,8 @@ import {
     getRaidBossId,
     ensureFile,
     validRaidLog,
+    createCharacterDocument,
+    getLatestWednesday,
 } from "../helpers";
 import tauriApi from "../tauriApi";
 import {
@@ -31,7 +33,6 @@ import {
     RaidBoss,
     GuildRankingFull,
 } from "../types";
-import { getLatestWednesday } from "./providers";
 import { ERR_FILE_DOES_NOT_EXIST } from "../helpers/errors";
 
 import { pathToLastLogIds, pathToLogs } from "../constants";
@@ -126,7 +127,7 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
             log.encounter_data.encounter_id,
             difficulty
         );
-        const realm = log.realm as keyof typeof environment.shortRealms;
+        const realm = log.realm;
         const fightLength = log.fight_time;
         const date = log.killtime;
 
@@ -413,40 +414,24 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
                         }` as keyof typeof environment.specs[keyof typeof environment.specs]
                     ]
                 ) {
-                    let characterData: Character = {
-                        _id: characterId,
-                        realm: environment.shortRealms[realm],
-                        class: character.spec
-                            ? environment.characterSpecToClass[
-                                  String(
-                                      character.spec
-                                  ) as keyof typeof environment.characterSpecToClass
-                              ]
-                            : character.class,
-                        name: character.name,
-                        spec: character.spec,
-                        ilvl: character.ilvl,
-                        date: date,
-                        logId: log.log_id,
-                        f: environment.characterRaceToFaction[
-                            String(
-                                character.race
-                            ) as keyof typeof environment.characterRaceToFaction
-                        ] as 0 | 1,
-                        race: `${character.race},${character.gender}`,
-                    };
+                    const characterDocument = createCharacterDocument(
+                        character,
+                        realm,
+                        log.log_id,
+                        date,
+                        log.fight_time,
+                        combatMetric
+                    );
 
                     let combatMetricPerformance;
 
                     if (combatMetric === "dps") {
                         combatMetricPerformance =
                             character.dmg_done / (log.fight_time / 1000);
-                        characterData["dps"] = combatMetricPerformance;
                     } else {
                         combatMetricPerformance =
                             (character.heal_done + character.absorb_done) /
                             (log.fight_time / 1000);
-                        characterData["hps"] = combatMetricPerformance;
                     }
 
                     if (
@@ -457,14 +442,14 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
                             ]
                     ) {
                         combatMetrics[bossId][combatMetric][characterId] =
-                            characterData;
+                            characterDocument;
                     }
 
                     const characterCategorization = [
                         realm,
-                        characterData.f,
-                        characterData.class,
-                        characterData.spec,
+                        characterDocument.f,
+                        characterDocument.class,
+                        characterDocument.spec,
                     ];
 
                     const bestOfNoCatKey =
@@ -476,12 +461,12 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
                     const bestOfCombatMetric = bestOf && bestOf[combatMetric];
 
                     if (!bestOf || !bestOf[combatMetric]) {
-                        bosses[bossId][bestOfNoCatKey] = characterData;
+                        bosses[bossId][bestOfNoCatKey] = characterDocument;
                     } else if (
                         bestOfCombatMetric &&
                         bestOfCombatMetric < combatMetricPerformance
                     ) {
-                        bosses[bossId][bestOfNoCatKey] = characterData;
+                        bosses[bossId][bestOfNoCatKey] = characterDocument;
                     }
 
                     const bestOfKey =
@@ -494,14 +479,14 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
 
                     if (!categorizedBestOf) {
                         categorizedBestOfUpdated = true;
-                        categorizedBestOf = [characterData];
+                        categorizedBestOf = [characterDocument];
                     } else {
                         const lastBestPerformance =
                             categorizedBestOf[categorizedBestOf.length - 1][
                                 combatMetric
                             ];
                         const indexOfSameChar = categorizedBestOf.findIndex(
-                            (data) => data._id === characterData._id
+                            (data) => data._id === characterDocument._id
                         );
 
                         if (indexOfSameChar >= 0) {
@@ -514,17 +499,17 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
                                 combatMetricPerformance > sameCharPerformance
                             ) {
                                 categorizedBestOf[indexOfSameChar] =
-                                    characterData;
+                                    characterDocument;
                                 categorizedBestOfUpdated = true;
                             }
                         } else if (categorizedBestOf.length < 10) {
-                            categorizedBestOf.push(characterData);
+                            categorizedBestOf.push(characterDocument);
                             categorizedBestOfUpdated = true;
                         } else if (
                             lastBestPerformance &&
                             combatMetricPerformance > lastBestPerformance
                         ) {
-                            categorizedBestOf.push(characterData);
+                            categorizedBestOf.push(characterDocument);
                             categorizedBestOfUpdated = true;
                         }
                     }
@@ -564,7 +549,7 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
                                     combatMetric,
                                     characterId,
                                 ],
-                                characterData
+                                characterDocument
                             ) as Guild;
                         }
                     }

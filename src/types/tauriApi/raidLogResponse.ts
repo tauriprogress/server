@@ -1,3 +1,5 @@
+import { Faction, ClassId, SpecId, Race } from "../";
+
 export interface RaidLogResponse {
     success: boolean;
     errorcode: number;
@@ -60,12 +62,12 @@ interface Mapentry {
 interface Member {
     valid_player: boolean;
     guid: number;
-    race: number;
-    class: number;
+    race: Race;
+    class: ClassId;
     gender: number;
     name: string;
     link: string;
-    spec: number;
+    spec: SpecId;
     dmg_done: number;
     dmg_taken: number;
     dmg_absorb: number;
@@ -77,5 +79,3 @@ interface Member {
     dispells: number;
     ilvl: number;
 }
-
-type Faction = 0 | 1;
