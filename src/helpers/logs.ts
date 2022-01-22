@@ -50,7 +50,7 @@ export async function getLogs(lastLogIds: LastLogIds): Promise<{
             for (const realmName of Object.values(environment.realms)) {
                 const lastLogId = lastLogIds[realmName];
                 const data = await tauriApi.getRaidLastLogs(
-                    lastLogId | 0,
+                    lastLogId || 0,
                     realmName
                 );
 
