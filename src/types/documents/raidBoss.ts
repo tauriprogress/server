@@ -9,8 +9,9 @@ import {
     SpecId,
 } from "..";
 import { raidBossId } from "../../helpers";
+import { Document } from "mongodb";
 
-export default interface RaidBossDocument extends Document {
+export interface RaidBossDocument extends Document {
     _id: ReturnType<typeof raidBossId>;
     raidId: RaidId;
     name: string;
@@ -26,13 +27,13 @@ export default interface RaidBossDocument extends Document {
 }
 
 type CategorizedTrimmedLogs = {
-    [key in Realm]: {
+    [key in Realm]?: {
         [key in Faction]: TrimmedLog[];
     };
 };
 
 type CategorizedCharacter = {
-    [key in Realm]: {
+    [key in Realm]?: {
         [key in Faction]: {
             [key in ClassId]: {
                 [key in SpecId]?: CharacterDocument[];
