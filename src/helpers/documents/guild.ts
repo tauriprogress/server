@@ -1,5 +1,11 @@
 import { guildId } from "..";
-import { GuildDocument, GuildRaidDays, Realm, Faction } from "../../types";
+import {
+    GuildDocument,
+    GuildRaidDays,
+    Realm,
+    Faction,
+    GuildBoss,
+} from "../../types";
 
 export function createGuildDocument(
     guildName: string,
@@ -32,5 +38,14 @@ export function createGuildRaidDays(): GuildRaidDays {
     return {
         total: new Array(7).fill(new Array(24).fill(0)),
         recent: new Array(7).fill(new Array(24).fill(0)),
+    };
+}
+
+export function createGuildBoss(): GuildBoss {
+    return {
+        killCount: 0,
+        firstKills: [],
+        fastestKills: [],
+        latestKills: [],
     };
 }

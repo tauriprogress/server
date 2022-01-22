@@ -67,11 +67,12 @@ export type GuildRaids = {
 
 export interface GuildBoss {
     killCount: number;
-    fastestKills: GuildFastKill[];
-    firstKill?: number;
+    firstKills: GuildKillLog[];
+    fastestKills: GuildKillLog[];
+    latestKills: GuildKillLog[];
 }
 
-interface GuildFastKill {
+interface GuildKillLog {
     id: number;
     fightLength: number;
     date: number;
