@@ -21,7 +21,7 @@ export function createRaidBossDocument(
         name: bossName,
         difficulty: difficulty,
         killCount: 0,
-        recentKills: [],
+        latestKills: [],
         fastestKills: {},
         firstKills: {},
         bestDps: {},
@@ -39,8 +39,8 @@ export function addLogToRaidBossDocument(
 ) {
     raidBossDocument.killCount += 1;
 
-    raidBossDocument.recentKills.unshift(trimmedLog);
-    raidBossDocument.recentKills.splice(50);
+    raidBossDocument.latestKills.unshift(trimmedLog);
+    raidBossDocument.latestKills.splice(50);
 
     const logCategorization = [realm, faction];
 

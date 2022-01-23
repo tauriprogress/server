@@ -21,7 +21,7 @@ export function createGuildDocument(
         ranks: [],
         activity: {},
         progression: {
-            recentKills: [],
+            latestKills: [],
             completion: {
                 completed: false,
                 bossesDefeated: 0,

@@ -17,7 +17,7 @@ export interface RaidBossDocument extends Document {
     name: string;
     difficulty: Difficulty;
     killCount: number;
-    recentKills: TrimmedLog[];
+    latestKills: TrimmedLog[];
     fastestKills: CategorizedTrimmedLogs;
     firstKills: CategorizedTrimmedLogs;
     bestDps: CategorizedCharacter;

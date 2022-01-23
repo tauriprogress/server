@@ -29,12 +29,12 @@ export interface GuildActivity {
 }
 
 export interface GuildProgression {
-    recentKills: GuildRecentKill[];
+    latestKills: GuildLatestKill[];
     completion: GuildCompletion;
     raids: GuildRaids;
 }
 
-export interface GuildRecentKill {
+export interface GuildLatestKill {
     id: number;
     date: number;
     boss: string;
