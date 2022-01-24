@@ -32,10 +32,19 @@ import {
     Character,
     RaidBoss,
     GuildRankingFull,
+    GuildDocument,
+    Difficulty,
+    Faction,
+    Realm,
+    TrimmedLog,
+    RaidBossDocument,
+    CharacterPerformanceOfBoss,
 } from "../types";
 import { ERR_FILE_DOES_NOT_EXIST } from "../helpers/errors";
 
 import { pathToLastLogIds, pathToLogs } from "../constants";
+import { raidBossId } from "./ids";
+import { createRaidBossDocument } from "./documents";
 
 export async function getLogs(lastLogIds: LastLogIds): Promise<{
     logs: RaidLogWithRealm[];
@@ -105,28 +114,23 @@ export async function getLogs(lastLogIds: LastLogIds): Promise<{
 }
 
 export function processLogs(logs: Array<RaidLogWithRealm>) {
-    let bosses: { [propName: string]: RaidBoss } = {};
-    let defaultBoss = getDefaultBoss();
+    let bosses: { [propName: string]: RaidBossDocument } = {};
     let guilds: {
-        [propName: string]: Guild;
+        [propName: string]: GuildDocument;
     } = {};
     let defaultGuild = getDefaultGuild();
 
     let defaultGuildBoss = getDefaultGuildBoss();
 
-    let combatMetrics: LooseObject = {};
-    let defaultCombatMetricBoss = { dps: {}, hps: {} };
+    let characterPerformanceOfBoss: CharacterPerformanceOfBoss = {};
 
     for (const log of logs) {
         const logId = log.log_id;
         const raidName = log.mapentry.name;
         const raidId = log.mapentry.id;
         const bossName = log.encounter_data.encounter_name;
-        const difficulty = Number(log.difficulty);
-        const bossId = getRaidBossId(
-            log.encounter_data.encounter_id,
-            difficulty
-        );
+        const difficulty = log.difficulty;
+        const bossId = raidBossId(log.encounter_data.encounter_id, difficulty);
         const realm = log.realm;
         const fightLength = log.fight_time;
         const date = log.killtime;
@@ -147,32 +151,28 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
             bossName,
         ];
 
-        const trimmedLog = {
-            id: logId,
-            guild: isGuildKill
-                ? { name: guildName || undefined, f: faction as 0 | 1 }
-                : undefined,
-            fightLength: fightLength,
-            realm: realm,
-            date: date,
-        };
+        const trimmedLog = trimLog(
+            logId,
+            isGuildKill,
+            guildName,
+            faction,
+            fightLength,
+            date,
+            realm
+        );
 
         // create boss
-        // in combatMetrics first
-        if (!combatMetrics[bossId]) {
-            combatMetrics[bossId] = JSON.parse(
-                JSON.stringify(defaultCombatMetricBoss)
-            );
+        if (!characterPerformanceOfBoss[bossId]) {
+            characterPerformanceOfBoss[bossId] = { dps: {}, hps: {} };
         }
 
         if (!bosses[bossId]) {
-            bosses[bossId] = {
-                ...JSON.parse(JSON.stringify(defaultBoss)),
-                _id: bossId,
-                raidId: raidId,
-                name: bossName,
-                difficulty: difficulty,
-            };
+            bosses[bossId] = createRaidBossDocument(
+                raidId,
+                bossId,
+                bossName,
+                difficulty
+            );
         }
 
         // update boss
@@ -237,7 +237,7 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
                 logDate.getUTCHours()
             ] += 1;
 
-            guilds[guildId].progression.recentKills.unshift({
+            guilds[guildId].progression.latestKills.unshift({
                 id: logId,
                 date: date,
                 boss: bossName,
@@ -435,14 +435,17 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
                     }
 
                     if (
-                        !combatMetrics[bossId][combatMetric][characterId] ||
+                        !characterPerformanceOfBoss[bossId][combatMetric][
+                            characterId
+                        ] ||
                         combatMetricPerformance >
-                            combatMetrics[bossId][combatMetric][characterId][
-                                combatMetric
-                            ]
+                            characterPerformanceOfBoss[bossId][combatMetric][
+                                characterId
+                            ][combatMetric]
                     ) {
-                        combatMetrics[bossId][combatMetric][characterId] =
-                            characterDocument;
+                        characterPerformanceOfBoss[bossId][combatMetric][
+                            characterId
+                        ] = characterDocument;
                     }
 
                     const characterCategorization = [
@@ -558,47 +561,6 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
         }
     }
 
-    /* bosses: cut latestKills to 50, cut fastestKills of each category to 50, cut firstkills to 3 */
-    for (const bossId in bosses) {
-        bosses[bossId].recentKills = bosses[bossId].recentKills.slice(0, 50);
-
-        for (const realm in bosses[bossId].fastestKills) {
-            for (const faction in bosses[bossId].fastestKills[realm]) {
-                const categorization = [realm, faction];
-                bosses[bossId].fastestKills = addNestedObjectValue(
-                    bosses[bossId].fastestKills,
-                    categorization,
-                    (
-                        getNestedObjectValue(
-                            bosses[bossId].fastestKills,
-                            categorization
-                        ) as RaidBoss["fastestKills"][string][number]
-                    )
-                        .sort((a, b) => a.fightLength - b.fightLength)
-                        .slice(0, 50)
-                );
-            }
-        }
-
-        for (const realm in bosses[bossId].firstKills) {
-            for (const faction in bosses[bossId].firstKills[realm]) {
-                const categorization = [realm, faction];
-                bosses[bossId].firstKills = addNestedObjectValue(
-                    bosses[bossId].firstKills,
-                    categorization,
-                    (
-                        getNestedObjectValue(
-                            bosses[bossId].firstKills,
-                            categorization
-                        ) as RaidBoss["firstKills"][string][number]
-                    )
-                        .sort((a, b) => a.date - b.date)
-                        .slice(0, 3)
-                );
-            }
-        }
-    }
-
     /* guilds: cut latestKills, cut fastestKills to 10 */
     for (const guildId in guilds) {
         guilds[guildId].progression.recentKills = guildRecentKills(
@@ -629,7 +591,7 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
     return {
         guilds,
         bosses,
-        combatMetrics,
+        combatMetrics: characterPerformanceOfBoss,
     };
 }
 
@@ -696,4 +658,22 @@ export function writeLogToFile(
     log: RaidLogWithRealm
 ): void {
     writer.write(JSON.stringify(log) + "\r\n");
+}
+
+export function trimLog(
+    logId: number,
+    isGuildKill: boolean,
+    guildName: string | undefined,
+    faction: Faction,
+    fightLength: number,
+    date: number,
+    realm: Realm
+): TrimmedLog {
+    return {
+        id: logId,
+        guild: isGuildKill ? { name: guildName, f: faction } : undefined,
+        fightLength: fightLength,
+        realm: realm,
+        date: date,
+    };
 }
