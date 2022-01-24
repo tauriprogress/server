@@ -8,6 +8,7 @@ export type KeyOfUnion<T> = T extends T ? keyof T : never;
 
 export type CombatMetric = "dps" | "hps";
 export type Realm = typeof environment.realms[number];
+export type ShortRealm = typeof environment.shortRealms[Realm];
 export type Faction = 0 | 1;
 export type ClassId = keyof typeof environment.characterClassSpecs;
 export type SpecId = keyof typeof environment.characterSpecClass;
