@@ -1,9 +1,15 @@
-import { environment } from "../environment";
-import { LooseObject, RaidLogWithRealm, LastLogIds } from "../types";
+import environment from "../environment";
+import {
+    LooseObject,
+    RaidLogWithRealm,
+    LastLogIds,
+    Faction,
+    Realm,
+} from "../types";
 import {
     ERR_INVALID_BOSS_NAME,
     ERR_INVALID_RAID_ID,
-    ERR_INVALID_RAID_NAME
+    ERR_INVALID_RAID_NAME,
 } from "./errors";
 
 export function getCharacterId(
@@ -48,14 +54,13 @@ export function unshiftDateDay(day: number) {
     return day - 1 >= 0 ? day - 1 : 6;
 }
 
-export function getLogFaction(log: RaidLogWithRealm) {
+export function getLogFaction(log: RaidLogWithRealm): Faction {
     let alliance = 0;
     let horde = 0;
     for (let member of log.members) {
-        const race = String(
-            member.race
-        ) as keyof typeof environment.characterRaceToFaction;
-        if (environment.characterRaceToFaction[race] === 0) {
+        const race = member.race;
+
+        if (environment.characterRaceFaction[race] === 0) {
             alliance++;
         } else {
             horde++;
@@ -84,7 +89,7 @@ export function minutesAgo(time: number) {
     return Math.round((new Date().getTime() / 1000 - Number(time)) / 60);
 }
 
-export function getLastLogIds<T extends { log_id: number; realm: string }>(
+export function getLastLogIds<T extends { log_id: number; realm: Realm }>(
     logs: T[]
 ) {
     let lastLogIds: LastLogIds = {};
