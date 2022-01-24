@@ -1,5 +1,5 @@
-import { environment } from "../environment";
-import { LastRaidLogWithRealm } from "../types";
+import environment from "../environment";
+import { LastRaidLogWithRealm, Realm, ShortRealm } from "../types";
 import { getLeaderboardCacheId } from "./providers";
 
 export function validRaidId(raidId: any) {
@@ -17,14 +17,16 @@ export function validRaidId(raidId: any) {
 export function validShortRealm(shortRealm: any) {
     return (
         typeof shortRealm === "string" &&
-        Object.values(environment.shortRealms).includes(shortRealm)
+        Object.values(environment.shortRealms).includes(
+            shortRealm as ShortRealm
+        )
     );
 }
 
 export function validRealm(realm: any) {
     return (
         typeof realm === "string" &&
-        Object.values(environment.realms).includes(realm)
+        Object.values(environment.realms).includes(realm as Realm)
     );
 }
 
