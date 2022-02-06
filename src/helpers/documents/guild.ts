@@ -1,10 +1,12 @@
-import { guildId } from "..";
+import { guildId, unshiftDateDay } from "..";
 import {
     GuildDocument,
     GuildRaidDays,
     Realm,
     Faction,
     GuildBoss,
+    TrimmedLog,
+    Difficulty,
 } from "../../types";
 
 export function createGuildDocument(
@@ -32,6 +34,30 @@ export function createGuildDocument(
         raidDays: createGuildRaidDays(),
         ranking: {},
     };
+}
+
+export function addLogToGuildDocument(
+    guild: GuildDocument,
+    logId: number,
+    bossName: string,
+    difficulty: Difficulty,
+    date: number
+): GuildDocument {
+    guild.activity[difficulty] = date;
+
+    const logDate = new Date(date * 1000);
+    guild.raidDays.total[unshiftDateDay(logDate.getUTCDay())][
+        logDate.getUTCHours()
+    ] += 1;
+
+    guild.progression.latestKills.unshift({
+        id: logId,
+        date: date,
+        boss: bossName,
+        difficulty: difficulty,
+    });
+
+    return guild;
 }
 
 export function createGuildRaidDays(): GuildRaidDays {
