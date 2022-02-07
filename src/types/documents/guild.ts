@@ -72,7 +72,7 @@ export interface GuildBoss {
     latestKills: GuildKillLog[];
 }
 
-interface GuildKillLog {
+export interface GuildKillLog {
     id: number;
     fightLength: number;
     date: number;
