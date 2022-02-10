@@ -22,8 +22,8 @@ export interface RaidBossDocument extends Document {
     firstKills: CategorizedTrimmedLogs;
     bestDps: CategorizedCharacter;
     bestHps: CategorizedCharacter;
-    bestDpsNoCat?: CharacterDocument[];
-    bestHpsNoCat?: CharacterDocument[];
+    bestDpsNoCat?: CharacterDocument;
+    bestHpsNoCat?: CharacterDocument;
 }
 
 type CategorizedTrimmedLogs = {

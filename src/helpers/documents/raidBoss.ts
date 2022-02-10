@@ -5,6 +5,8 @@ import {
     Realm,
     TrimmedLog,
     Faction,
+    CharacterDocument,
+    CombatMetric,
 } from "../../types";
 import { raidBossId } from "../ids";
 import { getNestedObjectValue, addNestedObjectValue } from "..";
@@ -94,5 +96,86 @@ export function addLogToRaidBossDocument(
         }
     }
 
+    return raidBossDocument;
+}
+
+export function addCharacterDocumentToRaidBossDocument(
+    characterDocument: CharacterDocument,
+    raidBossDocument: RaidBossDocument,
+    combatMetric: CombatMetric,
+    realm: Realm
+): RaidBossDocument {
+    const characterCategorization = [
+        realm,
+        characterDocument.f,
+        characterDocument.class,
+        characterDocument.spec,
+    ];
+
+    const bestNoCatKey =
+        combatMetric === "dps" ? "bestDpsNoCat" : "bestHpsNoCat";
+
+    const bestNoCat = raidBossDocument[bestNoCatKey];
+    const bestNoCatPerformance =
+        bestNoCat && (bestNoCat[combatMetric] as number);
+
+    if (!bestNoCat || !bestNoCatPerformance) {
+        raidBossDocument[bestNoCatKey] = characterDocument;
+    } else if (
+        bestNoCatPerformance &&
+        bestNoCatPerformance < characterDocument[combatMetric]
+    ) {
+        raidBossDocument[bestNoCatKey] = characterDocument;
+    }
+
+    const bestKey = combatMetric === "dps" ? "bestDps" : "bestHps";
+    let categorizedBest = getNestedObjectValue(
+        raidBossDocument[bestKey],
+        characterCategorization
+    ) as CharacterDocument[];
+    let categorizedBestUpdated = false;
+
+    if (!categorizedBest) {
+        categorizedBestUpdated = true;
+        categorizedBest = [characterDocument];
+    } else {
+        const lastBestPerformance = categorizedBest[categorizedBest.length - 1][
+            combatMetric
+        ] as number;
+
+        const indexOfSameChar = categorizedBest.findIndex(
+            (document) => document._id === characterDocument._id
+        );
+
+        if (indexOfSameChar >= 0) {
+            const sameCharPerformance = categorizedBest[indexOfSameChar][
+                combatMetric
+            ] as number;
+
+            if (sameCharPerformance < characterDocument[combatMetric]) {
+                categorizedBest[indexOfSameChar] = characterDocument;
+                categorizedBestUpdated = true;
+            }
+        } else if (categorizedBest.length < 10) {
+            categorizedBest.push(characterDocument);
+            categorizedBestUpdated = true;
+        } else if (
+            lastBestPerformance &&
+            lastBestPerformance < characterDocument[combatMetric]
+        ) {
+            categorizedBest.push(characterDocument);
+            categorizedBestUpdated = true;
+        }
+    }
+
+    if (categorizedBestUpdated) {
+        raidBossDocument[bestKey] = addNestedObjectValue(
+            raidBossDocument[bestKey],
+            characterCategorization,
+            categorizedBest
+                .sort((a, b) => (b[combatMetric] || 0) - (a[combatMetric] || 0))
+                .slice(0, 10)
+        );
+    }
     return raidBossDocument;
 }
