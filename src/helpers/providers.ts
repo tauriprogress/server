@@ -12,22 +12,6 @@ import {
     ERR_INVALID_RAID_NAME,
 } from "./errors";
 
-export function getCharacterId(
-    name: string,
-    realm: keyof typeof environment.shortRealms,
-    spec: number
-) {
-    return `${name},${environment.shortRealms[realm]},${spec}`;
-}
-
-export function getBossCollectionName(
-    id: number,
-    difficulty: number,
-    combatMetric: string
-) {
-    return `${id} ${difficulty} ${combatMetric}`;
-}
-
 export function getLatestWednesday(currentDate: Date = new Date()) {
     const currentDay = currentDate.getUTCDay();
 
@@ -130,31 +114,11 @@ export function getBossInfo(raidId: number, bossName: string) {
     }
 }
 
-export function getRaidBossId(bossId: number, difficulty: number) {
-    return `${bossId} ${difficulty}`;
-}
-
-export function getRaidBossCacheId(raidId: number, bossName: string) {
-    return `${raidId}${bossName}`;
-}
-
 export function getRelativePerformance(
     currentPerformance: number,
     bestPerformance: number
 ) {
     return Math.round((currentPerformance / bestPerformance) * 1000) / 10;
-}
-
-export function getLeaderboardCacheId(
-    raidId: number,
-    combatMetric: string,
-    spec?: string
-) {
-    if (spec) {
-        return `${raidId}${spec}${combatMetric}`;
-    }
-
-    return `${raidId}${combatMetric}`;
 }
 
 export function getRaidInfoFromName(raidName: string) {

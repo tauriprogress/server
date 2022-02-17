@@ -30,3 +30,27 @@ export function guildId(guildName: string, guildRealm: Realm) {
 export function raidBossId(bossId: number, difficulty: Difficulty) {
     return `${bossId} ${difficulty}`;
 }
+
+export function raidBossCollectionId(
+    id: number,
+    difficulty: number,
+    combatMetric: string
+) {
+    return `${id} ${difficulty} ${combatMetric}`;
+}
+
+export function raidBossCacheId(raidId: number, bossName: string) {
+    return `${raidId}${bossName}`;
+}
+
+export function leaderboardCacheId(
+    raidId: number,
+    combatMetric: string,
+    spec?: string
+) {
+    if (spec) {
+        return `${raidId}${spec}${combatMetric}`;
+    }
+
+    return `${raidId}${combatMetric}`;
+}

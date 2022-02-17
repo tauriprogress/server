@@ -1,8 +1,7 @@
-import { environment } from "../environment";
+import environment from "../environment";
 import cache from "./cache";
 
 import {
-    getBossCollectionName,
     getLogs,
     processLogs,
     logBugHandler,
@@ -15,7 +14,6 @@ import {
     getRaidInfoFromId,
     getBossInfo,
     applyCharacterPerformanceRanks,
-    getRaidBossCacheId,
     getRelativePerformance,
     getLeaderboardCacheId,
     updateCharacterOfLeaderboard,
@@ -27,8 +25,6 @@ import {
     addToCharTotalPerformance,
     updateGuildRanking,
     runGC,
-    getDefaultBoss,
-    getRaidBossId,
     applyCharacterFilters,
     isError,
     sleep,
@@ -38,9 +34,13 @@ import {
     getLastLogsIdsFromFile,
     writeLogsToFile,
     updateLastLogIdsOfFile,
+    createMaintenanceDocument,
+    raidBossId,
+    createRaidBossDocument,
+    raidBossCollectionId,
 } from "../helpers";
 
-import { MongoClient, Db, ClientSession, ObjectId, ReadConcern } from "mongodb";
+import { MongoClient, Db, ClientSession, ReadConcern } from "mongodb";
 import {
     DbMaintenance,
     RaidLogWithRealm,
@@ -62,6 +62,8 @@ import {
     CombatMetric,
     GuildList,
     GuildLeaderboard,
+    RaidId,
+    Difficulty,
 } from "../types";
 import {
     ERR_DATA_NOT_EXIST,
@@ -85,7 +87,7 @@ class Database {
 
     public firstCacheLoad: false | true | Promise<true>;
 
-    private updatedRaidBosses: { raidId: number; name: string }[];
+    private updatedRaidBosses: { raidId: RaidId; name: string }[];
 
     constructor() {
         this.db = undefined;
@@ -98,8 +100,6 @@ class Database {
         this.firstCacheLoad = false;
         this.updatedRaidBosses = [];
     }
-
-    checkConnection() {}
 
     async connect() {
         try {
@@ -134,15 +134,7 @@ class Database {
                 if (await maintenanceCollection.findOne({}))
                     await maintenanceCollection.deleteMany({});
 
-                const defaultMaintenance: DbMaintenance = {
-                    _id: new ObjectId(),
-                    lastUpdated: 0,
-                    lastGuildsUpdate: 0,
-                    lastLogIds: {},
-                    isInitalized: true,
-                };
-
-                maintenanceCollection.insertOne(defaultMaintenance);
+                maintenanceCollection.insertOne(createMaintenanceDocument());
 
                 console.log("db: Creating guilds collection");
                 const guildsCollection = await this.db.collection("guilds");
@@ -159,25 +151,25 @@ class Database {
                         await raidCollection.deleteMany({});
 
                     for (const boss of raid.bosses) {
-                        for (const difficulty in boss.difficultyIds) {
+                        for (const difficulty in boss.bossIdOfDifficulty) {
                             await this.saveRaidBoss(
-                                getDefaultBoss(
-                                    getRaidBossId(
-                                        boss.difficultyIds[
-                                            difficulty as keyof typeof boss.difficultyIds
-                                        ],
-                                        Number(difficulty)
-                                    ),
+                                createRaidBossDocument(
                                     raid.id,
+                                    raidBossId(
+                                        boss.bossIdOfDifficulty[
+                                            difficulty as keyof typeof boss.bossIdOfDifficulty
+                                        ],
+                                        Number(difficulty) as Difficulty
+                                    ),
                                     boss.name,
-                                    Number(difficulty)
+                                    Number(difficulty) as Difficulty
                                 )
                             );
 
                             for (const combatMetric of ["dps", "hps"]) {
-                                const collectionName = getBossCollectionName(
-                                    boss.difficultyIds[
-                                        difficulty as keyof typeof boss.difficultyIds
+                                const collectionName = raidBossCollectionId(
+                                    boss.bossIdOfDifficulty[
+                                        difficulty as keyof typeof boss.bossIdOfDifficulty
                                     ],
                                     Number(difficulty),
                                     combatMetric
