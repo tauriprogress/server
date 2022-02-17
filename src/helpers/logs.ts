@@ -6,11 +6,12 @@ import environment from "../environment";
 import {
     addNestedObjectValue,
     getLogFaction,
-    getCharacterId,
     getGuildId,
     ensureFile,
     validRaidLog,
     createCharacterDocument,
+    characterId,
+    raidBossId,
 } from "../helpers";
 import tauriApi from "../tauriApi";
 import {
@@ -24,10 +25,9 @@ import {
     RaidBossDocument,
     CharacterPerformanceOfBoss,
 } from "../types";
-import { ERR_FILE_DOES_NOT_EXIST } from "../helpers/errors";
+import { ERR_FILE_DOES_NOT_EXIST } from "./errors";
 
 import { pathToLastLogIds, pathToLogs } from "../constants";
-import { raidBossId } from "./ids";
 import {
     addCharacterDocumentToRaidBossDocument,
     addLogToGuildDocument,
@@ -35,6 +35,24 @@ import {
     createGuildDocument,
     createRaidBossDocument,
 } from "./documents";
+
+export async function getLogData(
+    isInitalization: boolean,
+    lastLogIds: LastLogIds
+): Promise<Awaited<ReturnType<typeof getLogs>>> {
+    if (isInitalization) {
+        try {
+            return {
+                logs: await loadLogsFromFile(),
+                lastLogIds: getLastLogsIdsFromFile(),
+            };
+        } catch (err) {
+            return await getLogs(lastLogIds);
+        }
+    } else {
+        return await getLogs(lastLogIds);
+    }
+}
 
 export async function getLogs(lastLogIds: LastLogIds): Promise<{
     logs: RaidLogWithRealm[];
@@ -182,11 +200,7 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
         }
 
         for (let character of log.members) {
-            const characterId = getCharacterId(
-                character.name,
-                realm,
-                character.spec
-            );
+            const charId = characterId(character.name, realm, character.spec);
 
             for (const combatMetric of ["dps", "hps"] as const) {
                 if (
@@ -209,15 +223,15 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
 
                     if (
                         !characterPerformanceOfBoss[bossId][combatMetric][
-                            characterId
+                            charId
                         ] ||
                         characterDocument[combatMetric] >
                             characterPerformanceOfBoss[bossId][combatMetric][
-                                characterId
+                                charId
                             ][combatMetric]
                     ) {
                         characterPerformanceOfBoss[bossId][combatMetric][
-                            characterId
+                            charId
                         ] = characterDocument;
                     }
 
@@ -235,14 +249,18 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
     return {
         guilds,
         bosses,
-        combatMetrics: characterPerformanceOfBoss,
+        characterPerformanceOfBoss,
     };
+}
+
+export function areLogsSaved(): boolean {
+    return fs.existsSync(pathToLogs);
 }
 
 export async function loadLogsFromFile(): Promise<RaidLogWithRealm[]> {
     return new Promise(async (resolve, reject) => {
         try {
-            if (!fs.existsSync(pathToLogs)) {
+            if (!areLogsSaved()) {
                 throw ERR_FILE_DOES_NOT_EXIST;
             }
 
