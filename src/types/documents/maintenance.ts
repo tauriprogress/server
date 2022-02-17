@@ -1,4 +1,4 @@
-import { ObjectId } from "mongodb";
+import { ObjectId, Document } from "mongodb";
 import { Realm } from "..";
 
 export interface MaintenanceDocument extends Document {
