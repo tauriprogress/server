@@ -25,7 +25,7 @@ import tauriApi from "./tauriApi";
 
 import { isError, minutesAgo, sleep } from "./helpers";
 import { LooseObject } from "./types";
-import { environment } from "./environment";
+import environment from "./environment";
 import cache from "./database/cache";
 import { ERR_UNKNOWN } from "./helpers/errors";
 

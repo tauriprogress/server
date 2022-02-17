@@ -1,5 +1,5 @@
 import fetch from "node-fetch";
-import { environment } from "../environment";
+import environment from "../environment";
 import { isError } from "../helpers";
 import {
     ERR_CHARACTER_NOT_FOUND,
