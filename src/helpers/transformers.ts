@@ -27,10 +27,13 @@ export function addNestedObjectValue<T>(
     }
 }
 
-export function capitalize(string: string) {
-    const capitalized = string.charAt(0).toUpperCase() + string.slice(1);
+export function capitalize<T extends string>(str: T): Capitalize<T> {
+    const capitalized = (str.charAt(0).toUpperCase() +
+        str.slice(1)) as Capitalize<T>;
 
-    return capitalized.length === string.length ? capitalized : string;
+    return capitalized.length === str.length
+        ? capitalized
+        : (str as Capitalize<T>);
 }
 
 export function logBugHandler(logs: RaidLogWithRealm[]): RaidLogWithRealm[] {
