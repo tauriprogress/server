@@ -2,10 +2,9 @@ import environment from "../environment";
 import cache from "./cache";
 
 import {
-    getLogs,
+    getLogData,
     processLogs,
     logBugHandler,
-    updateRaidBoss,
     requestGuildData,
     getRecentGuildRaidDays,
     getGuildContentCompletion,
@@ -15,11 +14,9 @@ import {
     getBossInfo,
     applyCharacterPerformanceRanks,
     getRelativePerformance,
-    getLeaderboardCacheId,
     updateCharacterOfLeaderboard,
     getRaidInfoFromName,
     capitalize,
-    getCharacterId,
     addNestedObjectValue,
     getNestedObjectValue,
     addToCharTotalPerformance,
@@ -30,40 +27,33 @@ import {
     sleep,
     Lock,
     getRaidBossSummary,
-    loadLogsFromFile,
-    getLastLogsIdsFromFile,
     writeLogsToFile,
     updateLastLogIdsOfFile,
     createMaintenanceDocument,
     raidBossId,
     createRaidBossDocument,
     raidBossCollectionId,
+    areLogsSaved,
+    updateRaidBossDocument,
 } from "../helpers";
 
 import { MongoClient, Db, ClientSession, ReadConcern } from "mongodb";
 import {
-    DbMaintenance,
     RaidLogWithRealm,
-    RaidBoss,
-    DbRaidBoss,
-    Guild,
     LastLogIds,
-    RaidBossDataToServe,
-    DbRaidBossDataResponse,
     LooseObject,
-    CharacterLeaderboard,
     RankedCharacter,
-    CharacterOfLeaderboard,
-    RaidSummary,
     CharacterPerformance,
     CharPerfBossData,
     TrimmedLog,
-    Filters,
     CombatMetric,
     GuildList,
-    GuildLeaderboard,
     RaidId,
     Difficulty,
+    MaintenanceDocument,
+    CharacterDocument,
+    RaidBossDocument,
+    GuildDocument,
 } from "../types";
 import {
     ERR_DATA_NOT_EXIST,
@@ -87,7 +77,7 @@ class Database {
 
     public firstCacheLoad: false | true | Promise<true>;
 
-    private updatedRaidBosses: { raidId: RaidId; name: string }[];
+    private updatedRaidBosses: ReturnType<typeof raidBossId>[];
 
     constructor() {
         this.db = undefined;
@@ -127,9 +117,7 @@ class Database {
                 await this.db.dropDatabase();
 
                 console.log("db: Creating maintenance collection");
-                const maintenanceCollection = await this.db.collection(
-                    "maintenance"
-                );
+                const maintenanceCollection = this.db.collection("Maintenance");
 
                 if (await maintenanceCollection.findOne({}))
                     await maintenanceCollection.deleteMany({});
@@ -137,28 +125,29 @@ class Database {
                 maintenanceCollection.insertOne(createMaintenanceDocument());
 
                 console.log("db: Creating guilds collection");
-                const guildsCollection = await this.db.collection("guilds");
+                const guildsCollection = this.db.collection("Guilds");
                 if (await guildsCollection.findOne({}))
                     await guildsCollection.deleteMany({});
 
                 console.log(`db: Creating collections for raids and bosses`);
+
+                const raidCollection = this.db.collection("RaidBosses");
+
+                if (await raidCollection.findOne({}))
+                    await raidCollection.deleteMany({});
+
                 for (const raid of environment.currentContent.raids) {
-                    const raidCollection = await this.db.collection(
-                        String(raid.id)
-                    );
-
-                    if (await raidCollection.findOne({}))
-                        await raidCollection.deleteMany({});
-
                     for (const boss of raid.bosses) {
                         for (const difficulty in boss.bossIdOfDifficulty) {
+                            const ingameBossId =
+                                boss.bossIdOfDifficulty[
+                                    difficulty as keyof typeof boss.bossIdOfDifficulty
+                                ];
                             await this.saveRaidBoss(
                                 createRaidBossDocument(
                                     raid.id,
                                     raidBossId(
-                                        boss.bossIdOfDifficulty[
-                                            difficulty as keyof typeof boss.bossIdOfDifficulty
-                                        ],
+                                        ingameBossId,
                                         Number(difficulty) as Difficulty
                                     ),
                                     boss.name,
@@ -168,15 +157,12 @@ class Database {
 
                             for (const combatMetric of ["dps", "hps"]) {
                                 const collectionName = raidBossCollectionId(
-                                    boss.bossIdOfDifficulty[
-                                        difficulty as keyof typeof boss.bossIdOfDifficulty
-                                    ],
+                                    ingameBossId,
                                     Number(difficulty),
                                     combatMetric
                                 );
-                                const bossCollection = await this.db.collection(
-                                    collectionName
-                                );
+                                const bossCollection =
+                                    this.db.collection(collectionName);
 
                                 if (await bossCollection.findOne({}))
                                     await bossCollection.deleteMany({});
@@ -209,59 +195,42 @@ class Database {
                 this.updateStatus = "Database is updating.";
                 this.lastUpdated = updateStarted;
 
-                const maintenanceCollection = await this.db.collection(
-                    "maintenance"
+                const maintenanceCollection =
+                    this.db.collection<MaintenanceDocument>("Maintenance");
+
+                const maintenance = await maintenanceCollection.findOne({});
+
+                const lastLogIds =
+                    isInitalization || !maintenance
+                        ? {}
+                        : maintenance.lastLogIds;
+
+                let { logs, lastLogIds: newLastLogIds } = await getLogData(
+                    isInitalization,
+                    lastLogIds
                 );
-
-                const lastLogIds = isInitalization
-                    ? {}
-                    : (
-                          (await maintenanceCollection.findOne(
-                              {}
-                          )) as DbMaintenance
-                      ).lastLogIds;
-
-                let oldLogData:
-                    | {
-                          logs: RaidLogWithRealm[];
-                          lastLogIds: { [propName: string]: number };
-                      }
-                    | false = false;
-                if (isInitalization) {
-                    try {
-                        oldLogData = {
-                            logs: await loadLogsFromFile(),
-                            lastLogIds: getLastLogsIdsFromFile(),
-                        };
-                        console.log("db: Using old log data for initalization");
-                    } catch (err) {
-                        console.log("db: Requesting logs");
-                    }
-                } else {
-                    console.log("db: Requesting logs");
-                }
-                let { logs, lastLogIds: newLastLogIds } = oldLogData
-                    ? oldLogData
-                    : await getLogs(lastLogIds);
 
                 logs = logBugHandler(logs);
 
                 if (isInitalization) {
-                    if (!oldLogData) {
+                    if (!areLogsSaved()) {
                         console.log(
-                            "db: Saving logs in case something goes wrong in the initalization process to"
+                            "db: Saving logs in case something goes wrong in the initalization process"
                         );
                         writeLogsToFile(logs);
                         updateLastLogIdsOfFile(newLastLogIds);
                     }
 
                     console.log("db: Processing logs");
-                    const { bosses, guilds, combatMetrics } = processLogs(logs);
+                    const { bosses, guilds, characterPerformanceOfBoss } =
+                        processLogs(logs);
 
                     console.log("db: Saving raid bosses");
                     for (const bossId in bosses) {
                         await this.saveRaidBoss(bosses[bossId]);
                     }
+                    // initalization should keep this empty since there is no update
+                    this.updatedRaidBosses = [];
 
                     console.log("db: Saving guilds");
                     for (const guildId in guilds) {
@@ -269,22 +238,28 @@ class Database {
                     }
 
                     console.log("db: Saving chars");
-                    for (const bossId in combatMetrics) {
+                    for (const bossId in characterPerformanceOfBoss) {
                         console.log(`db: to ${bossId}`);
 
-                        for (const combatMetric in combatMetrics[bossId]) {
+                        let combatMetric: keyof typeof characterPerformanceOfBoss[number];
+                        for (combatMetric in characterPerformanceOfBoss[
+                            bossId
+                        ]) {
                             let characters = [];
-                            for (const charId in combatMetrics[bossId][
-                                combatMetric
-                            ]) {
+                            for (const charId in characterPerformanceOfBoss[
+                                bossId
+                            ][combatMetric]) {
                                 characters.push(
-                                    combatMetrics[bossId][combatMetric][charId]
+                                    characterPerformanceOfBoss[bossId][
+                                        combatMetric
+                                    ][charId]
                                 );
                             }
 
-                            const bossCollection = await this.db.collection(
-                                `${bossId} ${combatMetric}`
-                            );
+                            const bossCollection =
+                                await this.db.collection<CharacterDocument>(
+                                    `${bossId} ${combatMetric}`
+                                );
 
                             try {
                                 await bossCollection.insertMany(characters);
@@ -393,7 +368,7 @@ class Database {
                 if (!this.db) throw ERR_DB_CONNECTION;
 
                 const maintenance = (await this.db
-                    .collection("maintenance")
+                    .collection("Maintenance")
                     .findOne({})) as DbMaintenance | null;
 
                 resolve(maintenance ? maintenance.lastUpdated : 0);
@@ -409,7 +384,7 @@ class Database {
                 if (!this.db) throw ERR_DB_CONNECTION;
 
                 const maintenance = (await this.db
-                    .collection("maintenance")
+                    .collection("Maintenance")
                     .findOne({})) as DbMaintenance | null;
 
                 resolve(maintenance ? maintenance.lastGuildsUpdate : 0);
@@ -425,7 +400,7 @@ class Database {
                 if (!this.db) throw ERR_DB_CONNECTION;
 
                 const maintenance = (await this.db
-                    .collection("maintenance")
+                    .collection("Maintenance")
                     .findOne({})) as DbMaintenance | null;
 
                 resolve(maintenance ? maintenance.isInitalized : false);
@@ -435,131 +410,12 @@ class Database {
         });
     }
 
-    async saveRaidBoss(boss: RaidBoss, session?: ClientSession) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                if (!this.db) throw ERR_DB_CONNECTION;
-
-                const raidCollection = this.db.collection(String(boss.raidId));
-                const oldData = (await raidCollection.findOne(
-                    {
-                        name: boss.name,
-                    },
-                    { session: session }
-                )) as DbRaidBoss | null;
-
-                if (!oldData) {
-                    await raidCollection.insertOne(
-                        {
-                            name: boss.name,
-                            [boss.difficulty]: boss,
-                        },
-                        {
-                            session,
-                        }
-                    );
-                } else {
-                    let updatedBoss = oldData[boss.difficulty]
-                        ? updateRaidBoss(oldData[boss.difficulty], boss)
-                        : boss;
-
-                    await raidCollection.updateOne(
-                        {
-                            name: boss.name,
-                        },
-                        {
-                            $set: {
-                                ...oldData,
-                                _id: oldData._id,
-                                [boss.difficulty]: updatedBoss,
-                            },
-                        },
-                        {
-                            session,
-                        }
-                    );
-                }
-
-                this.updatedRaidBosses.push({
-                    raidId: boss.raidId,
-                    name: boss.name,
-                });
-
-                resolve(true);
-            } catch (err) {
-                reject(err);
-            }
-        });
-    }
-
-    async saveGuild(newGuild: Guild, session?: ClientSession) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                if (!this.db) throw ERR_DB_CONNECTION;
-
-                let oldGuild = await this.db
-                    .collection<Guild>("guilds")
-                    .findOne(
-                        {
-                            _id: newGuild._id,
-                        },
-                        { session }
-                    );
-
-                if (!oldGuild) {
-                    try {
-                        let guildData = await requestGuildData(
-                            newGuild.name,
-                            newGuild.realm
-                        ).catch((err) => {
-                            if (err.message === ERR_GUILD_NOT_FOUND.message)
-                                throw ERR_GUILD_NOT_FOUND;
-                            return false as const;
-                        });
-
-                        await this.db.collection("guilds").insertOne(
-                            guildData
-                                ? updateGuildData(newGuild, guildData)
-                                : ({
-                                      ...updateGuildRanking(newGuild),
-                                      raidDays: {
-                                          ...newGuild.raidDays,
-                                          recent: getRecentGuildRaidDays(
-                                              newGuild.progression.recentKills
-                                          ),
-                                      },
-                                      progression: {
-                                          ...newGuild.progression,
-                                          completion: getGuildContentCompletion(
-                                              newGuild.progression.raids
-                                          ),
-                                      },
-                                  } as any),
-                            { session }
-                        );
-                    } catch (err) {
-                        console.error(err);
-                    }
-                } else {
-                    await this.db.collection<Guild>("guilds").updateOne(
-                        {
-                            _id: newGuild._id,
-                        },
-                        {
-                            $set: updateGuildData(oldGuild, newGuild),
-                        },
-                        { session }
-                    );
-                }
-                resolve(true);
-            } catch (err) {
-                reject(err);
-            }
-        });
-    }
-
     async saveLogs(
-        { bosses, guilds, combatMetrics }: ReturnType<typeof processLogs>,
+        {
+            bosses,
+            guilds,
+            characterPerformanceOfBoss,
+        }: ReturnType<typeof processLogs>,
         {
             lastLogIds,
             updateStarted,
@@ -570,7 +426,9 @@ class Database {
             try {
                 if (!this.db) throw ERR_DB_CONNECTION;
 
-                const maintenanceCollection = this.db.collection("maintenance");
+                const maintenanceCollection =
+                    this.db.collection<MaintenanceDocument>("Maintenance");
+
                 await this.bulkWriteRaidBosses(bosses, session);
                 runGC();
 
@@ -581,15 +439,19 @@ class Database {
 
                 const operationsOfBossCollection: LooseObject = {};
 
-                for (const bossId in combatMetrics) {
-                    for (const combatMetric in combatMetrics[bossId]) {
-                        for (const charId in combatMetrics[bossId][
+                for (const bossId in characterPerformanceOfBoss) {
+                    for (const combatMetric in characterPerformanceOfBoss[
+                        bossId
+                    ]) {
+                        for (const charId in characterPerformanceOfBoss[bossId][
                             combatMetric
                         ]) {
                             const bossCollectionName = `${bossId} ${combatMetric}`;
 
                             const char =
-                                combatMetrics[bossId][combatMetric][charId];
+                                characterPerformanceOfBoss[bossId][
+                                    combatMetric
+                                ][charId];
 
                             if (
                                 !operationsOfBossCollection[bossCollectionName]
@@ -663,87 +525,167 @@ class Database {
             resolve(true);
         });
     }
+
+    async saveRaidBoss(boss: RaidBossDocument, session?: ClientSession) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                if (!this.db) throw ERR_DB_CONNECTION;
+
+                const raidCollection =
+                    this.db.collection<RaidBossDocument>("RaidBosses");
+
+                const oldBoss = await raidCollection.findOne(
+                    {
+                        _id: boss._id,
+                    },
+                    { session: session }
+                );
+
+                if (!oldBoss) {
+                    await raidCollection.insertOne(boss, {
+                        session,
+                    });
+                } else {
+                    await raidCollection.updateOne(
+                        {
+                            _id: boss._id,
+                        },
+                        {
+                            $set: updateRaidBossDocument(oldBoss, boss),
+                        },
+                        {
+                            session,
+                        }
+                    );
+                }
+
+                this.updatedRaidBosses.push(boss._id);
+
+                resolve(true);
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+
+    async saveGuild(guild: GuildDocument, session?: ClientSession) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                if (!this.db) throw ERR_DB_CONNECTION;
+
+                const guildsCollection =
+                    this.db.collection<GuildDocument>("Guilds");
+
+                let oldGuild = await guildsCollection.findOne(
+                    {
+                        _id: guild._id,
+                    },
+                    { session }
+                );
+
+                if (!oldGuild) {
+                    try {
+                        let guildData = await requestGuildData(
+                            guild.name,
+                            guild.realm
+                        ).catch((err) => {
+                            if (err.message === ERR_GUILD_NOT_FOUND.message)
+                                throw ERR_GUILD_NOT_FOUND;
+                            return false as const;
+                        });
+
+                        await guildsCollection.insertOne(
+                            guildData
+                                ? updateGuildData(guild, guildData)
+                                : ({
+                                      ...updateGuildRanking(guild),
+                                      raidDays: {
+                                          ...guild.raidDays,
+                                          recent: getRecentGuildRaidDays(
+                                              guild.progression.recentKills
+                                          ),
+                                      },
+                                      progression: {
+                                          ...guild.progression,
+                                          completion: getGuildContentCompletion(
+                                              guild.progression.raids
+                                          ),
+                                      },
+                                  } as any),
+                            { session }
+                        );
+                    } catch (err) {
+                        console.error(err);
+                    }
+                } else {
+                    await guildsCollection.updateOne(
+                        {
+                            _id: guild._id,
+                        },
+                        {
+                            $set: updateGuildData(oldGuild, guild),
+                        },
+                        { session }
+                    );
+                }
+                resolve(true);
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+
     async bulkWriteRaidBosses(
         bosses: {
-            [key: string]: RaidBoss;
+            [key: string]: RaidBossDocument;
         },
         session?: ClientSession
     ): Promise<void> {
         return new Promise(async (resolve, reject) => {
             try {
                 if (!this.db) throw ERR_DB_CONNECTION;
+
                 console.log("db: Saving raid bosses");
-                let bossNameOfRaids: LooseObject = {};
-                for (const bossId in bosses) {
-                    if (!bossNameOfRaids[bosses[bossId].raidId]) {
-                        bossNameOfRaids[bosses[bossId].raidId] = [];
-                    }
-                    bossNameOfRaids[bosses[bossId].raidId].push(
-                        bosses[bossId].name
-                    );
-                }
-                let bossesOfDb: { [key: string]: DbRaidBoss } = {};
-                for (const raidId in bossNameOfRaids) {
-                    for (let boss of await this.db
-                        .collection(String(raidId))
-                        .aggregate(
-                            [
-                                {
-                                    $match: {
-                                        name: {
-                                            $in: bossNameOfRaids[raidId],
-                                        },
+                const raidBossCollection =
+                    this.db.collection<RaidBossDocument>("RaidBosses");
+                const oldBosses = (await raidBossCollection
+                    .aggregate(
+                        [
+                            {
+                                $match: {
+                                    _id: {
+                                        $in: Object.keys(bosses),
                                     },
                                 },
-                            ],
-                            { session }
-                        )
-                        .toArray()) {
-                        bossesOfDb[boss.name] = boss as DbRaidBoss;
-                    }
-                }
+                            },
+                        ],
+                        { session }
+                    )
+                    .toArray()) as RaidBossDocument[];
 
-                let raidBossOperations: LooseObject = {};
-                for (const bossId in bosses) {
-                    const raidId = bosses[bossId].raidId;
-                    const bossName = bosses[bossId].name;
-                    const difficulty = bosses[bossId].difficulty;
-
-                    if (!raidBossOperations[raidId]) {
-                        raidBossOperations[raidId] = [];
-                    }
-
-                    raidBossOperations[raidId].push({
+                let operations = [];
+                for (const oldBoss of oldBosses) {
+                    operations.push({
                         updateOne: {
                             filter: {
-                                name: bossName,
+                                _id: oldBoss._id,
                             },
                             update: {
-                                $set: {
-                                    [difficulty]: updateRaidBoss(
-                                        bossesOfDb[bossName][difficulty],
-                                        bosses[bossId]
-                                    ),
-                                },
+                                $set: updateRaidBossDocument(
+                                    oldBoss,
+                                    bosses[oldBoss._id]
+                                ),
                             },
                         },
                     });
                 }
 
-                for (let raidId in raidBossOperations) {
-                    await this.db
-                        .collection(String(raidId))
-                        .bulkWrite(raidBossOperations[raidId], {
-                            session,
-                        });
-                }
+                await raidBossCollection.bulkWrite(operations, {
+                    session,
+                });
+
                 for (const bossId in bosses) {
-                    const raidId = bosses[bossId].raidId;
-                    const bossName = bosses[bossId].name;
-                    this.updatedRaidBosses.push({
-                        raidId: raidId,
-                        name: bossName,
-                    });
+                    this.updatedRaidBosses.push(bossId);
                 }
 
                 resolve();
