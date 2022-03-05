@@ -175,7 +175,7 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
         );
 
         if (!characterPerformanceOfBoss[bossId]) {
-            characterPerformanceOfBoss[bossId] = { dps: {}, hps: {} };
+            characterPerformanceOfBoss[bossId] = { dps: {}, hps: {} } as const;
         }
 
         if (isGuildKill && guildId && guildName) {
