@@ -24,9 +24,9 @@ interface GuildMember {
     race: string;
 }
 
-export interface GuildActivity {
-    [propName: number]: number;
-}
+export type GuildActivity = {
+    [key in Difficulty]?: number;
+};
 
 export interface GuildProgression {
     latestKills: GuildLatestKill[];
@@ -43,7 +43,7 @@ export interface GuildLatestKill {
 
 export interface GuildRaidDays {
     total: number[][];
-    recent: number[][];
+    latest: number[][];
 }
 
 export interface GuildCompletion {
@@ -78,14 +78,14 @@ export interface GuildKillLog {
     date: number;
 }
 
-interface Ranking {
-    [propName: string]: {
-        [propName: number]: {
+type Ranking = {
+    [key in RaidName]?: {
+        [key in Difficulty]?: {
             fullClear: GuildRankingFull;
             fastestKills: GuildRankingFastest;
         };
     };
-}
+};
 
 export interface GuildRankingFull {
     time: number | false;
