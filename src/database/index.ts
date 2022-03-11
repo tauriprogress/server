@@ -6,7 +6,7 @@ import {
     processLogs,
     logBugHandler,
     requestGuildData,
-    getRecentGuildRaidDays,
+    getLatestGuildRaidDays,
     getGuildContentCompletion,
     updateGuildData,
     minutesAgo,
@@ -35,6 +35,9 @@ import {
     raidBossCollectionId,
     areLogsSaved,
     updateRaidBossDocument,
+    updateGuildDocument,
+    requestGuildDocument,
+    createGuildDocument,
 } from "../helpers";
 
 import { MongoClient, Db, ClientSession, ReadConcern } from "mongodb";
@@ -585,7 +588,7 @@ class Database {
 
                 if (!oldGuild) {
                     try {
-                        let guildData = await requestGuildData(
+                        let guildData = await requestGuildDocument(
                             guild.name,
                             guild.realm
                         ).catch((err) => {
@@ -597,21 +600,14 @@ class Database {
                         await guildsCollection.insertOne(
                             guildData
                                 ? updateGuildData(guild, guildData)
-                                : ({
-                                      ...updateGuildRanking(guild),
-                                      raidDays: {
-                                          ...guild.raidDays,
-                                          recent: getRecentGuildRaidDays(
-                                              guild.progression.recentKills
-                                          ),
-                                      },
-                                      progression: {
-                                          ...guild.progression,
-                                          completion: getGuildContentCompletion(
-                                              guild.progression.raids
-                                          ),
-                                      },
-                                  } as any),
+                                : updateGuildData(
+                                      createGuildDocument(
+                                          guild.name,
+                                          guild.realm,
+                                          guild.f
+                                      ),
+                                      guild
+                                  ),
                             { session }
                         );
                     } catch (err) {
@@ -623,7 +619,7 @@ class Database {
                             _id: guild._id,
                         },
                         {
-                            $set: updateGuildData(oldGuild, guild),
+                            $set: updateGuildDocument(oldGuild, guild),
                         },
                         { session }
                     );
