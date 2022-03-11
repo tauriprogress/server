@@ -16,7 +16,7 @@ export interface GuildDocument extends Document {
     ranking: Ranking;
 }
 
-interface GuildMember {
+export interface GuildMember {
     name: string;
     class: ClassId;
     rankName: string;

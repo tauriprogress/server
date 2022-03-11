@@ -24,8 +24,50 @@ import {
     GuildCompletion,
     GuildRaids,
     GuildRankingFastest,
+    GuildMember,
 } from "../../types";
 import { week } from "../../constants";
+import tauriApi from "../../tauriApi";
+
+export async function requestGuildDocument(guildName: string, realm: Realm) {
+    const response = await tauriApi.getGuildData(guildName, realm);
+
+    const guildData = response.response;
+
+    let members: GuildMember[] = [];
+
+    for (const memberId in guildData.guildList) {
+        members.push({
+            name: guildData.guildList[memberId].name,
+            class: guildData.guildList[memberId].class,
+            rankName: guildData.guildList[memberId].rank_name,
+            lvl: guildData.guildList[memberId].level,
+            race: `${guildData.guildList[memberId].race},${guildData.guildList[memberId].gender}`,
+        });
+    }
+
+    let ranks = [];
+    for (const rankId in guildData.gRanks) {
+        ranks.push(guildData.gRanks[rankId].rname);
+    }
+
+    let newGuild: GuildDocument = {
+        ...createGuildDocument(guildName, realm, guildData.gFaction),
+        ranks: ranks,
+        members: members,
+    };
+
+    for (const guild of environment.guildFactionBugs) {
+        if (
+            guild.guildName === newGuild.name &&
+            guild.realm === newGuild.realm
+        ) {
+            newGuild.f = guild.faction;
+        }
+    }
+
+    return newGuild;
+}
 
 export function createGuildDocument(
     guildName: string,
