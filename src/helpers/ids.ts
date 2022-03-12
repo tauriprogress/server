@@ -27,8 +27,14 @@ export function guildId(guildName: string, guildRealm: Realm) {
     return `${guildName} ${guildRealm}`;
 }
 
-export function raidBossId(bossId: number, difficulty: Difficulty) {
-    return `${bossId} ${difficulty}`;
+export function raidBossId(ingameBossId: number, difficulty: Difficulty) {
+    return `${ingameBossId} ${difficulty}`;
+}
+
+export function deconstructRaidBossId(bossId: ReturnType<typeof raidBossId>) {
+    const [ingameBossId, difficulty] = bossId.split(" ");
+
+    return [Number(ingameBossId), Number(difficulty) as Difficulty] as const;
 }
 
 export function raidBossCollectionId(

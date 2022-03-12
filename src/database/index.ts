@@ -38,6 +38,7 @@ import {
     updateGuildDocument,
     requestGuildDocument,
     createGuildDocument,
+    deconstructRaidBossId,
 } from "../helpers";
 
 import { MongoClient, Db, ClientSession, ReadConcern } from "mongodb";
@@ -65,6 +66,7 @@ import {
     ERR_GUILD_NOT_FOUND,
     ERR_LOADING,
 } from "../helpers/errors";
+import { diffieHellman } from "crypto";
 
 const raidSummaryLock = new Lock();
 
@@ -443,13 +445,20 @@ class Database {
                 const operationsOfBossCollection: LooseObject = {};
 
                 for (const bossId in characterPerformanceOfBoss) {
-                    for (const combatMetric in characterPerformanceOfBoss[
+                    for (const combatMetricKey in characterPerformanceOfBoss[
                         bossId
                     ]) {
+                        const combatMetric = combatMetricKey as CombatMetric;
                         for (const charId in characterPerformanceOfBoss[bossId][
                             combatMetric
                         ]) {
-                            const bossCollectionName = `${bossId} ${combatMetric}`;
+                            const [ingameBossId, difficulty] =
+                                deconstructRaidBossId(bossId);
+                            const bossCollectionName = raidBossCollectionId(
+                                ingameBossId,
+                                difficulty,
+                                combatMetric
+                            );
 
                             const char =
                                 characterPerformanceOfBoss[bossId][
@@ -463,31 +472,20 @@ class Database {
                                     [];
                             }
 
-                            const insertOperation = {
-                                updateOne: {
-                                    filter: { _id: char._id },
-                                    update: {
-                                        $setOnInsert: char,
-                                    },
-                                    upsert: true,
-                                },
-                            };
-
-                            const updateOperation = {
-                                updateOne: {
-                                    filter: {
-                                        _id: char._id,
-                                        [combatMetric]: {
-                                            $lt: char[combatMetric],
-                                        },
-                                    },
-                                    update: { $set: char },
-                                },
-                            };
-
                             operationsOfBossCollection[bossCollectionName].push(
-                                insertOperation,
-                                updateOperation
+                                {
+                                    updateOne: {
+                                        filter: { _id: char._id },
+                                        update: {
+                                            $max: {
+                                                [combatMetric]:
+                                                    char[combatMetric],
+                                            },
+                                            $setOnInsert: char,
+                                        },
+                                        upsert: true,
+                                    },
+                                }
                             );
                         }
                     }
@@ -497,9 +495,8 @@ class Database {
                 for (const bossCollectionName in operationsOfBossCollection) {
                     console.log(`db: to ${bossCollectionName}`);
 
-                    const bossCollection = await this.db.collection(
-                        bossCollectionName
-                    );
+                    const bossCollection =
+                        this.db.collection(bossCollectionName);
 
                     await bossCollection.bulkWrite(
                         operationsOfBossCollection[bossCollectionName],
