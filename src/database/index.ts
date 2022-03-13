@@ -39,6 +39,7 @@ import {
     requestGuildDocument,
     createGuildDocument,
     deconstructRaidBossId,
+    guildId,
 } from "../helpers";
 
 import { MongoClient, Db, ClientSession, ReadConcern } from "mongodb";
@@ -58,6 +59,7 @@ import {
     CharacterDocument,
     RaidBossDocument,
     GuildDocument,
+    Realm,
 } from "../types";
 import {
     ERR_DATA_NOT_EXIST,
@@ -431,9 +433,6 @@ class Database {
             try {
                 if (!this.db) throw ERR_DB_CONNECTION;
 
-                const maintenanceCollection =
-                    this.db.collection<MaintenanceDocument>("Maintenance");
-
                 await this.bulkWriteRaidBosses(bosses, session);
                 runGC();
 
@@ -496,7 +495,9 @@ class Database {
                     console.log(`db: to ${bossCollectionName}`);
 
                     const bossCollection =
-                        this.db.collection(bossCollectionName);
+                        this.db.collection<CharacterDocument>(
+                            bossCollectionName
+                        );
 
                     await bossCollection.bulkWrite(
                         operationsOfBossCollection[bossCollectionName],
@@ -506,19 +507,21 @@ class Database {
 
                 console.log("db: Saving chars done");
 
-                await maintenanceCollection.updateOne(
-                    {},
-                    {
-                        $set: {
-                            lastUpdated: updateStarted,
-                            lastLogIds: lastLogIds,
-                            isInitalized: true,
+                await this.db
+                    .collection<MaintenanceDocument>("Maintenance")
+                    .updateOne(
+                        {},
+                        {
+                            $set: {
+                                lastUpdated: updateStarted,
+                                lastLogIds: lastLogIds,
+                                isInitalized: true,
+                            },
                         },
-                    },
-                    {
-                        session,
-                    }
-                );
+                        {
+                            session,
+                        }
+                    );
             } catch (err) {
                 reject(err);
             }
@@ -696,7 +699,7 @@ class Database {
                 this.updateStatus = "Updating guilds";
 
                 const guilds = (await this.db
-                    .collection("guilds")
+                    .collection<GuildDocument>("guilds")
                     .find({})
                     .project({
                         _id: 1,
@@ -704,9 +707,9 @@ class Database {
                         realm: 1,
                     })
                     .toArray()) as {
-                    _id: string;
+                    _id: ReturnType<typeof guildId>;
                     name: string;
-                    realm: string;
+                    realm: Realm;
                 }[];
 
                 let total = guilds.length;
@@ -719,7 +722,7 @@ class Database {
                             `db: Updating ${guild.name} ${current}/${total}`
                         );
 
-                        const newGuild = await requestGuildData(
+                        const newGuild = await requestGuildDocument(
                             guild.name,
                             guild.realm
                         );
@@ -751,13 +754,13 @@ class Database {
         });
     }
 
-    async removeGuild(guildId: string) {
+    async removeGuild(_id: ReturnType<typeof guildId>) {
         return new Promise(async (resolve, reject) => {
             try {
                 if (!this.db) throw ERR_DB_CONNECTION;
 
-                await this.db.collection<Guild>("guilds").deleteOne({
-                    _id: guildId,
+                await this.db.collection<GuildDocument>("guilds").deleteOne({
+                    _id: _id,
                 });
                 resolve(true);
             } catch (err) {
