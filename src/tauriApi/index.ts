@@ -20,6 +20,8 @@ import {
     RaidBossRankedLogsResponse,
     ItemResponse,
     CharacterTalentsResponse,
+    Realm,
+    Difficulty,
 } from "../types";
 
 class TauriApi {
@@ -97,7 +99,7 @@ class TauriApi {
         });
     }
 
-    getCharacterData(name: string, realm: string) {
+    getCharacterData(name: string, realm: Realm) {
         return this.request<CharacterDataResponse>({
             method: "POST",
             body: encodeURIComponent(
@@ -113,7 +115,7 @@ class TauriApi {
         });
     }
 
-    getCharacterAchievements(name: string, realm: string) {
+    getCharacterAchievements(name: string, realm: Realm) {
         return this.request<CharacterAchievementsResponse>({
             method: "POST",
             body: encodeURIComponent(
@@ -131,7 +133,7 @@ class TauriApi {
 
     getCharacterRaidLogs(
         characterName: string,
-        realm: string,
+        realm: Realm,
         logId: number = 0,
         limit: number = 0
     ) {
@@ -152,7 +154,7 @@ class TauriApi {
         });
     }
 
-    getCharacterTalents(name: string, realm: string) {
+    getCharacterTalents(name: string, realm: Realm) {
         return this.request<CharacterTalentsResponse>({
             method: "POST",
             body: encodeURIComponent(
@@ -168,7 +170,7 @@ class TauriApi {
         });
     }
 
-    getRaidMaps(realm: string) {
+    getRaidMaps(realm: Realm) {
         return this.request<RaidMapsResponse>({
             method: "POST",
             body: encodeURIComponent(
@@ -183,7 +185,7 @@ class TauriApi {
         });
     }
 
-    getRaidLog(id: number, realm: string) {
+    getRaidLog(id: number, realm: Realm) {
         return this.request<RaidLogResponse>({
             method: "POST",
             body: encodeURIComponent(
@@ -199,7 +201,7 @@ class TauriApi {
         });
     }
 
-    getRaidLastLogs(lastLogId: number = 0, realm: string, limit: number = 0) {
+    getRaidLastLogs(lastLogId: number = 0, realm: Realm, limit: number = 0) {
         return this.request<LastRaidLogsResponse>({
             method: "POST",
             body: encodeURIComponent(
@@ -218,8 +220,8 @@ class TauriApi {
 
     getRaidRankedLogs(
         bossId: number,
-        realm: string,
-        difficulty: number,
+        realm: Realm,
+        difficulty: Difficulty,
         logId: number = 0,
         limit: number = 0
     ) {
@@ -241,7 +243,7 @@ class TauriApi {
         });
     }
 
-    getGuildData(name: string, realm: string) {
+    getGuildData(name: string, realm: Realm) {
         return this.request<GuildDataResponse>({
             method: "POST",
             body: encodeURIComponent(
@@ -259,7 +261,7 @@ class TauriApi {
 
     getGuildRaidLogs(
         guildName: string,
-        realm: string,
+        realm: Realm,
         logId: number = 0,
         limit: number = 0
     ) {
@@ -282,9 +284,9 @@ class TauriApi {
 
     getGuildRaidBossRankedLogs(
         guildName: string,
-        realm: string,
+        realm: Realm,
         bossId: number,
-        difficulty: number,
+        difficulty: Difficulty,
         logId: number = 0,
         limit: number = 0
     ) {
@@ -323,7 +325,7 @@ class TauriApi {
         });
     }
 
-    getItemByGuid(guid: number, realm: string) {
+    getItemByGuid(guid: number, realm: Realm) {
         return this.request<ItemResponse>({
             method: "POST",
             body: encodeURIComponent(
