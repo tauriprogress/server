@@ -23,7 +23,7 @@ class Cache {
     public guildLeaderboardId: string;
 
     constructor() {
-        this.guildListId = "list";
+        this.guildListId = "GuildList";
         this.guildList = new NodeCache({
             stdTTL: 20 * 60,
             checkperiod: 60,

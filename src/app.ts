@@ -77,7 +77,7 @@ const speedLimiter = slowDown({
 
     app.use(updateDatabase);
 
-    app.get("/getguildlist", async (_1, res) => {
+    app.get("/guildlist", async (_1, res) => {
         try {
             res.send({
                 success: true,

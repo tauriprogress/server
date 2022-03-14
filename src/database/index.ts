@@ -699,7 +699,7 @@ class Database {
                 this.updateStatus = "Updating guilds";
 
                 const guilds = (await this.db
-                    .collection<GuildDocument>("guilds")
+                    .collection<GuildDocument>("Guilds")
                     .find({})
                     .project({
                         _id: 1,
@@ -759,7 +759,7 @@ class Database {
             try {
                 if (!this.db) throw ERR_DB_CONNECTION;
 
-                await this.db.collection<GuildDocument>("guilds").deleteOne({
+                await this.db.collection<GuildDocument>("Guilds").deleteOne({
                     _id: _id,
                 });
                 resolve(true);
@@ -1320,7 +1320,7 @@ class Database {
                     resolve(guildList);
                 } else {
                     const guildList = (await this.db
-                        .collection("guilds")
+                        .collection<GuildDocument>("Guilds")
                         .find()
                         .project({
                             name: 1,
