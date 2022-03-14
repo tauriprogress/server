@@ -1341,15 +1341,17 @@ class Database {
         });
     }
 
-    async getGuild(realm: string, guildName: string) {
+    async getGuild(realm: Realm, guildName: string) {
         return new Promise(async (resolve, reject) => {
             try {
                 if (!this.db) throw ERR_DB_CONNECTION;
 
-                const guild = await this.db.collection("guilds").findOne({
-                    name: guildName,
-                    realm: realm,
-                });
+                const guild = await this.db
+                    .collection<GuildDocument>("Guilds")
+                    .findOne({
+                        name: guildName,
+                        realm: realm,
+                    });
 
                 if (!guild) throw ERR_GUILD_NOT_FOUND;
 
