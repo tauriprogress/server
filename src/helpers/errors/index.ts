@@ -17,6 +17,7 @@ export const ERR_BOSS_NOT_FOUND = new Error("Boss not found.");
 export const ERR_INVALID_RAID_ID = new Error("Invalid raid ID.");
 export const ERR_INVALID_RAID_NAME = new Error("Invalid raid");
 export const ERR_INVALID_BOSS_NAME = new Error("Invalid boss name.");
+export const ERR_INVALID_BOSS_ID = new Error("Invalid boss ID.");
 export const ERR_INVALID_GUILD_NAME = new Error("Invalid guild name.");
 export const ERR_INVALID_CHARACTER_NAME = new Error("Invalid character name.");
 export const ERR_INVALID_CHARACTER_CLASS = new Error("Invalid character class");

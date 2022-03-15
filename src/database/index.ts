@@ -1323,17 +1323,19 @@ class Database {
     }
 
     async getRaidBossKillCount(
-        raidId: number,
-        bossName: string,
-        difficulty: number
+        ingameBossId: number,
+        difficulty: Difficulty
     ): Promise<number> {
         return new Promise(async (resolve, reject) => {
             try {
                 if (!this.db) throw ERR_DB_CONNECTION;
 
-                const bossData = await this.getRaidBoss(raidId, bossName);
+                const bossData = await this.getRaidBoss(
+                    ingameBossId,
+                    difficulty
+                );
 
-                resolve(bossData[difficulty].killCount);
+                resolve(bossData.killCount);
             } catch (err) {
                 reject(err);
             }

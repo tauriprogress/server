@@ -1,5 +1,5 @@
 import environment from "../environment";
-import { LastRaidLogWithRealm, Realm, ShortRealm } from "../types";
+import { Difficulty, LastRaidLogWithRealm, Realm, ShortRealm } from "../types";
 import { getLeaderboardCacheId } from "./providers";
 
 export function validRaidId(raidId: any) {
@@ -75,6 +75,26 @@ export function validBossName(raidId: any, bossName: any) {
                         return true;
                     }
                 }
+            }
+        }
+    }
+
+    return false;
+}
+
+export function validIngameBossId(
+    ingameBossId: number,
+    difficulty: Difficulty
+): boolean {
+    if (typeof ingameBossId !== "number" || typeof difficulty !== "number")
+        return false;
+
+    for (const raid of environment.currentContent.raids) {
+        for (const boss of raid.bosses) {
+            const diff = difficulty as keyof typeof boss.bossIdOfDifficulty;
+            if (!boss.bossIdOfDifficulty[diff]) continue;
+            if (boss.bossIdOfDifficulty[diff] === ingameBossId) {
+                return true;
             }
         }
     }

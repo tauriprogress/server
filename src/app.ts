@@ -173,8 +173,7 @@ const speedLimiter = slowDown({
                     success: true,
                     response: {
                         killCount: await db.getRaidBossKillCount(
-                            req.body.raidId,
-                            req.body.bossName,
+                            req.body.ingameBossId,
                             req.body.difficulty
                         ),
                     },
@@ -239,7 +238,7 @@ const speedLimiter = slowDown({
     );
 
     app.post(
-        "/getboss/Characters",
+        "/getboss/characters",
         waitDbCache,
         verifyGetBossCharacters,
         async (req, res) => {
