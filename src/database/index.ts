@@ -62,6 +62,7 @@ import {
     Realm,
 } from "../types";
 import {
+    ERR_BOSS_NOT_FOUND,
     ERR_DATA_NOT_EXIST,
     ERR_DB_CONNECTION,
     ERR_DB_UPDATING,
@@ -71,6 +72,12 @@ import {
 import { diffieHellman } from "crypto";
 
 const raidSummaryLock = new Lock();
+
+const collectionNames = {
+    guilds: "Guilds",
+    maintenance: "Maintenance",
+    raidBosses: "RaidBosses",
+} as const;
 
 class Database {
     public db: Db | undefined;
@@ -86,6 +93,8 @@ class Database {
 
     private updatedRaidBosses: ReturnType<typeof raidBossId>[];
 
+    private collectionNames: typeof collectionNames;
+
     constructor() {
         this.db = undefined;
         this.client = undefined;
@@ -96,6 +105,8 @@ class Database {
         this.updateStatus = "";
         this.firstCacheLoad = false;
         this.updatedRaidBosses = [];
+
+        this.collectionNames = collectionNames;
     }
 
     async connect() {
@@ -124,7 +135,9 @@ class Database {
                 await this.db.dropDatabase();
 
                 console.log("db: Creating maintenance collection");
-                const maintenanceCollection = this.db.collection("Maintenance");
+                const maintenanceCollection = this.db.collection(
+                    this.collectionNames.maintenance
+                );
 
                 if (await maintenanceCollection.findOne({}))
                     await maintenanceCollection.deleteMany({});
@@ -132,13 +145,17 @@ class Database {
                 maintenanceCollection.insertOne(createMaintenanceDocument());
 
                 console.log("db: Creating guilds collection");
-                const guildsCollection = this.db.collection("Guilds");
+                const guildsCollection = this.db.collection(
+                    this.collectionNames.guilds
+                );
                 if (await guildsCollection.findOne({}))
                     await guildsCollection.deleteMany({});
 
                 console.log(`db: Creating collections for raids and bosses`);
 
-                const raidCollection = this.db.collection("RaidBosses");
+                const raidCollection = this.db.collection(
+                    this.collectionNames.raidBosses
+                );
 
                 if (await raidCollection.findOne({}))
                     await raidCollection.deleteMany({});
@@ -203,7 +220,9 @@ class Database {
                 this.lastUpdated = updateStarted;
 
                 const maintenanceCollection =
-                    this.db.collection<MaintenanceDocument>("Maintenance");
+                    this.db.collection<MaintenanceDocument>(
+                        this.collectionNames.maintenance
+                    );
 
                 const maintenance = await maintenanceCollection.findOne({});
 
@@ -263,9 +282,16 @@ class Database {
                                 );
                             }
 
+                            const [ingameBossId, difficulty] =
+                                deconstructRaidBossId(bossId);
+
                             const bossCollection =
-                                await this.db.collection<CharacterDocument>(
-                                    `${bossId} ${combatMetric}`
+                                this.db.collection<CharacterDocument>(
+                                    raidBossCollectionId(
+                                        ingameBossId,
+                                        Number(difficulty),
+                                        combatMetric
+                                    )
                                 );
 
                             try {
@@ -534,8 +560,9 @@ class Database {
             try {
                 if (!this.db) throw ERR_DB_CONNECTION;
 
-                const raidCollection =
-                    this.db.collection<RaidBossDocument>("RaidBosses");
+                const raidCollection = this.db.collection<RaidBossDocument>(
+                    this.collectionNames.raidBosses
+                );
 
                 const oldBoss = await raidCollection.findOne(
                     {
@@ -576,8 +603,9 @@ class Database {
             try {
                 if (!this.db) throw ERR_DB_CONNECTION;
 
-                const guildsCollection =
-                    this.db.collection<GuildDocument>("Guilds");
+                const guildsCollection = this.db.collection<GuildDocument>(
+                    this.collectionNames.guilds
+                );
 
                 let oldGuild = await guildsCollection.findOne(
                     {
@@ -642,8 +670,9 @@ class Database {
                 if (!this.db) throw ERR_DB_CONNECTION;
 
                 console.log("db: Saving raid bosses");
-                const raidBossCollection =
-                    this.db.collection<RaidBossDocument>("RaidBosses");
+                const raidBossCollection = this.db.collection<RaidBossDocument>(
+                    this.collectionNames.raidBosses
+                );
                 const oldBosses = (await raidBossCollection
                     .aggregate(
                         [
@@ -759,116 +788,12 @@ class Database {
             try {
                 if (!this.db) throw ERR_DB_CONNECTION;
 
-                await this.db.collection<GuildDocument>("Guilds").deleteOne({
-                    _id: _id,
-                });
+                await this.db
+                    .collection<GuildDocument>(this.collectionNames.guilds)
+                    .deleteOne({
+                        _id: _id,
+                    });
                 resolve(true);
-            } catch (err) {
-                reject(err);
-            }
-        });
-    }
-
-    async requestRaidBoss(
-        raidId: number,
-        bossName: string
-    ): Promise<RaidBossDataToServe> {
-        return new Promise(async (resolve, reject) => {
-            try {
-                if (!this.db) throw ERR_DB_CONNECTION;
-
-                const difficulties = getRaidInfoFromId(raidId).difficulties;
-
-                const bossInfo = getBossInfo(raidId, bossName);
-
-                let lookUps = [];
-                for (const difficulty in bossInfo.difficultyIds) {
-                    const bossId =
-                        bossInfo.difficultyIds[
-                            difficulty as keyof typeof bossInfo.difficultyIds
-                        ];
-
-                    for (const combatMetric of ["dps", "hps"]) {
-                        const bossCollectionName = getBossCollectionName(
-                            bossId,
-                            Number(difficulty),
-                            combatMetric
-                        );
-
-                        lookUps.push({
-                            $lookup: {
-                                from: bossCollectionName,
-                                pipeline: [
-                                    {
-                                        $sort: {
-                                            [combatMetric]: -1,
-                                        },
-                                    },
-                                ],
-                                as: `${difficulty}.${combatMetric}`,
-                            },
-                        });
-                    }
-                }
-
-                const dbResponse = (
-                    await this.db
-                        .collection(String(raidId))
-                        .aggregate([
-                            {
-                                $match: {
-                                    name: bossName,
-                                },
-                            },
-                            ...lookUps,
-                        ])
-                        .toArray()
-                )[0] as DbRaidBossDataResponse;
-
-                let bossData: RaidBossDataToServe = {
-                    _id: dbResponse._id,
-                    name: dbResponse.name,
-                };
-
-                for (const difficulty of difficulties) {
-                    const boss = dbResponse[difficulty];
-                    let newBoss: RaidBossDataToServe[number] = {
-                        ...boss,
-                        fiftyFastestKills: [],
-                        dps: [],
-                        hps: [],
-                    };
-                    for (let combatMetric of ["dps", "hps"] as const) {
-                        newBoss[combatMetric] = applyCharacterPerformanceRanks(
-                            boss[combatMetric],
-                            combatMetric
-                        );
-                    }
-
-                    let fastestKills: DbRaidBossDataResponse[number]["fastestKills"][string][number] =
-                        [];
-                    for (const realm in boss.fastestKills) {
-                        for (const faction in boss.fastestKills[realm]) {
-                            const objectKeys = [realm, faction];
-
-                            fastestKills = fastestKills.concat(
-                                getNestedObjectValue(
-                                    boss.fastestKills,
-                                    objectKeys
-                                )
-                            );
-                        }
-                    }
-
-                    newBoss.fiftyFastestKills = fastestKills
-                        .sort((a, b) => {
-                            return a.fightLength - b.fightLength;
-                        })
-                        .slice(0, 50);
-
-                    bossData[difficulty] = newBoss;
-                }
-                resolve(bossData);
             } catch (err) {
                 reject(err);
             }
@@ -1363,25 +1288,31 @@ class Database {
     }
 
     async getRaidBoss(
-        raidId: number,
-        bossName: string
-    ): Promise<RaidBossDataToServe> {
+        ingameBossId: number,
+        difficulty: Difficulty
+    ): Promise<RaidBossDocument> {
         return new Promise(async (resolve, reject) => {
             try {
                 if (!this.db) throw ERR_DB_CONNECTION;
 
-                const cacheId = getRaidBossCacheId(raidId, bossName);
+                const bossId = raidBossId(ingameBossId, difficulty);
 
-                const cachedData = cache.getRaidBoss(cacheId);
+                const cachedData = cache.getRaidBoss(bossId);
 
                 if (cachedData) {
                     resolve(cachedData);
                 } else {
-                    const bossData = await this.requestRaidBoss(
-                        raidId,
-                        bossName
-                    );
-                    cache.raidBoss.set(cacheId, bossData);
+                    const bossData = await this.db
+                        .collection<RaidBossDocument>(
+                            this.collectionNames.raidBosses
+                        )
+                        .findOne({ _id: bossId });
+
+                    if (!bossData) {
+                        throw ERR_BOSS_NOT_FOUND;
+                    }
+
+                    cache.raidBoss.set(bossId, bossData);
 
                     resolve(bossData);
                 }

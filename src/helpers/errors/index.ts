@@ -13,6 +13,7 @@ export const ERR_TAURI_API_TIMEOUT = new Error("Api request timed out.");
 export const ERR_DATA_NOT_EXIST = new Error("No data.");
 export const ERR_LOADING = new Error("Loading.");
 
+export const ERR_BOSS_NOT_FOUND = new Error("Boss not found.");
 export const ERR_INVALID_RAID_ID = new Error("Invalid raid ID.");
 export const ERR_INVALID_RAID_NAME = new Error("Invalid raid");
 export const ERR_INVALID_BOSS_NAME = new Error("Invalid boss name.");
