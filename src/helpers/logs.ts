@@ -11,6 +11,7 @@ import {
     createCharacterDocument,
     getCharacterId,
     getRaidBossId,
+    getGuildId,
 } from "../helpers";
 import tauriApi from "../tauriApi";
 import {
