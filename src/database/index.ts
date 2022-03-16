@@ -402,7 +402,7 @@ class Database {
                 if (!this.db) throw ERR_DB_CONNECTION;
 
                 const maintenance = (await this.db
-                    .collection("Maintenance")
+                    .collection(this.collectionNames.maintenance)
                     .findOne({})) as DbMaintenance | null;
 
                 resolve(maintenance ? maintenance.lastUpdated : 0);
@@ -418,7 +418,7 @@ class Database {
                 if (!this.db) throw ERR_DB_CONNECTION;
 
                 const maintenance = (await this.db
-                    .collection("Maintenance")
+                    .collection(this.collectionNames.maintenance)
                     .findOne({})) as DbMaintenance | null;
 
                 resolve(maintenance ? maintenance.lastGuildsUpdate : 0);
@@ -434,7 +434,7 @@ class Database {
                 if (!this.db) throw ERR_DB_CONNECTION;
 
                 const maintenance = (await this.db
-                    .collection("Maintenance")
+                    .collection(this.collectionNames.maintenance)
                     .findOne({})) as DbMaintenance | null;
 
                 resolve(maintenance ? maintenance.isInitalized : false);
@@ -535,7 +535,9 @@ class Database {
                 console.log("db: Saving chars done");
 
                 await this.db
-                    .collection<MaintenanceDocument>("Maintenance")
+                    .collection<MaintenanceDocument>(
+                        this.collectionNames.maintenance
+                    )
                     .updateOne(
                         {},
                         {
@@ -729,7 +731,7 @@ class Database {
                 this.updateStatus = "Updating guilds";
 
                 const guilds = (await this.db
-                    .collection<GuildDocument>("Guilds")
+                    .collection<GuildDocument>(this.collectionNames.maintenance)
                     .find({})
                     .project({
                         _id: 1,
@@ -1246,7 +1248,7 @@ class Database {
                     resolve(guildList);
                 } else {
                     const guildList = (await this.db
-                        .collection<GuildDocument>("Guilds")
+                        .collection<GuildDocument>(this.collectionNames.guilds)
                         .find()
                         .project({
                             name: 1,
@@ -1273,7 +1275,7 @@ class Database {
                 if (!this.db) throw ERR_DB_CONNECTION;
 
                 const guild = await this.db
-                    .collection<GuildDocument>("Guilds")
+                    .collection<GuildDocument>(this.collectionNames.guilds)
                     .findOne({
                         name: guildName,
                         realm: realm,
@@ -1454,7 +1456,7 @@ class Database {
                     resolve(cachedData);
                 } else {
                     const guildLeaderboard = (await this.db
-                        .collection("guilds")
+                        .collection<GuildDocument>(this.collectionNames.guilds)
                         .find()
                         .project({
                             name: 1,

@@ -107,14 +107,14 @@ const speedLimiter = slowDown({
 
     app.post("/getcharacter", verifyGetCharacter, async (req, res) => {
         try {
-            const character = await tauriApi.getCharacterData(
+            const apiResponse = await tauriApi.getCharacterData(
                 req.body.characterName,
                 req.body.realm
             );
 
             res.send({
                 success: true,
-                response: { ...character.response },
+                response: { ...apiResponse.response },
             });
         } catch (err) {
             res.send({
