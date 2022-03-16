@@ -21,8 +21,10 @@ import {
     validLeaderboardId,
     validItemids,
     isError,
+    validIngameBossId,
 } from "../helpers";
 import {
+    ERR_INVALID_BOSS_ID,
     ERR_INVALID_BOSS_NAME,
     ERR_INVALID_CHARACTER_CLASS,
     ERR_INVALID_CHARACTER_NAME,
@@ -153,13 +155,8 @@ export function verifyGetBossKillCount(
     next: NextFunction
 ) {
     try {
-        if (!validRaidId(req.body.raidId)) throw ERR_INVALID_RAID_ID;
-
-        if (!validBossName(req.body.raidId, req.body.bossName))
-            throw ERR_INVALID_BOSS_NAME;
-
-        if (!validDifficulty(req.body.raidId, req.body.difficulty))
-            throw ERR_INVALID_DIFFICULTY;
+        if (!validIngameBossId(req.body.ingameBossId, req.body.difficulty))
+            throw ERR_INVALID_BOSS_ID;
 
         next();
     } catch (err) {
@@ -176,13 +173,8 @@ export function verifyGetBossRecentKills(
     next: NextFunction
 ) {
     try {
-        if (!validRaidId(req.body.raidId)) throw ERR_INVALID_RAID_ID;
-
-        if (!validBossName(req.body.raidId, req.body.bossName))
-            throw ERR_INVALID_BOSS_NAME;
-
-        if (!validDifficulty(req.body.raidId, req.body.difficulty))
-            throw ERR_INVALID_DIFFICULTY;
+        if (!validIngameBossId(req.body.ingameBossId, req.body.difficulty))
+            throw ERR_INVALID_BOSS_ID;
 
         next();
     } catch (err) {

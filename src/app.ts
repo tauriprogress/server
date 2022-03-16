@@ -197,8 +197,7 @@ const speedLimiter = slowDown({
                     success: true,
                     response: {
                         recentKills: await db.getRaidBossRecentKills(
-                            req.body.raidId,
-                            req.body.bossName,
+                            req.body.ingameBossId,
                             req.body.difficulty
                         ),
                     },

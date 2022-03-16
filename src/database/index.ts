@@ -1330,12 +1330,9 @@ class Database {
             try {
                 if (!this.db) throw ERR_DB_CONNECTION;
 
-                const bossData = await this.getRaidBoss(
-                    ingameBossId,
-                    difficulty
+                resolve(
+                    (await this.getRaidBoss(ingameBossId, difficulty)).killCount
                 );
-
-                resolve(bossData.killCount);
             } catch (err) {
                 reject(err);
             }
@@ -1343,17 +1340,17 @@ class Database {
     }
 
     async getRaidBossRecentKills(
-        raidId: number,
-        bossName: string,
-        difficulty: number
+        ingameBossId: number,
+        difficulty: Difficulty
     ): Promise<TrimmedLog[]> {
         return new Promise(async (resolve, reject) => {
             try {
                 if (!this.db) throw ERR_DB_CONNECTION;
 
-                const bossData = await this.getRaidBoss(raidId, bossName);
-
-                resolve(bossData[difficulty].recentKills);
+                resolve(
+                    (await this.getRaidBoss(ingameBossId, difficulty))
+                        .recentKills
+                );
             } catch (err) {
                 reject(err);
             }
