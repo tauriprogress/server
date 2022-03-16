@@ -1,9 +1,9 @@
 import { Document } from "mongodb";
 import { ClassId, Realm, SpecId, Faction } from "..";
-import { characterId } from "../../helpers";
+import { getCharacterId } from "../../helpers";
 
 export interface DefaultCharacterDocument extends Document {
-    _id: ReturnType<typeof characterId>;
+    _id: ReturnType<typeof getCharacterId>;
     realm: Realm;
     class: ClassId;
     name: string;

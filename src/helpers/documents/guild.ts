@@ -1,6 +1,6 @@
 import environment from "../../environment";
 import {
-    guildId,
+    getGuildId,
     unshiftDateDay,
     getLatestWednesday,
     getNestedObjectValue,
@@ -75,7 +75,7 @@ export function createGuildDocument(
     faction: Faction
 ): GuildDocument {
     return {
-        _id: guildId(guildName, realm),
+        _id: getGuildId(guildName, realm),
         f: faction,
         realm: realm,
         name: guildName,

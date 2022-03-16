@@ -8,11 +8,11 @@ import {
     LeaderboardType,
 } from "../types";
 
-export function characterId(name: string, realm: Realm, spec: SpecId) {
+export function getCharacterId(name: string, realm: Realm, spec: SpecId) {
     return `${name},${environment.shortRealms[realm]},${spec}`;
 }
 
-export function leaderboardCharacterId(
+export function getLeaderboardCharacterId(
     name: string,
     realm: Realm,
     spec: SpecId | ClassId,
@@ -23,21 +23,23 @@ export function leaderboardCharacterId(
     return `${name},${environment.shortRealms[realm]},${spec},${raidName},${difficulty},${leaderboardType}`;
 }
 
-export function guildId(guildName: string, guildRealm: Realm) {
+export function getGuildId(guildName: string, guildRealm: Realm) {
     return `${guildName} ${guildRealm}`;
 }
 
-export function raidBossId(ingameBossId: number, difficulty: Difficulty) {
+export function getRaidBossId(ingameBossId: number, difficulty: Difficulty) {
     return `${ingameBossId} ${difficulty}`;
 }
 
-export function deconstructRaidBossId(bossId: ReturnType<typeof raidBossId>) {
+export function getDeconstructRaidBossId(
+    bossId: ReturnType<typeof getRaidBossId>
+) {
     const [ingameBossId, difficulty] = bossId.split(" ");
 
     return [Number(ingameBossId), Number(difficulty) as Difficulty] as const;
 }
 
-export function raidBossCollectionId(
+export function getRaidBossCollectionId(
     id: number,
     difficulty: number,
     combatMetric: string
@@ -45,11 +47,11 @@ export function raidBossCollectionId(
     return `${id} ${difficulty} ${combatMetric}`;
 }
 
-export function raidBossCacheId(raidId: number, bossName: string) {
+export function getRaidBossCacheId(raidId: number, bossName: string) {
     return `${raidId}${bossName}`;
 }
 
-export function leaderboardCacheId(
+export function getLeaderboardCacheId(
     raidId: number,
     combatMetric: string,
     spec?: string

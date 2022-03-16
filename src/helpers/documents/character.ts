@@ -1,5 +1,5 @@
 import { CharacterDocument, Realm, RaidLog, CombatMetric } from "../../types";
-import { characterId } from "..";
+import { getCharacterId } from "..";
 import { characterRaceFaction } from "tauriprogress-constants";
 
 export function createCharacterDocument(
@@ -23,7 +23,7 @@ export function createCharacterDocument(
 
     return {
         ...combatMetricDoc,
-        _id: characterId(character.name, realm, character.spec),
+        _id: getCharacterId(character.name, realm, character.spec),
         name: character.name,
         realm: realm,
         class: character.class,

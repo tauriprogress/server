@@ -1,8 +1,8 @@
 import { Difficulty, LeaderboardType, RaidName, SpecId, ClassId } from "..";
-import { leaderboardCharacterId } from "../../helpers";
+import { getLeaderboardCharacterId } from "../../helpers";
 
 export default interface LeaderboardCharacterDocument extends Document {
-    _id: ReturnType<typeof leaderboardCharacterId>;
+    _id: ReturnType<typeof getLeaderboardCharacterId>;
     raidName: RaidName;
     difficulty: Difficulty;
     leaderboardType: LeaderboardType;

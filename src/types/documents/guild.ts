@@ -1,10 +1,10 @@
-import { guildId } from "../../helpers";
+import { getGuildId } from "../../helpers";
 import { Faction, Realm, ClassId, Difficulty } from "..";
 import { RaidName } from "../global";
 import { Document } from "mongodb";
 
 export interface GuildDocument extends Document {
-    _id: ReturnType<typeof guildId>;
+    _id: ReturnType<typeof getGuildId>;
     f: Faction;
     realm: Realm;
     name: string;

@@ -8,11 +8,11 @@ import {
     CharacterDocument,
     SpecId,
 } from "..";
-import { raidBossId } from "../../helpers";
+import { getRaidBossId } from "../../helpers";
 import { Document } from "mongodb";
 
 export interface RaidBossDocument extends Document {
-    _id: ReturnType<typeof raidBossId>;
+    _id: ReturnType<typeof getRaidBossId>;
     raidId: RaidId;
     name: string;
     difficulty: Difficulty;

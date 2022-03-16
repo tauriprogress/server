@@ -9,8 +9,8 @@ import {
     ensureFile,
     validRaidLog,
     createCharacterDocument,
-    characterId,
-    raidBossId,
+    getCharacterId,
+    getRaidBossId,
 } from "../helpers";
 import tauriApi from "../tauriApi";
 import {
@@ -134,7 +134,10 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
         const raidId = log.mapentry.id;
         const bossName = log.encounter_data.encounter_name;
         const difficulty = log.difficulty;
-        const bossId = raidBossId(log.encounter_data.encounter_id, difficulty);
+        const bossId = getRaidBossId(
+            log.encounter_data.encounter_id,
+            difficulty
+        );
         const realm = log.realm;
         const fightLength = log.fight_time;
         const date = log.killtime;
@@ -199,7 +202,11 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
         }
 
         for (let character of log.members) {
-            const charId = characterId(character.name, realm, character.spec);
+            const charId = getCharacterId(
+                character.name,
+                realm,
+                character.spec
+            );
 
             for (const combatMetric of ["dps", "hps"] as const) {
                 if (

@@ -23,16 +23,16 @@ import {
     writeLogsToFile,
     updateLastLogIdsOfFile,
     createMaintenanceDocument,
-    raidBossId,
+    getRaidBossId,
     createRaidBossDocument,
-    raidBossCollectionId,
+    getRaidBossCollectionId,
     areLogsSaved,
     updateRaidBossDocument,
     updateGuildDocument,
     requestGuildDocument,
     createGuildDocument,
-    deconstructRaidBossId,
-    guildId,
+    getDeconstructRaidBossId,
+    getGuildId,
 } from "../helpers";
 
 import { MongoClient, Db, ClientSession, ReadConcern } from "mongodb";
@@ -82,7 +82,7 @@ class Database {
 
     public firstCacheLoad: false | true | Promise<true>;
 
-    private updatedRaidBosses: ReturnType<typeof raidBossId>[];
+    private updatedRaidBosses: ReturnType<typeof getRaidBossId>[];
 
     private collectionNames: typeof collectionNames;
 
@@ -161,7 +161,7 @@ class Database {
                             await this.saveRaidBoss(
                                 createRaidBossDocument(
                                     raid.id,
-                                    raidBossId(
+                                    getRaidBossId(
                                         ingameBossId,
                                         Number(difficulty) as Difficulty
                                     ),
@@ -171,7 +171,7 @@ class Database {
                             );
 
                             for (const combatMetric of ["dps", "hps"]) {
-                                const collectionName = raidBossCollectionId(
+                                const collectionName = getRaidBossCollectionId(
                                     ingameBossId,
                                     Number(difficulty),
                                     combatMetric
@@ -274,11 +274,11 @@ class Database {
                             }
 
                             const [ingameBossId, difficulty] =
-                                deconstructRaidBossId(bossId);
+                                getDeconstructRaidBossId(bossId);
 
                             const bossCollection =
                                 this.db.collection<CharacterDocument>(
-                                    raidBossCollectionId(
+                                    getRaidBossCollectionId(
                                         ingameBossId,
                                         Number(difficulty),
                                         combatMetric
@@ -469,8 +469,8 @@ class Database {
                             combatMetric
                         ]) {
                             const [ingameBossId, difficulty] =
-                                deconstructRaidBossId(bossId);
-                            const bossCollectionName = raidBossCollectionId(
+                                getDeconstructRaidBossId(bossId);
+                            const bossCollectionName = getRaidBossCollectionId(
                                 ingameBossId,
                                 difficulty,
                                 combatMetric
@@ -729,7 +729,7 @@ class Database {
                         realm: 1,
                     })
                     .toArray()) as {
-                    _id: ReturnType<typeof guildId>;
+                    _id: ReturnType<typeof getGuildId>;
                     name: string;
                     realm: Realm;
                 }[];
@@ -776,7 +776,7 @@ class Database {
         });
     }
 
-    async removeGuild(_id: ReturnType<typeof guildId>) {
+    async removeGuild(_id: ReturnType<typeof getGuildId>) {
         return new Promise(async (resolve, reject) => {
             try {
                 if (!this.db) throw ERR_DB_CONNECTION;
@@ -1288,7 +1288,7 @@ class Database {
             try {
                 if (!this.db) throw ERR_DB_CONNECTION;
 
-                const bossId = raidBossId(ingameBossId, difficulty);
+                const bossId = getRaidBossId(ingameBossId, difficulty);
 
                 const cachedData = cache.getRaidBoss(bossId);
 

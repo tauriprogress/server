@@ -12,7 +12,7 @@ import {
 import {
     getNestedObjectValue,
     addNestedObjectValue,
-    raidBossId,
+    getRaidBossId,
     capitalize,
 } from "..";
 import environment from "../../environment";
@@ -20,7 +20,7 @@ import { combatMetrics, factions } from "../../constants";
 
 export function createRaidBossDocument(
     raidId: RaidId,
-    bossId: ReturnType<typeof raidBossId>,
+    bossId: ReturnType<typeof getRaidBossId>,
     bossName: string,
     difficulty: Difficulty
 ): RaidBossDocument {
