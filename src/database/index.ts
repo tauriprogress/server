@@ -60,6 +60,7 @@ import {
     RaidBossDocument,
     GuildDocument,
     Realm,
+    Faction,
 } from "../types";
 import {
     ERR_BOSS_NOT_FOUND,
@@ -1358,17 +1359,34 @@ class Database {
     }
 
     async getRaidBossFastestKills(
-        raidId: number,
-        bossName: string,
-        difficulty: number
+        ingameBossId: number,
+        difficulty: Difficulty
     ): Promise<TrimmedLog[]> {
         return new Promise(async (resolve, reject) => {
             try {
                 if (!this.db) throw ERR_DB_CONNECTION;
+                const categorizedFastestKills = (
+                    await this.getRaidBoss(ingameBossId, difficulty)
+                ).fastestKills;
+                let fastestKills: TrimmedLog[] = [];
 
-                const bossData = await this.getRaidBoss(raidId, bossName);
+                for (const key in categorizedFastestKills) {
+                    const realm = key as unknown as Realm;
+                    for (const key in categorizedFastestKills[realm]) {
+                        const faction = key as unknown as Faction;
+                        const logs =
+                            categorizedFastestKills?.[realm]?.[faction];
+                        if (logs) {
+                            fastestKills = fastestKills.concat(logs);
+                        }
+                    }
+                }
 
-                resolve(bossData[difficulty].fiftyFastestKills);
+                resolve(
+                    fastestKills
+                        .sort((a, b) => a.fightLength - b.fightLength)
+                        .splice(50)
+                );
             } catch (err) {
                 reject(err);
             }

@@ -191,13 +191,8 @@ export function verifyGetBossFastestKills(
     next: NextFunction
 ) {
     try {
-        if (!validRaidId(req.body.raidId)) throw ERR_INVALID_RAID_ID;
-
-        if (!validBossName(req.body.raidId, req.body.bossName))
-            throw ERR_INVALID_BOSS_NAME;
-
-        if (!validDifficulty(req.body.raidId, req.body.difficulty))
-            throw ERR_INVALID_DIFFICULTY;
+        if (!validIngameBossId(req.body.ingameBossId, req.body.difficulty))
+            throw ERR_INVALID_BOSS_ID;
 
         next();
     } catch (err) {
