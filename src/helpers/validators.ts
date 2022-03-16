@@ -1,6 +1,5 @@
 import environment from "../environment";
 import { Difficulty, LastRaidLogWithRealm, Realm, ShortRealm } from "../types";
-import { getLeaderboardCacheId } from "./providers";
 
 export function validRaidId(raidId: any) {
     if (typeof raidId === "number") {

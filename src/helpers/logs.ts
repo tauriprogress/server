@@ -6,7 +6,6 @@ import environment from "../environment";
 import {
     addNestedObjectValue,
     getLogFaction,
-    getGuildId,
     ensureFile,
     validRaidLog,
     createCharacterDocument,

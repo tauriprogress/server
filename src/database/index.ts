@@ -5,14 +5,8 @@ import {
     getLogData,
     processLogs,
     logBugHandler,
-    requestGuildData,
-    getLatestGuildRaidDays,
-    getGuildContentCompletion,
-    updateGuildData,
     minutesAgo,
     getRaidInfoFromId,
-    getBossInfo,
-    applyCharacterPerformanceRanks,
     getRelativePerformance,
     updateCharacterOfLeaderboard,
     getRaidInfoFromName,
@@ -20,7 +14,6 @@ import {
     addNestedObjectValue,
     getNestedObjectValue,
     addToCharTotalPerformance,
-    updateGuildRanking,
     runGC,
     applyCharacterFilters,
     isError,
@@ -44,7 +37,6 @@ import {
 
 import { MongoClient, Db, ClientSession, ReadConcern } from "mongodb";
 import {
-    RaidLogWithRealm,
     LastLogIds,
     LooseObject,
     RankedCharacter,
@@ -53,7 +45,6 @@ import {
     TrimmedLog,
     CombatMetric,
     GuildList,
-    RaidId,
     Difficulty,
     MaintenanceDocument,
     CharacterDocument,
@@ -70,7 +61,6 @@ import {
     ERR_GUILD_NOT_FOUND,
     ERR_LOADING,
 } from "../helpers/errors";
-import { diffieHellman } from "crypto";
 
 const raidSummaryLock = new Lock();
 

@@ -1,11 +1,7 @@
 import * as NodeCache from "node-cache";
 import {
     GuildList,
-    RaidSummary,
     CharacterPerformance,
-    RaidBossDataToServe,
-    CharacterLeaderboard,
-    GuildLeaderboard,
     ItemWithGuid,
     RaidBossDocument,
 } from "../types";

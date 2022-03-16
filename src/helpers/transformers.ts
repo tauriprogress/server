@@ -1,11 +1,9 @@
-import { environment } from "../environment";
+import environment from "../environment";
 import {
     Character,
     LooseObject,
     RaidLogWithRealm,
     RankedCharacter,
-    CharacterOfLeaderboard,
-    Filters,
 } from "../types";
 
 export function addNestedObjectValue<T>(
