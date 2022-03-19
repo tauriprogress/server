@@ -17,6 +17,13 @@ export type RaidName = typeof raidNames[number];
 export type RaidId = typeof raidIds[number];
 export type LeaderboardType = "Global" | "Spec" | "Role";
 export type Race = keyof typeof environment.characterRaceFaction;
+export type CharacterDocumentAggregationMatch = {
+    class?: number;
+    f?: number;
+    realm?: string;
+
+    spec?: number | { $in: SpecId[] };
+};
 
 export * from "./looseObject";
 export * from "./filters";

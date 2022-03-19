@@ -4,6 +4,9 @@ import {
     LooseObject,
     RaidLogWithRealm,
     RankedCharacter,
+    Filters,
+    SpecId,
+    CharacterDocumentAggregationMatch,
 } from "../types";
 
 export function addNestedObjectValue<T>(
@@ -262,4 +265,34 @@ export function applyCharacterFilters(
 
         return true;
     });
+}
+
+export function filtersToAggregationMatchQuery(filters: Filters) {
+    let matchQuery: CharacterDocumentAggregationMatch = {};
+    if (filters.class) {
+        matchQuery.class = filters.class;
+    }
+
+    if (filters.faction) {
+        matchQuery.f = filters.faction;
+    }
+    if (filters.realm) {
+        matchQuery.realm = filters.realm;
+    }
+
+    if (filters.spec) {
+        matchQuery.spec = filters.spec;
+    } else if (filters.role) {
+        let validSpecs: SpecId[] = [];
+        for (const key in environment.specs) {
+            const specId = Number(key) as keyof typeof environment.specs;
+            const spec = environment.specs[specId];
+            if (spec.role === filters.role) {
+                validSpecs.push(specId);
+            }
+        }
+
+        matchQuery.spec = { $in: validSpecs };
+    }
+    return matchQuery;
 }

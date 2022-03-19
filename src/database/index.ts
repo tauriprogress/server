@@ -25,7 +25,7 @@ import {
     createMaintenanceDocument,
     getRaidBossId,
     createRaidBossDocument,
-    getRaidBossCollectionId,
+    getCharactersOfBossCollectionId,
     areLogsSaved,
     updateRaidBossDocument,
     updateGuildDocument,
@@ -33,6 +33,7 @@ import {
     createGuildDocument,
     getDeconstructRaidBossId,
     getGuildId,
+    filtersToAggregationMatchQuery,
 } from "../helpers";
 
 import { MongoClient, Db, ClientSession, ReadConcern } from "mongodb";
@@ -52,6 +53,7 @@ import {
     GuildDocument,
     Realm,
     Faction,
+    Filters,
 } from "../types";
 import {
     ERR_BOSS_NOT_FOUND,
@@ -171,11 +173,12 @@ class Database {
                             );
 
                             for (const combatMetric of ["dps", "hps"]) {
-                                const collectionName = getRaidBossCollectionId(
-                                    ingameBossId,
-                                    Number(difficulty),
-                                    combatMetric
-                                );
+                                const collectionName =
+                                    getCharactersOfBossCollectionId(
+                                        ingameBossId,
+                                        Number(difficulty),
+                                        combatMetric
+                                    );
                                 const bossCollection =
                                     this.db.collection(collectionName);
 
@@ -278,7 +281,7 @@ class Database {
 
                             const bossCollection =
                                 this.db.collection<CharacterDocument>(
-                                    getRaidBossCollectionId(
+                                    getCharactersOfBossCollectionId(
                                         ingameBossId,
                                         Number(difficulty),
                                         combatMetric
@@ -470,11 +473,12 @@ class Database {
                         ]) {
                             const [ingameBossId, difficulty] =
                                 getDeconstructRaidBossId(bossId);
-                            const bossCollectionName = getRaidBossCollectionId(
-                                ingameBossId,
-                                difficulty,
-                                combatMetric
-                            );
+                            const bossCollectionName =
+                                getCharactersOfBossCollectionId(
+                                    ingameBossId,
+                                    difficulty,
+                                    combatMetric
+                                );
 
                             const char =
                                 characterPerformanceOfBoss[bossId][
@@ -1385,33 +1389,61 @@ class Database {
         });
     }
     async getRaidBossCharacters(
-        raidId: number,
-        bossName: string,
+        ingameBossId: number,
         combatMetric: CombatMetric,
         filters: Filters,
         page: number,
         pageSize: number
-    ): Promise<{ characters: RankedCharacter[]; itemCount: number }> {
+    ): Promise<{ characters: CharacterDocument[]; itemCount: number }> {
         return new Promise(async (resolve, reject) => {
             try {
-                const difficulty = filters.difficulty;
-
                 if (!this.db) throw ERR_DB_CONNECTION;
 
-                const bossData = await this.getRaidBoss(raidId, bossName);
-
-                const characters = applyCharacterFilters(
-                    bossData[difficulty][combatMetric],
-                    filters
+                const collection = this.db.collection<CharacterDocument>(
+                    getCharactersOfBossCollectionId(
+                        ingameBossId,
+                        filters.difficulty,
+                        combatMetric
+                    )
                 );
 
-                resolve({
-                    characters: characters.slice(
-                        page * pageSize,
-                        (page + 1) * pageSize
-                    ),
-                    itemCount: characters.length,
-                });
+                const matchQuery = filtersToAggregationMatchQuery(filters);
+                const sort = { [combatMetric]: -1 };
+                const skip = pageSize * page;
+                const limit = pageSize;
+
+                const result = (
+                    await collection
+                        .aggregate([
+                            {
+                                $facet: {
+                                    characters: [
+                                        { $match: matchQuery },
+                                        { $sort: sort },
+                                        { $skip: skip },
+                                        { $limit: limit },
+                                    ],
+                                    itemCount: [
+                                        { $match: matchQuery },
+                                        {
+                                            $group: {
+                                                _id: null,
+                                                n: { $sum: 1 },
+                                            },
+                                        },
+                                    ],
+                                },
+                            },
+                            {
+                                $addFields: {
+                                    itemCount: "$$CURRENT.itemCount.n",
+                                },
+                            },
+                        ])
+                        .toArray()
+                )[0] as { characters: CharacterDocument[]; itemCount: number };
+
+                resolve(result);
             } catch (err) {
                 reject(err);
             }
