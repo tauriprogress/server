@@ -19,3 +19,4 @@ export type LeaderboardType = "Global" | "Spec" | "Role";
 export type Race = keyof typeof environment.characterRaceFaction;
 
 export * from "./looseObject";
+export * from "./filters";
