@@ -39,12 +39,12 @@ export function getDeconstructRaidBossId(
     return [Number(ingameBossId), Number(difficulty) as Difficulty] as const;
 }
 
-export function getRaidBossCollectionId(
-    id: number,
+export function getCharactersOfBossCollectionId(
+    ingameBossId: number,
     difficulty: number,
     combatMetric: string
 ) {
-    return `${id} ${difficulty} ${combatMetric}`;
+    return `${ingameBossId} ${difficulty} ${combatMetric}`;
 }
 
 export function getRaidBossCacheId(raidId: number, bossName: string) {
