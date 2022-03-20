@@ -244,8 +244,7 @@ const speedLimiter = slowDown({
                 res.send({
                     success: true,
                     response: await db.getRaidBossCharacters(
-                        req.body.raidId,
-                        req.body.bossName,
+                        req.body.ingameBossId,
                         req.body.combatMetric,
                         req.body.filters,
                         req.body.page,

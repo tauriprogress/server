@@ -209,14 +209,19 @@ export function verifyGetBossCharacters(
     try {
         if (!validRaidId(req.body.raidId)) throw ERR_INVALID_RAID_ID;
 
-        if (!validBossName(req.body.raidId, req.body.bossName))
-            throw ERR_INVALID_BOSS_NAME;
+        if (!validFilters(req.body.raidId, req.body.filters))
+            throw ERR_INVALID_FILTERS;
+
+        if (
+            !validIngameBossId(
+                req.body.ingameBossId,
+                req.body.filters.difficulty
+            )
+        )
+            throw ERR_INVALID_BOSS_ID;
 
         if (!validCombatMetric(req.body.combatMetric))
             throw ERR_INVALID_COMBAT_METRIC;
-
-        if (!validFilters(req.body.raidId, req.body.filters))
-            throw ERR_INVALID_FILTERS;
 
         if (!validPage(req.body.page)) throw ERR_INVALID_PAGE;
 
