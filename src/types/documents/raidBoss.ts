@@ -41,3 +41,9 @@ type CategorizedCharacter = {
         };
     };
 };
+
+export interface RaidBossForSummary
+    extends Omit<
+        RaidBossDocument,
+        "killCount" | "recentKills" | "bestDpsNoCat" | "bestHpsNoCat"
+    > {}

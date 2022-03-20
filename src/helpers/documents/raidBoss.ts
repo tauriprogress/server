@@ -8,6 +8,7 @@ import {
     Faction,
     CharacterDocument,
     CombatMetric,
+    RaidBossForSummary,
 } from "../../types";
 import {
     getNestedObjectValue,
@@ -336,4 +337,26 @@ export function updateRaidBossDocument(
     }
 
     return updatedRaidBoss;
+}
+
+export function getRaidBossSummary(boss: RaidBossDocument): RaidBossForSummary {
+    let raidBossForSummary = JSON.parse(
+        JSON.stringify(boss)
+    ) as RaidBossForSummary;
+
+    for (const key in boss.fastestKills) {
+        const realmName = key as unknown as Realm;
+        for (const key in boss.fastestKills[realmName]) {
+            const faction = Number(key) as unknown as Faction;
+            raidBossForSummary.fastestKills[realmName][faction] =
+                boss.fastestKills?.[realmName]?.[faction].slice(0, 3);
+        }
+    }
+
+    delete raidBossForSummary.killCount;
+    delete raidBossForSummary.recentKills;
+    delete raidBossForSummary.bestDpsNoCat;
+    delete raidBossForSummary.bestHpsNoCat;
+
+    return raidBossForSummary;
 }

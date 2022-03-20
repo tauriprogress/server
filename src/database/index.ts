@@ -54,6 +54,7 @@ import {
     Realm,
     Faction,
     Filters,
+    RaidSummary,
 } from "../types";
 import {
     ERR_BOSS_NOT_FOUND,
@@ -1512,19 +1513,26 @@ class Database {
                 if (cachedData) {
                     resolve(cachedData);
                 } else {
-                    const difficulties = getRaidInfoFromId(raidId).difficulties;
-
                     let raidSummary: RaidSummary = {};
 
                     const bosses = getRaidInfoFromId(raidId).bosses;
                     for (const bossInfo of bosses) {
-                        let bossData = await this.getRaidBoss(
-                            raidId,
-                            bossInfo.name
-                        );
-                        for (const difficulty of difficulties) {
-                            raidSummary[bossData[difficulty]._id] =
-                                getRaidBossSummary(bossData[difficulty]);
+                        for (const key in bossInfo.bossIdOfDifficulty) {
+                            const difficulty = Number(
+                                key
+                            ) as unknown as Difficulty;
+                            const ref =
+                                key as keyof typeof bossInfo.bossIdOfDifficulty;
+                            const ingameBossId =
+                                bossInfo.bossIdOfDifficulty[ref];
+                            const bossId = getRaidBossId(
+                                ingameBossId,
+                                difficulty
+                            );
+
+                            raidSummary[bossId] = getRaidBossSummary(
+                                await this.getRaidBoss(ingameBossId, difficulty)
+                            );
                         }
                     }
 
