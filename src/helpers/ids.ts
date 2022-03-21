@@ -6,6 +6,7 @@ import {
     SpecId,
     ClassId,
     LeaderboardType,
+    RaidId,
 } from "../types";
 
 export function getCharacterId(name: string, realm: Realm, spec: SpecId) {
@@ -61,4 +62,8 @@ export function getLeaderboardCacheId(
     }
 
     return `${raidId}${combatMetric}`;
+}
+
+export function getRaidSummaryCacheId(raidId: RaidId) {
+    return `${raidId}`;
 }

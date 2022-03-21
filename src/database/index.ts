@@ -34,6 +34,7 @@ import {
     getDeconstructRaidBossId,
     getGuildId,
     filtersToAggregationMatchQuery,
+    getRaidSummaryCacheId,
 } from "../helpers";
 
 import { MongoClient, Db, ClientSession, ReadConcern } from "mongodb";
@@ -55,6 +56,7 @@ import {
     Faction,
     Filters,
     RaidSummary,
+    RaidId,
 } from "../types";
 import {
     ERR_BOSS_NOT_FOUND,
@@ -1502,13 +1504,14 @@ class Database {
         });
     }
 
-    async getRaidSummary(raidId: number): Promise<RaidSummary> {
+    async getRaidSummary(raidId: RaidId): Promise<RaidSummary> {
         return new Promise(async (resolve, reject) => {
             try {
                 await raidSummaryLock.acquire();
                 if (!this.db) throw ERR_DB_CONNECTION;
 
-                const cachedData = cache.getRaidSummary(raidId);
+                const cacheId = getRaidSummaryCacheId(raidId);
+                const cachedData = cache.getRaidSummary(cacheId);
 
                 if (cachedData) {
                     resolve(cachedData);
@@ -1536,7 +1539,7 @@ class Database {
                         }
                     }
 
-                    cache.raidSummary.set(raidId, raidSummary);
+                    cache.raidSummary.set(cacheId, raidSummary);
 
                     resolve(raidSummary);
                 }

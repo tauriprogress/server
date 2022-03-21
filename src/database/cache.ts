@@ -1,9 +1,11 @@
 import * as NodeCache from "node-cache";
+import { getRaidSummaryCacheId } from "../helpers";
 import {
     GuildList,
     CharacterPerformance,
     ItemWithGuid,
     RaidBossDocument,
+    RaidSummary,
 } from "../types";
 
 class Cache {
@@ -66,8 +68,8 @@ class Cache {
         return this.guildList.get(this.guildListId) as GuildList | undefined;
     }
 
-    getRaidSummary(raidId: number) {
-        return this.raidSummary.get(raidId) as RaidSummary | undefined;
+    getRaidSummary(cacheId: ReturnType<typeof getRaidSummaryCacheId>) {
+        return this.raidSummary.get(cacheId) as RaidSummary | undefined;
     }
 
     getCharacterPerformance(characterId: string) {
