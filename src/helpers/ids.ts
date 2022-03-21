@@ -67,3 +67,11 @@ export function getLeaderboardCacheId(
 export function getRaidSummaryCacheId(raidId: RaidId) {
     return `${raidId}`;
 }
+
+export function getCharacterPerformanceCacheId(
+    characterName: string,
+    realm: Realm,
+    raidName: RaidName
+) {
+    return `${characterName}${realm}${raidName}`;
+}

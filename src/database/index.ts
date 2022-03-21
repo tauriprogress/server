@@ -35,6 +35,7 @@ import {
     getGuildId,
     filtersToAggregationMatchQuery,
     getRaidSummaryCacheId,
+    getCharacterPerformanceCacheId,
 } from "../helpers";
 
 import { MongoClient, Db, ClientSession, ReadConcern } from "mongodb";
@@ -57,6 +58,8 @@ import {
     Filters,
     RaidSummary,
     RaidId,
+    ClassId,
+    RaidName,
 } from "../types";
 import {
     ERR_BOSS_NOT_FOUND,
@@ -1553,21 +1556,52 @@ class Database {
 
     async getCharacterPerformance(
         characterName: string,
-        characterClass: keyof typeof environment.characterClassToSpec,
-        realm: keyof typeof environment.shortRealms,
-        raidName: string
+        characterClass: ClassId,
+        realm: Realm,
+        raidName: RaidName
     ): Promise<CharacterPerformance> {
         return new Promise(async (resolve, reject) => {
             try {
                 if (!this.db) throw ERR_DB_CONNECTION;
 
-                const cacheId = `${characterName}${realm}${raidName}`;
+                const cacheId = getCharacterPerformanceCacheId(
+                    characterName,
+                    realm,
+                    raidName
+                );
 
                 const cachedData = cache.getCharacterPerformance(cacheId);
 
                 if (cachedData) {
                     resolve(cachedData);
                 } else {
+                    let lookups: object = [];
+
+                    const result = this.db
+                        .collection(this.collectionNames.maintenance)
+                        .aggregate([
+                            { $limit: 1 },
+                            { $project: { _id: 1 } },
+                            {
+                                $lookup: {
+                                    from: "collection name",
+                                    pipeline: [
+                                        {
+                                            match: {
+                                                _id: {
+                                                    $in: [
+                                                        "the ids im looking for",
+                                                    ],
+                                                },
+                                            },
+                                        },
+                                    ],
+                                    as: "collection name",
+                                },
+                            },
+                            ...lookups,
+                        ]);
+                    /*
                     const {
                         bossCount,
                         bosses,
@@ -1575,7 +1609,7 @@ class Database {
                         difficulties,
                     } = getRaidInfoFromName(raidName);
                     const characterSpecs =
-                        environment.characterClassToSpec[characterClass];
+                        environment.characterClassSpecs[characterClass];
 
                     let characterPerformance: CharacterPerformance = {};
 
@@ -1835,6 +1869,7 @@ class Database {
                     }
 
                     resolve(characterPerformance);
+                    */
                 }
             } catch (err) {
                 console.error(err);
