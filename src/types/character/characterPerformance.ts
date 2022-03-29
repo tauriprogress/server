@@ -1,33 +1,49 @@
-export interface CharacterPerformance {
-    [propName: string]: { [propName: string]: RaidBossCollection };
+import {
+    Difficulty,
+    RaidName,
+    DamageCharacterDocument,
+    HealCharacterDocument,
+    SpecId,
+    CombatMetric,
+} from "../";
+
+export type CharacterPerformance = {
+    [key in RaidName]: {
+        [key in Difficulty]: {
+            [propName: string]: CharacterPerformanceRaidBoss;
+        };
+    };
+};
+
+type CustomType = {
+    [key in SpecId]: {
+        [key in CombatMetric]: CharacterPerformanceDocument;
+    };
+};
+
+export interface CharacterPerformanceRaidBoss extends CustomType {
+    class: {
+        [key in CombatMetric]: CharacterPerformanceDocument;
+    };
+    all: {
+        [key in CombatMetric]: CharacterPerformanceDocument;
+    };
 }
 
-export interface RaidBossCollection {
-    total: CharPerfBossData;
-    [propName: string]: CharPerfBossData;
+interface DamageCharPerf extends DamageCharacterDocument {
+    performance: number;
 }
 
-export interface CharPerfBossData {
-    class: CharPerfData;
-    noSpec: CharPerfData;
-    [propName: string]: CharPerfData;
+interface HealCharPerf extends HealCharacterDocument {
+    performance: number;
 }
 
-export interface CharPerfData {
-    _id?: string;
-    realm?: string;
-    class?: number;
-    name?: string;
-    spec?: number;
-    ilvl?: number;
-    date?: number;
-    logId?: number;
-    f?: number;
-    dps?: number;
-    rank?: number;
-    cRank?: number;
-    sRank?: number;
-    topPercent: number | null;
-    hps?: number;
-    race: string;
+export type CharacterPerformanceDoc = DamageCharPerf | HealCharPerf;
+
+export interface EmptyCharacterPerformanceDoc {
+    performance: undefined;
 }
+
+export type CharacterPerformanceDocument =
+    | CharacterPerformanceDoc
+    | EmptyCharacterPerformanceDoc;
