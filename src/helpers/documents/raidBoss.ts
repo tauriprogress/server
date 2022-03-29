@@ -9,6 +9,8 @@ import {
     CharacterDocument,
     CombatMetric,
     RaidBossForSummary,
+    ClassId,
+    SpecId,
 } from "../../types";
 import {
     getNestedObjectValue,
@@ -359,4 +361,69 @@ export function getRaidBossSummary(boss: RaidBossDocument): RaidBossForSummary {
     delete raidBossForSummary.bestHpsNoCat;
 
     return raidBossForSummary;
+}
+
+export function getRaidBossBestOfClass(
+    raidBoss: RaidBossDocument,
+    classId: ClassId,
+    combatMetric: CombatMetric
+) {
+    let bestOfClass: CharacterDocument = {
+        [combatMetric]: 0,
+    } as unknown as CharacterDocument;
+
+    const key = `best${capitalize(combatMetric)}` as const;
+
+    const categorizedCharacters = raidBoss[key];
+
+    for (const realm of environment.realms) {
+        for (const faction of factions) {
+            for (const specId of environment.characterClassSpecs[classId]) {
+                const character =
+                    categorizedCharacters?.[realm]?.[faction]?.[classId]?.[
+                        specId
+                    ]?.[0];
+                if (
+                    character &&
+                    character[combatMetric] > bestOfClass[combatMetric]
+                ) {
+                    bestOfClass = character;
+                }
+            }
+        }
+    }
+
+    return bestOfClass[combatMetric] ? bestOfClass : undefined;
+}
+
+export function getRaidBossBestOfSpec(
+    raidBoss: RaidBossDocument,
+    specId: SpecId,
+    combatMetric: CombatMetric
+) {
+    const classId = environment.characterSpecClass[specId];
+    let bestOfSpec: CharacterDocument = {
+        [combatMetric]: 0,
+    } as unknown as CharacterDocument;
+
+    const key = `best${capitalize(combatMetric)}` as const;
+
+    const categorizedCharacters = raidBoss[key];
+
+    for (const realm of environment.realms) {
+        for (const faction of factions) {
+            const character =
+                categorizedCharacters?.[realm]?.[faction]?.[classId]?.[
+                    specId
+                ]?.[0];
+            if (
+                character &&
+                character[combatMetric] > bestOfSpec[combatMetric]
+            ) {
+                bestOfSpec = character;
+            }
+        }
+    }
+
+    return bestOfSpec[combatMetric] ? bestOfSpec : undefined;
 }
