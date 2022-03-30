@@ -819,25 +819,17 @@ class Database {
         const fullLoad = async (): Promise<true> => {
             return new Promise(async (resolve, reject) => {
                 try {
-                    for (const raid of environment.currentContent.raids) {
-                        let promises = [];
-                        for (const boss of raid.bosses) {
-                            promises.push(
-                                this.requestRaidBoss(raid.id, boss.name)
-                            );
-                        }
+                    if (!this.db) throw ERR_DB_CONNECTION;
 
-                        const bosses = await Promise.all(promises);
-
-                        for (const boss of bosses) {
-                            const cacheId = getRaidBossCacheId(
-                                raid.id,
-                                boss.name
-                            );
-
-                            cache.raidBoss.set(cacheId, boss);
-                        }
+                    for (const boss of await this.db
+                        .collection<RaidBossDocument>(
+                            this.collectionNames.raidBosses
+                        )
+                        .find()
+                        .toArray()) {
+                        cache.raidBoss.set(boss._id, boss);
                     }
+
                     resolve(true);
                 } catch (err) {
                     reject(err);
@@ -845,41 +837,33 @@ class Database {
             });
         };
 
-        const getBossesToUpdate = () => {
-            let encounteredBosses: LooseObject = {};
-            let uniqueBosses = [];
+        const getBossIdsToUpdate = () => {
+            let bossIds: { [key: string]: true } = {};
 
-            for (let bossData of this.updatedRaidBosses) {
-                if (!encounteredBosses[bossData.name]) {
-                    uniqueBosses.push(bossData);
-                    encounteredBosses[bossData.name] = true;
-                }
+            for (const bossId of this.updatedRaidBosses) {
+                bossIds[bossId] = true;
             }
-            return uniqueBosses;
+            return Object.keys(bossIds);
         };
 
         return new Promise(async (resolve, reject) => {
             try {
+                if (!this.db) throw ERR_DB_CONNECTION;
+
                 if (!this.firstCacheLoad) {
                     this.firstCacheLoad = fullLoad();
                 } else {
-                    const bossesToUpdate = getBossesToUpdate();
+                    const bossesToUpdate = getBossIdsToUpdate();
 
-                    for (let bossData of bossesToUpdate) {
-                        const cacheId = getRaidBossCacheId(
-                            bossData.raidId,
-                            bossData.name
-                        );
-
-                        cache.raidBoss.set(
-                            cacheId,
-                            await this.requestRaidBoss(
-                                bossData.raidId,
-                                bossData.name
+                    for (const bossId of bossesToUpdate) {
+                        const boss = await this.db
+                            .collection<RaidBossDocument>(
+                                this.collectionNames.raidBosses
                             )
-                        );
-
-                        runGC();
+                            .findOne({ _id: bossId });
+                        if (boss) {
+                            cache.raidBoss.set(bossId, boss);
+                        }
                     }
 
                     this.updatedRaidBosses = [];
