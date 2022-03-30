@@ -889,6 +889,7 @@ class Database {
     }
 
     async updateLeaderboard() {
+        /*
         await this.firstCacheLoad;
 
         for (const combatMetric of ["dps", "hps"] as const) {
@@ -1243,6 +1244,7 @@ class Database {
                 }
             }
         }
+        */
     }
 
     async getGuildList(): Promise<GuildList> {
@@ -1464,21 +1466,9 @@ class Database {
         });
     }
 
-    async getCharacterLeaderboard(id: string): Promise<CharacterLeaderboard> {
+    async getCharacterLeaderboard(id: string): Promise<void> {
         return new Promise(async (resolve, reject) => {
-            try {
-                if (!this.firstCacheLoad) throw ERR_LOADING;
-
-                const data = cache.getCharacterLeaderboard(id);
-
-                if (!data) {
-                    throw ERR_DATA_NOT_EXIST;
-                } else {
-                    resolve(data);
-                }
-            } catch (err) {
-                reject(err);
-            }
+            resolve();
         });
     }
     async getGuildLeaderboard(): Promise<GuildLeaderboard> {
