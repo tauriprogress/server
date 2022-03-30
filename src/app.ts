@@ -23,7 +23,7 @@ import {
 } from "./middlewares";
 import tauriApi from "./tauriApi";
 
-import { isError, minutesAgo, sleep } from "./helpers";
+import { isError, minutesAgo } from "./helpers";
 import { LooseObject } from "./types";
 import environment from "./environment";
 import cache from "./database/cache";
@@ -41,7 +41,6 @@ const speedLimiter = slowDown({
 
 (async function () {
     try {
-        await sleep(10000);
         await db.connect();
         if (!(await db.isInitalized())) {
             await db.initalizeDatabase();
@@ -363,9 +362,9 @@ const speedLimiter = slowDown({
         "/leaderboard/character",
         waitDbCache,
         verifyCharacterLeaderboard,
-        async (req, res) => {
+        async (_, res) => {
             try {
-                let data = await db.getCharacterLeaderboard(req.body.dataId);
+                let data = await db.getCharacterLeaderboard();
                 res.send({
                     success: true,
                     response: data,

@@ -1444,8 +1444,8 @@ class Database {
         });
     }
 
-    async getCharacterLeaderboard(id: string): Promise<void> {
-        return new Promise(async (resolve, reject) => {
+    async getCharacterLeaderboard(): Promise<void> {
+        return new Promise(async (resolve) => {
             resolve();
         });
     }

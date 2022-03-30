@@ -6,6 +6,7 @@ import {
     ItemWithGuid,
     RaidBossDocument,
     RaidSummary,
+    GuildLeaderboard,
 } from "../types";
 
 class Cache {
@@ -83,9 +84,7 @@ class Cache {
     }
 
     getCharacterLeaderboard(leaderboardId: string) {
-        return this.characterLeaderboard.get(leaderboardId) as
-            | CharacterLeaderboard
-            | undefined;
+        return this.characterLeaderboard.get(leaderboardId) as undefined;
     }
 
     getGuildLeaderboard() {

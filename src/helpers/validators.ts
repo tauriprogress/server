@@ -262,7 +262,8 @@ export function validItemids(ids: any) {
     );
 }
 
-const possibleLeaderboardIds = (() => {
+export const possibleLeaderboardIds = (() => {
+    /*
     let leaderboardIds = [];
 
     const combatMetrics = ["dps", "hps"];
@@ -293,13 +294,16 @@ const possibleLeaderboardIds = (() => {
     }
 
     return leaderboardIds;
+    */
 })();
 
-export function validLeaderboardId(leaderboardId: any) {
+export function validLeaderboardId() {
+    /*
     return (
         typeof leaderboardId === "string" &&
         possibleLeaderboardIds.includes(leaderboardId)
     );
+    */
 }
 
 export function isError(variable: unknown): variable is Error {

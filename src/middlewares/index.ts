@@ -16,7 +16,6 @@ import {
     validCharacterName,
     validLogId,
     validLimit,
-    validLeaderboardId,
     validItemids,
     isError,
     validIngameBossId,
@@ -29,7 +28,6 @@ import {
     ERR_INVALID_FILTERS,
     ERR_INVALID_GUILD_NAME,
     ERR_INVALID_ITEM_IDS,
-    ERR_INVALID_LEADERBOARD_ID,
     ERR_INVALID_LIMIT,
     ERR_INVALID_LOG_ID,
     ERR_INVALID_PAGE,
@@ -288,14 +286,15 @@ export function verifyCharacterRecentKills(
 }
 
 export function verifyCharacterLeaderboard(
-    req: Request,
+    _: Request,
     res: Response,
     next: NextFunction
 ) {
     try {
+        /*
         if (!validLeaderboardId(req.body.dataId))
             throw ERR_INVALID_LEADERBOARD_ID;
-
+        */
         next();
     } catch (err) {
         res.send({
