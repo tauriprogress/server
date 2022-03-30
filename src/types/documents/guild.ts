@@ -111,3 +111,10 @@ export interface GuildRankingRaidGroup {
     members: string[];
     logs: GuildRankingLog[];
 }
+
+export type GuildLeaderboard = {
+    name: string;
+    f: Faction;
+    realm: Realm;
+    ranking: Ranking;
+}[];

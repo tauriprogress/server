@@ -64,6 +64,7 @@ import {
     ClassId,
     RaidName,
     Character,
+    GuildLeaderboard,
 } from "../types";
 import {
     ERR_BOSS_NOT_FOUND,
