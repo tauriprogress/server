@@ -642,8 +642,8 @@ class Database {
 
                         await guildsCollection.insertOne(
                             guildData
-                                ? updateGuildData(guild, guildData)
-                                : updateGuildData(
+                                ? updateGuildDocument(guild, guildData)
+                                : updateGuildDocument(
                                       createGuildDocument(
                                           guild.name,
                                           guild.realm,
