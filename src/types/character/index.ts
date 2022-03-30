@@ -1,19 +1,49 @@
-import { getCharacterId } from "../../helpers";
+import {
+    Difficulty,
+    RaidName,
+    DamageCharacterDocument,
+    HealCharacterDocument,
+    SpecId,
+    CombatMetric,
+} from "../";
 
-export interface Character {
-    _id: ReturnType<typeof getCharacterId>;
-    realm: string;
-    class: number;
-    name: string;
-    spec: number;
-    ilvl: number;
-    date: number;
-    logId: number;
-    f: 0 | 1;
-    dps?: number;
-    hps?: number;
-    race: string;
+export type CharacterPerformance = {
+    [key in RaidName]: {
+        [key in Difficulty]: {
+            [propName: string]: CharacterPerformanceRaidBoss;
+        };
+    };
+};
+
+type CustomType = {
+    [key in SpecId]: {
+        [key in CombatMetric]: CharacterPerformanceDocument;
+    };
+};
+
+export interface CharacterPerformanceRaidBoss extends CustomType {
+    class: {
+        [key in CombatMetric]: CharacterPerformanceDocument;
+    };
+    all: {
+        [key in CombatMetric]: CharacterPerformanceDocument;
+    };
 }
 
-export * from "./rankedCharacter";
-export * from "./characterPerformance";
+interface DamageCharPerf extends DamageCharacterDocument {
+    performance: number;
+}
+
+interface HealCharPerf extends HealCharacterDocument {
+    performance: number;
+}
+
+export type CharacterPerformanceDoc = DamageCharPerf | HealCharPerf;
+
+export interface EmptyCharacterPerformanceDoc {
+    performance: undefined;
+}
+
+export type CharacterPerformanceDocument =
+    | CharacterPerformanceDoc
+    | EmptyCharacterPerformanceDoc;

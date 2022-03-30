@@ -1,12 +1,11 @@
 import environment from "../environment";
 import {
-    Character,
     LooseObject,
     RaidLogWithRealm,
-    RankedCharacter,
     Filters,
     SpecId,
     CharacterDocumentAggregationMatch,
+    CharacterDocument,
 } from "../types";
 
 export function addNestedObjectValue<T>(
@@ -152,7 +151,7 @@ export function uniqueLogs<T extends { id: number }>(logs: T[]): T[] {
 }
 
 export function applyCharacterPerformanceRanks(
-    characters: Character[],
+    characters: CharacterDocument[],
     combatMetric: "dps" | "hps"
 ) {
     let classes: { [propName: number]: number } = {};
@@ -166,7 +165,7 @@ export function applyCharacterPerformanceRanks(
         return 0;
     });
 
-    let rankedCharacters: RankedCharacter[] = [];
+    let rankedCharacters: CharacterDocument[] = [];
 
     for (let i = 0; i < sortedCharacters.length; i++) {
         let character = sortedCharacters[i];
@@ -233,7 +232,7 @@ export function updateCharacterOfLeaderboard() {
 }
 
 export function applyCharacterFilters(
-    characters: RankedCharacter[],
+    characters: CharacterDocument[],
     filters: Filters
 ) {
     return characters.filter((character) => {
