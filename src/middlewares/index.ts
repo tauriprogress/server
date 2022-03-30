@@ -8,7 +8,6 @@ import {
     validClass,
     validRealm,
     validRaidName,
-    validBossName,
     validCombatMetric,
     validFilters,
     validPage,
@@ -24,7 +23,6 @@ import {
 } from "../helpers";
 import {
     ERR_INVALID_BOSS_ID,
-    ERR_INVALID_BOSS_NAME,
     ERR_INVALID_CHARACTER_CLASS,
     ERR_INVALID_CHARACTER_NAME,
     ERR_INVALID_COMBAT_METRIC,

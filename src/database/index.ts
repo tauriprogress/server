@@ -8,16 +8,11 @@ import {
     minutesAgo,
     getRaidInfoFromId,
     getRelativePerformance,
-    updateCharacterOfLeaderboard,
     getRaidInfoFromName,
     capitalize,
     addNestedObjectValue,
-    getNestedObjectValue,
-    addToCharTotalPerformance,
     runGC,
-    applyCharacterFilters,
     isError,
-    sleep,
     Lock,
     getRaidBossSummary,
     writeLogsToFile,
@@ -45,9 +40,7 @@ import { MongoClient, Db, ClientSession, ReadConcern } from "mongodb";
 import {
     LastLogIds,
     LooseObject,
-    RankedCharacter,
     CharacterPerformance,
-    CharacterPerformanceRaidBoss,
     TrimmedLog,
     CombatMetric,
     GuildList,
@@ -63,16 +56,13 @@ import {
     RaidId,
     ClassId,
     RaidName,
-    Character,
     GuildLeaderboard,
 } from "../types";
 import {
     ERR_BOSS_NOT_FOUND,
-    ERR_DATA_NOT_EXIST,
     ERR_DB_CONNECTION,
     ERR_DB_UPDATING,
     ERR_GUILD_NOT_FOUND,
-    ERR_LOADING,
 } from "../helpers/errors";
 import { combatMetrics } from "../constants";
 

@@ -194,10 +194,8 @@ export function applyCharacterPerformanceRanks(
     return rankedCharacters;
 }
 
-export function updateCharacterOfLeaderboard(
-    previousCharacter: CharacterOfLeaderboard,
-    currentCharacter: CharacterOfLeaderboard
-): CharacterOfLeaderboard {
+export function updateCharacterOfLeaderboard() {
+    /*
     const updatedDate =
         previousCharacter.date > currentCharacter.date
             ? previousCharacter.date
@@ -231,6 +229,7 @@ export function updateCharacterOfLeaderboard(
         topPercent: updatedTopPercent,
         race: updatedRace,
     };
+    */
 }
 
 export function applyCharacterFilters(
@@ -256,9 +255,8 @@ export function applyCharacterFilters(
 
         if (
             filters.role !== undefined &&
-            environment.specs[
-                String(character.spec) as keyof typeof environment.specs
-            ].role !== filters.role
+            environment.specs[character.spec as keyof typeof environment.specs]
+                .role !== filters.role
         ) {
             return false;
         }
