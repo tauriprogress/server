@@ -405,9 +405,11 @@ class Database {
             try {
                 if (!this.db) throw ERR_DB_CONNECTION;
 
-                const maintenance = (await this.db
-                    .collection(this.collectionNames.maintenance)
-                    .findOne({})) as DbMaintenance | null;
+                const maintenance = await this.db
+                    .collection<MaintenanceDocument>(
+                        this.collectionNames.maintenance
+                    )
+                    .findOne();
 
                 resolve(maintenance ? maintenance.lastUpdated : 0);
             } catch (err) {
