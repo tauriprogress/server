@@ -124,9 +124,7 @@ export function addCharacterDocumentToRaidBossDocument(
         characterDocument.spec,
     ];
 
-    const bestNoCatKey =
-        combatMetric === "dps" ? "bestDpsNoCat" : "bestHpsNoCat";
-
+    const bestNoCatKey = `best${capitalize(combatMetric)}NoCat` as const;
     const bestNoCat = raidBossDocument[bestNoCatKey];
     const bestNoCatPerformance =
         bestNoCat && (bestNoCat[combatMetric] as number);
@@ -140,7 +138,7 @@ export function addCharacterDocumentToRaidBossDocument(
         raidBossDocument[bestNoCatKey] = characterDocument;
     }
 
-    const bestKey = combatMetric === "dps" ? "bestDps" : "bestHps";
+    const bestKey = `best${capitalize(combatMetric)}` as const;
     let categorizedBest = getNestedObjectValue(
         raidBossDocument[bestKey],
         characterCategorization
