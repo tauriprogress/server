@@ -261,7 +261,7 @@ export function updateRaidBossDocument(
                 const classId =
                     key as unknown as keyof typeof environment.characterClassNames;
 
-                for (const key in environment.characterClassSpecs[classId]) {
+                for (const key of environment.characterClassSpecs[classId]) {
                     const specId =
                         key as unknown as typeof environment.characterClassSpecs[typeof classId][number];
 
