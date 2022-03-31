@@ -196,7 +196,7 @@ export function updateRaidBossDocument(
 ) {
     let updatedRaidBoss: RaidBossDocument = {
         ...JSON.parse(JSON.stringify(oldBoss)),
-        latestKills: boss.latestKills.concat(oldBoss.recentKills).slice(0, 50),
+        latestKills: boss.latestKills.concat(oldBoss.latestKills).slice(0, 50),
         killCount: oldBoss.killCount + boss.killCount,
     };
 
@@ -358,7 +358,7 @@ export function getRaidBossSummary(boss: RaidBossDocument): RaidBossForSummary {
     }
 
     delete raidBossForSummary.killCount;
-    delete raidBossForSummary.recentKills;
+    delete raidBossForSummary.latestKills;
     delete raidBossForSummary.bestDpsNoCat;
     delete raidBossForSummary.bestHpsNoCat;
 
