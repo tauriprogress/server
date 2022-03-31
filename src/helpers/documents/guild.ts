@@ -119,7 +119,7 @@ export function addLogToGuildDocument(
         boss: bossName,
         difficulty: difficulty,
     });
-    guild.progression.latestKills.splice(50);
+    guild.progression.latestKills = guild.progression.latestKills.slice(0, 50);
 
     const guildRankingFullClearCategory = [raidName, difficulty, "fullClear"];
 
@@ -251,7 +251,7 @@ export function addLogToGuildDocument(
         .sort((a, b) => a.fightLength - b.fightLength)
         .slice(0, 10);
     currentGuildBoss.latestKills.unshift(guildKillLog);
-    currentGuildBoss.latestKills.splice(10);
+    currentGuildBoss.latestKills = currentGuildBoss.latestKills.slice(0, 10);
 
     guild = addNestedObjectValue(
         guild,
@@ -293,7 +293,7 @@ export function updateGuildDocument(
 
     updatedGuild.progression.latestKills = guild.progression.latestKills
         .concat(oldGuild.progression.latestKills)
-        .splice(50);
+        .slice(0, 50);
 
     let raidName: keyof typeof guild.progression.raids;
     for (raidName in guild.progression.raids) {
@@ -321,19 +321,19 @@ export function updateGuildDocument(
                             ...newBoss.fastestKills,
                         ])
                             .sort((a, b) => a.fightLength - b.fightLength)
-                            .splice(10),
+                            .slice(0, 10),
                         firstKills: uniqueLogs([
                             ...oldBoss.firstKills,
                             ...newBoss.firstKills,
                         ])
                             .sort((a, b) => a.date - b.date)
-                            .splice(10),
+                            .slice(0, 10),
                         latestKills: uniqueLogs([
                             ...oldBoss.latestKills,
                             ...newBoss.latestKills,
                         ])
                             .sort((a, b) => b.date - a.date)
-                            .splice(10),
+                            .slice(0, 10),
                     };
                 } else if (oldBoss) {
                     updatedBoss = oldBoss;

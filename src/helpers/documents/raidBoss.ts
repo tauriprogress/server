@@ -52,7 +52,7 @@ export function addLogToRaidBossDocument(
     raidBossDocument.killCount += 1;
 
     raidBossDocument.latestKills.unshift(trimmedLog);
-    raidBossDocument.latestKills.splice(50);
+    raidBossDocument.latestKills = raidBossDocument.latestKills.slice(0, 50);
 
     const logCategorization = [realm, faction];
 
@@ -76,7 +76,8 @@ export function addLogToRaidBossDocument(
                     0,
                     trimmedLog
                 );
-                raidBossDocument.fastestKills[realm]![faction].splice(50);
+                raidBossDocument.fastestKills[realm]![faction] =
+                    raidBossDocument.fastestKills[realm]![faction].slice(0, 50);
             }
         }
     }
@@ -101,7 +102,8 @@ export function addLogToRaidBossDocument(
                     0,
                     trimmedLog
                 );
-                raidBossDocument.firstKills[realm]![faction].splice(3);
+                raidBossDocument.firstKills[realm]![faction] =
+                    raidBossDocument.firstKills[realm]![faction].slice(0, 3);
             }
         }
     }
@@ -196,7 +198,7 @@ export function updateRaidBossDocument(
 ) {
     let updatedRaidBoss: RaidBossDocument = {
         ...JSON.parse(JSON.stringify(oldBoss)),
-        latestKills: boss.latestKills.concat(oldBoss.recentKills).splice(50),
+        latestKills: boss.latestKills.concat(oldBoss.recentKills).slice(0, 50),
         killCount: oldBoss.killCount + boss.killCount,
     };
 
@@ -235,7 +237,7 @@ export function updateRaidBossDocument(
                     [realm, faction],
                     updatedFastestKills
                         .sort((a, b) => a.fightLength - b.fightLength)
-                        .splice(50)
+                        .slice(0, 50)
                 );
             }
 
@@ -251,7 +253,9 @@ export function updateRaidBossDocument(
                 updatedRaidBoss.firstKills = addNestedObjectValue(
                     updatedRaidBoss.firstKills,
                     [realm, faction],
-                    updatedFirstKills.sort((a, b) => a.date - b.date).splice(3)
+                    updatedFirstKills
+                        .sort((a, b) => a.date - b.date)
+                        .slice(0, 3)
                 );
             }
 

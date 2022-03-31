@@ -1375,7 +1375,7 @@ class Database {
                 resolve(
                     fastestKills
                         .sort((a, b) => a.fightLength - b.fightLength)
-                        .splice(50)
+                        .slice(0, 50)
                 );
             } catch (err) {
                 reject(err);
