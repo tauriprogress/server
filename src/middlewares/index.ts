@@ -3,7 +3,6 @@ import { Request, Response, NextFunction } from "express";
 
 import {
     capitalize,
-    minutesAgo,
     validRaidId,
     validClass,
     validRealm,
@@ -323,15 +322,4 @@ export function verifyGetItems(
             errorstring: isError(err) ? err.message : err,
         });
     }
-}
-
-export function updateDatabase(req: Request, _1: Response, next: NextFunction) {
-    if (minutesAgo(req.db.lastUpdated) > 30 && !req.db.isUpdating) {
-        try {
-            req.db.updateDatabase(false);
-        } catch (err) {
-            console.log(err);
-        }
-    }
-    next();
 }

@@ -4,6 +4,7 @@ import * as bodyParser from "body-parser";
 import * as slowDown from "express-slow-down";
 
 import db from "./database";
+import dbTaskManager from "./DBTaskManger";
 
 import {
     verifyGetGuild,
@@ -18,7 +19,6 @@ import {
     verifyGetCharacterPerformance,
     verifyGetItems,
     verifyCharacterLeaderboard,
-    updateDatabase,
     waitDbCache,
 } from "./middlewares";
 import tauriApi from "./tauriApi";
@@ -74,7 +74,7 @@ const speedLimiter = slowDown({
         next();
     });
 
-    app.use(updateDatabase);
+    dbTaskManager.start();
 
     app.get("/guildlist", async (_1, res) => {
         try {

@@ -5,14 +5,12 @@ import {
     getLogData,
     processLogs,
     logBugHandler,
-    minutesAgo,
     getRaidInfoFromId,
     getRelativePerformance,
     getRaidInfoFromName,
     capitalize,
     addNestedObjectValue,
     runGC,
-    isError,
     Lock,
     getRaidBossSummary,
     writeLogsToFile,
@@ -36,7 +34,7 @@ import {
     getRaidBossBestOfSpec,
 } from "../helpers";
 
-import { MongoClient, Db, ClientSession, ReadConcern } from "mongodb";
+import { MongoClient, Db, ClientSession } from "mongodb";
 import {
     LastLogIds,
     LooseObject,
@@ -65,6 +63,7 @@ import {
     ERR_GUILD_NOT_FOUND,
 } from "../helpers/errors";
 import { combatMetrics } from "../constants";
+import { updateRaidBossCache } from "../DBTaskManger/tasks";
 
 const raidSummaryLock = new Lock();
 
@@ -83,10 +82,9 @@ class DBInterface {
     public updateStatus: string;
     public lastGuildsUpdate: number;
     public collections: typeof collectionNames;
+    public updatedRaidBosses: ReturnType<typeof getRaidBossId>[];
 
     public firstCacheLoad: false | true | Promise<true>;
-
-    private updatedRaidBosses: ReturnType<typeof getRaidBossId>[];
 
     constructor() {
         this.connection = undefined;
@@ -259,7 +257,7 @@ class DBInterface {
                     }
                 );
 
-                await this.updateRaidBossCache();
+                await updateRaidBossCache(db);
                 await this.updateLeaderboard();
 
                 this.isUpdating = false;
@@ -273,105 +271,7 @@ class DBInterface {
             }
         });
     }
-    async updateDatabase(): Promise<number> {
-        return new Promise(async (resolve, reject) => {
-            try {
-                if (!this.connection) throw ERR_DB_CONNECTION;
-                if (!this.client) throw ERR_DB_CONNECTION;
-                if (this.isUpdating) throw ERR_DB_UPDATING;
 
-                console.log("Updating database.");
-                const updateStarted = new Date().getTime() / 1000;
-                this.isUpdating = true;
-                this.updateStatus = "Database is updating.";
-                this.lastUpdated = updateStarted;
-
-                const maintenanceCollection =
-                    this.connection.collection<MaintenanceDocument>(
-                        this.collections.maintenance
-                    );
-
-                const maintenanceDocument =
-                    await maintenanceCollection.findOne();
-
-                const lastLogIds = !maintenanceDocument
-                    ? {}
-                    : maintenanceDocument.lastLogIds;
-
-                let { logs, lastLogIds: newLastLogIds } = await getLogData(
-                    false,
-                    lastLogIds
-                );
-
-                logs = logBugHandler(logs);
-                const session = this.client.startSession();
-
-                try {
-                    console.log("Opening new transaction session");
-                    await session.withTransaction(
-                        async () => {
-                            await this.saveLogs(
-                                processLogs(logs),
-                                {
-                                    lastLogIds: newLastLogIds,
-                                    updateStarted,
-                                },
-                                session
-                            );
-                        },
-                        {
-                            readConcern: new ReadConcern("majority"),
-                            writeConcern: {
-                                w: "majority",
-                                j: true,
-                            },
-                        }
-                    );
-                } catch (err) {
-                    console.log("transaction error");
-                    console.error(err);
-                } finally {
-                    session.endSession();
-                    console.log("Transaction session closed");
-                }
-
-                if (minutesAgo(this.lastGuildsUpdate) > 2800) {
-                    console.log("Updating guilds");
-                    this.lastGuildsUpdate = updateStarted;
-                    await maintenanceCollection.updateOne(
-                        {},
-                        {
-                            $set: {
-                                lastGuildsUpdate: this.lastGuildsUpdate,
-                            },
-                        }
-                    );
-
-                    await this.updateGuilds();
-                }
-
-                await this.updateRaidBossCache();
-                await this.updateLeaderboard();
-
-                cache.clearRaidSummary();
-                cache.clearCharacterPerformance();
-
-                this.isUpdating = false;
-                this.updateStatus = "";
-
-                console.log("Database update finished");
-                resolve(minutesAgo(updateStarted));
-            } catch (err) {
-                if (!isError(err) || err.message !== ERR_DB_UPDATING.message) {
-                    console.log(`Database update error`);
-                    console.error(err);
-                    this.isUpdating = false;
-                    this.updateStatus = "";
-                }
-                reject(err);
-            }
-        });
-    }
     async getLastUpdated(): Promise<number> {
         return new Promise(async (resolve, reject) => {
             try {
@@ -709,69 +609,6 @@ class DBInterface {
         });
     }
 
-    async updateGuilds() {
-        return new Promise(async (resolve, reject) => {
-            try {
-                if (!this.connection) throw ERR_DB_CONNECTION;
-
-                this.updateStatus = "Updating guilds";
-
-                const guilds = (await this.connection
-                    .collection<GuildDocument>(this.collections.maintenance)
-                    .find({})
-                    .project({
-                        _id: 1,
-                        name: 1,
-                        realm: 1,
-                    })
-                    .toArray()) as {
-                    _id: ReturnType<typeof getGuildId>;
-                    name: string;
-                    realm: Realm;
-                }[];
-
-                let total = guilds.length;
-                let current = 0;
-
-                for (let guild of guilds) {
-                    try {
-                        current++;
-                        console.log(
-                            `db: Updating ${guild.name} ${current}/${total}`
-                        );
-
-                        const newGuild = await requestGuildDocument(
-                            guild.name,
-                            guild.realm
-                        );
-
-                        await this.saveGuild({
-                            ...newGuild,
-                            _id: guild._id,
-                        });
-                    } catch (err) {
-                        if (
-                            isError(err) &&
-                            err.message &&
-                            err.message.includes(ERR_GUILD_NOT_FOUND.message)
-                        ) {
-                            this.removeGuild(guild._id);
-                        } else {
-                            console.log(`Error with updating ${guild.name}:`);
-                            console.error(err);
-                        }
-                    }
-
-                    runGC();
-                }
-
-                resolve(true);
-            } catch (err) {
-                reject(err);
-            }
-        });
-    }
-
     async removeGuild(_id: ReturnType<typeof getGuildId>) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -782,67 +619,6 @@ class DBInterface {
                     .deleteOne({
                         _id: _id,
                     });
-                resolve(true);
-            } catch (err) {
-                reject(err);
-            }
-        });
-    }
-
-    async updateRaidBossCache() {
-        const fullLoad = async (): Promise<true> => {
-            return new Promise(async (resolve, reject) => {
-                try {
-                    if (!this.connection) throw ERR_DB_CONNECTION;
-
-                    for (const boss of await this.connection
-                        .collection<RaidBossDocument>(
-                            this.collections.raidBosses
-                        )
-                        .find()
-                        .toArray()) {
-                        cache.raidBoss.set(boss._id, boss);
-                    }
-
-                    resolve(true);
-                } catch (err) {
-                    reject(err);
-                }
-            });
-        };
-
-        const getBossIdsToUpdate = () => {
-            let bossIds: { [key: string]: true } = {};
-
-            for (const bossId of this.updatedRaidBosses) {
-                bossIds[bossId] = true;
-            }
-            return Object.keys(bossIds);
-        };
-
-        return new Promise(async (resolve, reject) => {
-            try {
-                if (!this.connection) throw ERR_DB_CONNECTION;
-
-                if (!this.firstCacheLoad) {
-                    this.firstCacheLoad = fullLoad();
-                } else {
-                    const bossesToUpdate = getBossIdsToUpdate();
-
-                    for (const bossId of bossesToUpdate) {
-                        const boss = await this.connection
-                            .collection<RaidBossDocument>(
-                                this.collections.raidBosses
-                            )
-                            .findOne({ _id: bossId });
-                        if (boss) {
-                            cache.raidBoss.set(bossId, boss);
-                        }
-                    }
-
-                    this.updatedRaidBosses = [];
-                }
-
                 resolve(true);
             } catch (err) {
                 reject(err);
