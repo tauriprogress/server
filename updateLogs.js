@@ -1,5 +1,5 @@
 const tauriApi = require("./build/tauriApi").default;
-const { environment } = require("./build/environment");
+const environment = require("./build/environment").default;
 const fs = require("fs");
 
 const {
@@ -10,7 +10,7 @@ const {
     updateLastLogIdsOfFile,
 } = require("./build/helpers");
 
-const realmNames = Object.values(environment.realms);
+const realmNames = environment.realms;
 
 const pathToLogs = "./logs/logs.txt";
 
