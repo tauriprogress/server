@@ -74,21 +74,19 @@ const collectionNames = {
     raidBosses: "RaidBosses",
 } as const;
 
-class Database {
+class DBInterface {
     public connection: Db | undefined;
-
-    private client: MongoClient | undefined;
+    public client: MongoClient | undefined;
 
     public lastUpdated: number;
     public isUpdating: boolean;
     public updateStatus: string;
-    private lastGuildsUpdate: number;
+    public lastGuildsUpdate: number;
+    public collections: typeof collectionNames;
 
     public firstCacheLoad: false | true | Promise<true>;
 
     private updatedRaidBosses: ReturnType<typeof getRaidBossId>[];
-
-    private collectionNames: typeof collectionNames;
 
     constructor() {
         this.connection = undefined;
@@ -101,7 +99,7 @@ class Database {
         this.firstCacheLoad = false;
         this.updatedRaidBosses = [];
 
-        this.collectionNames = collectionNames;
+        this.collections = collectionNames;
     }
 
     async connect() {
@@ -110,8 +108,9 @@ class Database {
             const client = new MongoClient(
                 `mongodb+srv://${environment.MONGODB_USER}:${environment.MONGODB_PASSWORD}@${environment.MONGODB_ADDRESS}`
             );
-            this.client = await client.connect();
+            await client.connect();
 
+            this.client = client;
             this.connection = this.client.db("tauriprogress");
 
             this.lastUpdated = 0;
@@ -125,14 +124,13 @@ class Database {
         return new Promise(async (resolve, reject) => {
             try {
                 if (!this.connection) throw ERR_DB_CONNECTION;
-                if (!this.client) throw ERR_DB_CONNECTION;
                 if (this.isUpdating) throw ERR_DB_UPDATING;
 
                 console.log("Initalizing database.");
                 await this.connection.dropDatabase();
 
                 const maintenanceCollection = this.connection.collection(
-                    this.collectionNames.maintenance
+                    this.collections.maintenance
                 );
 
                 maintenanceCollection.insertOne(createMaintenanceDocument());
@@ -275,7 +273,6 @@ class Database {
             }
         });
     }
-
     async updateDatabase(): Promise<number> {
         return new Promise(async (resolve, reject) => {
             try {
@@ -291,7 +288,7 @@ class Database {
 
                 const maintenanceCollection =
                     this.connection.collection<MaintenanceDocument>(
-                        this.collectionNames.maintenance
+                        this.collections.maintenance
                     );
 
                 const maintenanceDocument =
@@ -375,7 +372,6 @@ class Database {
             }
         });
     }
-
     async getLastUpdated(): Promise<number> {
         return new Promise(async (resolve, reject) => {
             try {
@@ -383,7 +379,7 @@ class Database {
 
                 const maintenance = await this.connection
                     .collection<MaintenanceDocument>(
-                        this.collectionNames.maintenance
+                        this.collections.maintenance
                     )
                     .findOne();
 
@@ -401,7 +397,7 @@ class Database {
 
                 const maintenance = await this.connection
                     .collection<MaintenanceDocument>(
-                        this.collectionNames.maintenance
+                        this.collections.maintenance
                     )
                     .findOne();
 
@@ -419,7 +415,7 @@ class Database {
 
                 const maintenance = await this.connection
                     .collection<MaintenanceDocument>(
-                        this.collectionNames.maintenance
+                        this.collections.maintenance
                     )
                     .findOne({});
 
@@ -523,7 +519,7 @@ class Database {
 
                 await this.connection
                     .collection<MaintenanceDocument>(
-                        this.collectionNames.maintenance
+                        this.collections.maintenance
                     )
                     .updateOne(
                         {},
@@ -552,7 +548,7 @@ class Database {
 
                 const raidCollection =
                     this.connection.collection<RaidBossDocument>(
-                        this.collectionNames.raidBosses
+                        this.collections.raidBosses
                     );
 
                 const oldBoss = await raidCollection.findOne(
@@ -596,7 +592,7 @@ class Database {
 
                 const guildsCollection =
                     this.connection.collection<GuildDocument>(
-                        this.collectionNames.guilds
+                        this.collections.guilds
                     );
 
                 let oldGuild = await guildsCollection.findOne(
@@ -664,7 +660,7 @@ class Database {
                 console.log("db: Saving raid bosses");
                 const raidBossCollection =
                     this.connection.collection<RaidBossDocument>(
-                        this.collectionNames.raidBosses
+                        this.collections.raidBosses
                     );
                 const oldBosses = (await raidBossCollection
                     .aggregate(
@@ -721,7 +717,7 @@ class Database {
                 this.updateStatus = "Updating guilds";
 
                 const guilds = (await this.connection
-                    .collection<GuildDocument>(this.collectionNames.maintenance)
+                    .collection<GuildDocument>(this.collections.maintenance)
                     .find({})
                     .project({
                         _id: 1,
@@ -782,7 +778,7 @@ class Database {
                 if (!this.connection) throw ERR_DB_CONNECTION;
 
                 await this.connection
-                    .collection<GuildDocument>(this.collectionNames.guilds)
+                    .collection<GuildDocument>(this.collections.guilds)
                     .deleteOne({
                         _id: _id,
                     });
@@ -801,7 +797,7 @@ class Database {
 
                     for (const boss of await this.connection
                         .collection<RaidBossDocument>(
-                            this.collectionNames.raidBosses
+                            this.collections.raidBosses
                         )
                         .find()
                         .toArray()) {
@@ -836,7 +832,7 @@ class Database {
                     for (const bossId of bossesToUpdate) {
                         const boss = await this.connection
                             .collection<RaidBossDocument>(
-                                this.collectionNames.raidBosses
+                                this.collections.raidBosses
                             )
                             .findOne({ _id: bossId });
                         if (boss) {
@@ -1224,7 +1220,7 @@ class Database {
                     resolve(guildList);
                 } else {
                     const guildList = (await this.connection
-                        .collection<GuildDocument>(this.collectionNames.guilds)
+                        .collection<GuildDocument>(this.collections.guilds)
                         .find()
                         .project({
                             name: 1,
@@ -1251,7 +1247,7 @@ class Database {
                 if (!this.connection) throw ERR_DB_CONNECTION;
 
                 const guild = await this.connection
-                    .collection<GuildDocument>(this.collectionNames.guilds)
+                    .collection<GuildDocument>(this.collections.guilds)
                     .findOne({
                         name: guildName,
                         realm: realm,
@@ -1283,7 +1279,7 @@ class Database {
                 } else {
                     const bossData = await this.connection
                         .collection<RaidBossDocument>(
-                            this.collectionNames.raidBosses
+                            this.collections.raidBosses
                         )
                         .findOne({ _id: bossId });
 
@@ -1449,7 +1445,7 @@ class Database {
                     resolve(cachedData);
                 } else {
                     const guildLeaderboard = (await this.connection
-                        .collection<GuildDocument>(this.collectionNames.guilds)
+                        .collection<GuildDocument>(this.collections.guilds)
                         .find()
                         .project({
                             name: 1,
@@ -1591,7 +1587,7 @@ class Database {
 
                     const characterData = (
                         await this.connection
-                            .collection(this.collectionNames.maintenance)
+                            .collection(this.collections.maintenance)
                             .aggregate([
                                 { $limit: 1 },
                                 { $project: { _id: 1 } },
@@ -1747,8 +1743,8 @@ class Database {
     }
 }
 
-const db = new Database();
+const db = new DBInterface();
 
-export type DatabaseType = typeof db;
+export type Database = typeof db;
 
 export default db;
