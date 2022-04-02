@@ -10,8 +10,9 @@ import { ReadConcern } from "mongodb";
 import cache from "../database/cache";
 import {
     ERR_DB_CONNECTION,
-    ERR_DB_UPDATING,
+    ERR_DB_ALREADY_UPDATING,
     ERR_GUILD_NOT_FOUND,
+    ERR_DB_TANSACTION,
 } from "../helpers/errors";
 import {
     getLogData,
@@ -28,7 +29,7 @@ function updateDatabase(db: Database) {
         try {
             if (!db.connection) throw ERR_DB_CONNECTION;
             if (!db.client) throw ERR_DB_CONNECTION;
-            if (db.isUpdating) throw ERR_DB_UPDATING;
+            if (db.isUpdating) throw ERR_DB_ALREADY_UPDATING;
 
             console.log("Updating database.");
             const updateStarted = new Date().getTime() / 1000;
@@ -79,6 +80,7 @@ function updateDatabase(db: Database) {
             } catch (err) {
                 console.log("transaction error");
                 console.error(err);
+                throw ERR_DB_TANSACTION;
             } finally {
                 session.endSession();
                 console.log("Transaction session closed");
@@ -96,12 +98,15 @@ function updateDatabase(db: Database) {
             console.log("Database update finished");
             resolve(true);
         } catch (err) {
-            if (!isError(err) || err.message !== ERR_DB_UPDATING.message) {
+            if (
+                !isError(err) ||
+                err.message !== ERR_DB_ALREADY_UPDATING.message
+            ) {
                 console.log(`Database update error`);
-                console.error(err);
                 db.isUpdating = false;
                 db.updateStatus = "";
             }
+
             reject(err);
         }
     });
@@ -111,7 +116,7 @@ function updateGuilds(db: Database) {
     return new Promise(async (resolve, reject) => {
         try {
             if (!db.connection) throw ERR_DB_CONNECTION;
-            if (db.isUpdating) throw ERR_DB_UPDATING;
+            if (db.isUpdating) throw ERR_DB_ALREADY_UPDATING;
 
             if (minutesAgo(db.lastGuildsUpdate) > 2800) {
                 const updateStarted = new Date().getTime() / 1000;
@@ -184,8 +189,11 @@ function updateGuilds(db: Database) {
                 db.isUpdating = false;
                 db.updateStatus = "";
 
-                resolve(true);
+                console.log("Guilds updated.");
             }
+
+            console.log("Guild update is not due yet.");
+            resolve(true);
         } catch (e) {
             db.isUpdating = false;
             db.updateStatus = "";

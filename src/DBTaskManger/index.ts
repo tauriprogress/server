@@ -29,7 +29,11 @@ class DBTaskManager {
                 if (task) {
                     console.log("Performing task:", task.name);
                     const taskStarted = new Date().getTime();
-                    await task.perform(this.db);
+                    try {
+                        await task.perform(this.db);
+                    } catch (e) {
+                        console.error(e);
+                    }
 
                     const taskDueDate = getTaskDueDate(
                         task.interval,

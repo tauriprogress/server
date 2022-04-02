@@ -59,7 +59,7 @@ import {
 import {
     ERR_BOSS_NOT_FOUND,
     ERR_DB_CONNECTION,
-    ERR_DB_UPDATING,
+    ERR_DB_ALREADY_UPDATING,
     ERR_GUILD_NOT_FOUND,
 } from "../helpers/errors";
 import { combatMetrics } from "../constants";
@@ -122,7 +122,7 @@ class DBInterface {
         return new Promise(async (resolve, reject) => {
             try {
                 if (!this.connection) throw ERR_DB_CONNECTION;
-                if (this.isUpdating) throw ERR_DB_UPDATING;
+                if (this.isUpdating) throw ERR_DB_ALREADY_UPDATING;
 
                 console.log("Initalizing database.");
                 await this.connection.dropDatabase();
