@@ -349,7 +349,6 @@ class DBInterface {
                 for (const guildId in guilds) {
                     await this.saveGuild(guilds[guildId], session);
                 }
-
                 const operationsOfBossCollection: LooseObject = {};
 
                 for (const bossId in characterPerformanceOfBoss) {
@@ -384,15 +383,24 @@ class DBInterface {
                             operationsOfBossCollection[bossCollectionName].push(
                                 {
                                     updateOne: {
-                                        filter: { _id: char._id },
+                                        filter: {
+                                            _id: char._id,
+                                        },
                                         update: {
-                                            $max: {
-                                                [combatMetric]:
-                                                    char[combatMetric],
-                                            },
                                             $setOnInsert: char,
                                         },
                                         upsert: true,
+                                    },
+                                },
+                                {
+                                    updateOne: {
+                                        filter: {
+                                            _id: char._id,
+                                            [combatMetric]: {
+                                                $lt: char[combatMetric],
+                                            },
+                                        },
+                                        update: { $set: char },
                                     },
                                 }
                             );
@@ -408,7 +416,6 @@ class DBInterface {
                         this.connection.collection<CharacterDocument>(
                             bossCollectionName
                         );
-
                     await bossCollection.bulkWrite(
                         operationsOfBossCollection[bossCollectionName],
                         { session }
@@ -594,9 +601,11 @@ class DBInterface {
                     });
                 }
 
-                await raidBossCollection.bulkWrite(operations, {
-                    session,
-                });
+                if (operations.length) {
+                    await raidBossCollection.bulkWrite(operations, {
+                        session,
+                    });
+                }
 
                 for (const bossId in bosses) {
                     this.updatedRaidBosses.push(bossId);
