@@ -428,6 +428,11 @@ export function updateGuildDocument(
                                     diffNum
                                 )
                             ) {
+                                oldRaidGroups[i] = {
+                                    ...oldGroup,
+                                    logs: [...oldGroup.logs, ...newGroup.logs],
+                                };
+
                                 updatedGuild.ranking = addNestedObjectValue(
                                     updatedGuild.ranking,
                                     [
@@ -437,18 +442,7 @@ export function updateGuildDocument(
                                         "weeks",
                                         weekId,
                                     ],
-                                    {
-                                        ...updatedGuild.ranking?.[raidName]?.[
-                                            difficulty
-                                        ]?.fullClear.weeks[weekId],
-                                        [i]: {
-                                            ...oldGroup,
-                                            logs: [
-                                                ...oldGroup.logs,
-                                                ...newGroup.logs,
-                                            ],
-                                        },
-                                    }
+                                    oldRaidGroups
                                 );
 
                                 added = true;
