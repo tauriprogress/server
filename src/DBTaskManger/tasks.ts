@@ -3,6 +3,7 @@ import {
     GuildDocument,
     RaidBossDocument,
     Realm,
+    CharacterDocument,
 } from "../types";
 import { Database } from "../database";
 import { ReadConcern } from "mongodb";
@@ -22,6 +23,8 @@ import {
     isError,
     getGuildId,
     requestGuildDocument,
+    getCharacterDocumentRankBulkwriteOperations,
+    getDeconstructedCharacterDocumentCollectionId,
 } from "../helpers";
 
 function updateDatabase(db: Database) {
@@ -87,6 +90,7 @@ function updateDatabase(db: Database) {
             }
 
             await updateRaidBossCache(db);
+            await updateCharacterDocumentRanks(db);
             await db.updateLeaderboard();
 
             cache.clearRaidSummary();
@@ -223,15 +227,6 @@ export async function updateRaidBossCache(db: Database) {
         });
     };
 
-    const getBossIdsToUpdate = () => {
-        let bossIds: { [key: string]: true } = {};
-
-        for (const bossId of db.updatedRaidBosses) {
-            bossIds[bossId] = true;
-        }
-        return Object.keys(bossIds);
-    };
-
     return new Promise(async (resolve, reject) => {
         try {
             if (!db.connection) throw ERR_DB_CONNECTION;
@@ -239,7 +234,7 @@ export async function updateRaidBossCache(db: Database) {
             if (!db.firstCacheLoad) {
                 db.firstCacheLoad = fullLoad();
             } else {
-                const bossesToUpdate = getBossIdsToUpdate();
+                const bossesToUpdate = db.getUpdatedBossIds();
 
                 for (const bossId of bossesToUpdate) {
                     const boss = await db.connection
@@ -250,12 +245,46 @@ export async function updateRaidBossCache(db: Database) {
                     }
                 }
 
-                db.updatedRaidBosses = [];
+                db.resetUpdatedBossIds();
             }
 
             resolve(true);
         } catch (err) {
             reject(err);
+        }
+    });
+}
+
+function updateCharacterDocumentRanks(db: Database) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            if (!db.connection) throw ERR_DB_CONNECTION;
+
+            const collectionsToUpdate =
+                db.getUpdatedCharacterDocumentCollectionIds();
+            for (const collectionId of collectionsToUpdate) {
+                const collection =
+                    db.connection.collection<CharacterDocument>(collectionId);
+                const [_1, _2, combatMetric] =
+                    getDeconstructedCharacterDocumentCollectionId(collectionId);
+
+                await collection.bulkWrite(
+                    getCharacterDocumentRankBulkwriteOperations(
+                        await collection
+                            .find()
+                            .sort({
+                                [combatMetric]: -1,
+                            })
+                            .toArray()
+                    )
+                );
+            }
+
+            db.resetUpdatedCharacterDocumentCollections();
+
+            resolve(true);
+        } catch (e) {
+            reject(e);
         }
     });
 }

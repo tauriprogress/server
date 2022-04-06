@@ -7,6 +7,7 @@ import {
     ClassId,
     LeaderboardType,
     RaidId,
+    CombatMetric,
 } from "../types";
 
 export function getCharacterId(name: string, realm: Realm, spec: SpecId) {
@@ -32,7 +33,7 @@ export function getRaidBossId(ingameBossId: number, difficulty: Difficulty) {
     return `${ingameBossId} ${difficulty}`;
 }
 
-export function getDeconstructRaidBossId(
+export function getDeconstructedRaidBossId(
     bossId: ReturnType<typeof getRaidBossId>
 ) {
     const [ingameBossId, difficulty] = bossId.split(" ");
@@ -40,7 +41,22 @@ export function getDeconstructRaidBossId(
     return [Number(ingameBossId), Number(difficulty) as Difficulty] as const;
 }
 
-export function getCharactersOfBossCollectionId(
+export function getDeconstructedCharacterDocumentCollectionId(
+    characterDocumentCollectionId: ReturnType<
+        typeof getCharacterDocumentCollectionId
+    >
+) {
+    const [ingameBossId, difficulty, combatMetric] =
+        characterDocumentCollectionId.split(" ");
+
+    return [
+        Number(ingameBossId),
+        Number(difficulty) as Difficulty,
+        combatMetric as CombatMetric,
+    ] as const;
+}
+
+export function getCharacterDocumentCollectionId(
     ingameBossId: number,
     difficulty: number,
     combatMetric: string

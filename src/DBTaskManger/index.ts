@@ -45,6 +45,7 @@ class DBTaskManager {
                         () => this.addTask(task),
                         taskDueDate.getTime() - new Date().getTime()
                     );
+                    console.log("Task", task.name, "completed.");
                 } else {
                     await new Promise((resolve) => {
                         this.unpause = resolve;

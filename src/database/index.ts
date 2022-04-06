@@ -18,13 +18,13 @@ import {
     createMaintenanceDocument,
     getRaidBossId,
     createRaidBossDocument,
-    getCharactersOfBossCollectionId,
+    getCharacterDocumentCollectionId,
     areLogsSaved,
     updateRaidBossDocument,
     updateGuildDocument,
     requestGuildDocument,
     createGuildDocument,
-    getDeconstructRaidBossId,
+    getDeconstructedRaidBossId,
     getGuildId,
     filtersToAggregationMatchQuery,
     getRaidSummaryCacheId,
@@ -83,6 +83,9 @@ class DBInterface {
     public lastGuildsUpdate: number;
     public collections: typeof collectionNames;
     public updatedRaidBosses: ReturnType<typeof getRaidBossId>[];
+    public updatedCharacterDocumentCollections: ReturnType<
+        typeof getCharacterDocumentCollectionId
+    >[];
 
     public firstCacheLoad: false | true | Promise<true>;
 
@@ -96,6 +99,7 @@ class DBInterface {
         this.updateStatus = "";
         this.firstCacheLoad = false;
         this.updatedRaidBosses = [];
+        this.updatedCharacterDocumentCollections = [];
 
         this.collections = collectionNames;
     }
@@ -154,7 +158,7 @@ class DBInterface {
 
                             for (const combatMetric of ["dps", "hps"]) {
                                 const collectionName =
-                                    getCharactersOfBossCollectionId(
+                                    getCharacterDocumentCollectionId(
                                         ingameBossId,
                                         Number(difficulty),
                                         combatMetric
@@ -200,7 +204,7 @@ class DBInterface {
                 }
 
                 // initalization should keep this empty since there is no update
-                this.updatedRaidBosses = [];
+                this.resetUpdatedBossIds();
 
                 console.log("Saving guilds.");
                 for (const guildId in guilds) {
@@ -225,11 +229,11 @@ class DBInterface {
                         }
 
                         const [ingameBossId, difficulty] =
-                            getDeconstructRaidBossId(bossId);
+                            getDeconstructedRaidBossId(bossId);
 
                         const bossCollection =
                             this.connection.collection<CharacterDocument>(
-                                getCharactersOfBossCollectionId(
+                                getCharacterDocumentCollectionId(
                                     ingameBossId,
                                     Number(difficulty),
                                     combatMetric
@@ -270,6 +274,32 @@ class DBInterface {
                 reject(err);
             }
         });
+    }
+
+    getUpdatedBossIds() {
+        let bossIds: { [key: string]: true } = {};
+
+        for (const bossId of this.updatedRaidBosses) {
+            bossIds[bossId] = true;
+        }
+        return Object.keys(bossIds);
+    }
+
+    resetUpdatedBossIds() {
+        this.updatedRaidBosses = [];
+    }
+
+    getUpdatedCharacterDocumentCollectionIds() {
+        let ids: { [key: string]: true } = {};
+
+        for (const collectionName of this.updatedCharacterDocumentCollections) {
+            ids[collectionName] = true;
+        }
+        return Object.keys(ids);
+    }
+
+    resetUpdatedCharacterDocumentCollections() {
+        this.updatedCharacterDocumentCollections = [];
     }
 
     async getLastUpdated(): Promise<number> {
@@ -360,9 +390,9 @@ class DBInterface {
                             combatMetric
                         ]) {
                             const [ingameBossId, difficulty] =
-                                getDeconstructRaidBossId(bossId);
+                                getDeconstructedRaidBossId(bossId);
                             const bossCollectionName =
-                                getCharactersOfBossCollectionId(
+                                getCharacterDocumentCollectionId(
                                     ingameBossId,
                                     difficulty,
                                     combatMetric
@@ -420,6 +450,10 @@ class DBInterface {
                         operationsOfBossCollection[bossCollectionName],
                         { session }
                     );
+
+                    this.updatedCharacterDocumentCollections.push(
+                        bossCollectionName
+                    );
                 }
 
                 console.log("db: Saving chars done");
@@ -442,6 +476,8 @@ class DBInterface {
                         }
                     );
             } catch (err) {
+                db.resetUpdatedBossIds();
+                db.resetUpdatedCharacterDocumentCollections();
                 reject(err);
             }
             resolve(true);
@@ -1164,7 +1200,7 @@ class DBInterface {
 
                 const collection =
                     this.connection.collection<CharacterDocument>(
-                        getCharactersOfBossCollectionId(
+                        getCharacterDocumentCollectionId(
                             ingameBossId,
                             filters.difficulty,
                             combatMetric
@@ -1345,7 +1381,7 @@ class DBInterface {
 
                             for (let combatMetric of combatMetrics) {
                                 const collectionName =
-                                    getCharactersOfBossCollectionId(
+                                    getCharacterDocumentCollectionId(
                                         ingameBossId,
                                         difficulty,
                                         combatMetric
@@ -1427,7 +1463,7 @@ class DBInterface {
                                     combatMetric
                                 )}NoCat` as const;
 
-                                const bossId = getCharactersOfBossCollectionId(
+                                const bossId = getCharacterDocumentCollectionId(
                                     ingameBossId,
                                     difficulty,
                                     combatMetric
