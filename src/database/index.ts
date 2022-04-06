@@ -63,7 +63,10 @@ import {
     ERR_GUILD_NOT_FOUND,
 } from "../helpers/errors";
 import { combatMetrics } from "../constants";
-import { updateRaidBossCache } from "../DBTaskManger/tasks";
+import {
+    updateCharacterDocumentRanks,
+    updateRaidBossCache,
+} from "../DBTaskManger/tasks";
 
 const raidSummaryLock = new Lock();
 
@@ -231,23 +234,31 @@ class DBInterface {
                         const [ingameBossId, difficulty] =
                             getDeconstructedRaidBossId(bossId);
 
+                        const collectionName = getCharacterDocumentCollectionId(
+                            ingameBossId,
+                            Number(difficulty),
+                            combatMetric
+                        );
                         const bossCollection =
                             this.connection.collection<CharacterDocument>(
-                                getCharacterDocumentCollectionId(
-                                    ingameBossId,
-                                    Number(difficulty),
-                                    combatMetric
-                                )
+                                collectionName
                             );
 
                         try {
                             await bossCollection.insertMany(characters);
+                            this.updatedCharacterDocumentCollections.push(
+                                collectionName
+                            );
                         } catch (err) {
                             console.error(err);
                         }
                     }
                 }
                 console.log("Characters saved.");
+
+                console.log("Update character ranks");
+                await updateCharacterDocumentRanks(this);
+                console.log("Character ranks updated");
 
                 await maintenanceCollection.updateOne(
                     {},

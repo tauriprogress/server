@@ -255,7 +255,7 @@ export async function updateRaidBossCache(db: Database) {
     });
 }
 
-function updateCharacterDocumentRanks(db: Database) {
+export function updateCharacterDocumentRanks(db: Database) {
     return new Promise(async (resolve, reject) => {
         try {
             if (!db.connection) throw ERR_DB_CONNECTION;
