@@ -150,49 +150,6 @@ export function uniqueLogs<T extends { id: number }>(logs: T[]): T[] {
     return uniqueLogs;
 }
 
-export function applyCharacterPerformanceRanks(
-    characters: CharacterDocument[],
-    combatMetric: "dps" | "hps"
-) {
-    let classes: { [propName: number]: number } = {};
-    let specs: { [propName: number]: number } = {};
-    let sortedCharacters = characters.sort((a, b) => {
-        const bPerf = b[combatMetric];
-        const aPerf = a[combatMetric];
-        if (bPerf && aPerf) {
-            return bPerf - aPerf;
-        }
-        return 0;
-    });
-
-    let rankedCharacters: CharacterDocument[] = [];
-
-    for (let i = 0; i < sortedCharacters.length; i++) {
-        let character = sortedCharacters[i];
-
-        if (!classes[character.class]) {
-            classes[character.class] = 1;
-        } else {
-            classes[character.class] += 1;
-        }
-
-        if (!specs[character.spec]) {
-            specs[character.spec] = 1;
-        } else {
-            specs[character.spec] += 1;
-        }
-
-        rankedCharacters.push({
-            ...character,
-            rank: i + 1,
-            cRank: classes[character.class],
-            sRank: specs[character.spec],
-        });
-    }
-
-    return rankedCharacters;
-}
-
 export function updateCharacterOfLeaderboard() {
     /*
     const updatedDate =

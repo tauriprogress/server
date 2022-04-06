@@ -1,3 +1,4 @@
+import { classIds, specIds } from "../constants";
 import environment from "../environment";
 import {
     LooseObject,
@@ -5,6 +6,9 @@ import {
     LastLogIds,
     Faction,
     Realm,
+    CharacterDocument,
+    ClassId,
+    SpecId,
 } from "../types";
 import {
     ERR_INVALID_BOSS_NAME,
@@ -144,4 +148,37 @@ export function getTaskDueDate(
     }
 
     return new Date(now + delay);
+}
+
+export function getCharacterDocumentRankBulkwriteOperations(
+    characters: CharacterDocument[]
+) {
+    let classes = classIds.reduce((acc, classId) => {
+        acc[classId] = 0;
+        return acc;
+    }, {} as { [key: number]: number }) as { [key in ClassId]: number };
+
+    let specs = specIds.reduce((acc, specId) => {
+        acc[specId] = 0;
+        return acc;
+    }, {} as { [key: number]: number }) as { [key in SpecId]: number };
+
+    return characters.map((character, i) => {
+        classes[character.class] += 1;
+        specs[character.spec] += 1;
+        return {
+            updateOne: {
+                filter: {
+                    _id: character._id,
+                },
+                update: {
+                    $set: {
+                        rank: i + 1,
+                        cRank: classes[character.class],
+                        sRank: specs[character.spec],
+                    },
+                },
+            },
+        };
+    });
 }
