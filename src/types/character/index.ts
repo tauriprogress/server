@@ -15,18 +15,18 @@ export type CharacterPerformance = {
     };
 };
 
-type CustomType = {
+type RaidbossSpecIds = {
     [key in SpecId]: {
         [key in CombatMetric]: CharacterPerformanceDocument;
     };
 };
 
-export interface CharacterPerformanceRaidBoss extends CustomType {
+export interface CharacterPerformanceRaidBoss extends RaidbossSpecIds {
     class: {
-        [key in CombatMetric]: CharacterPerformanceDocument;
+        [key in CombatMetric]: CharacterPerformanceDocument | number;
     };
     all: {
-        [key in CombatMetric]: CharacterPerformanceDocument;
+        [key in CombatMetric]: CharacterPerformanceDocument | number;
     };
 }
 

@@ -43,6 +43,7 @@ class Environment {
     readonly forceInit;
     readonly seasonal;
     readonly seasons;
+    readonly maxCharacterScore;
 
     constructor() {
         if (process.env.FORCE_INIT && process.env.FORCE_INIT === "true") {
@@ -131,6 +132,7 @@ class Environment {
         this.characterRaceFaction = constants.characterRaceFaction;
         this.characterSpecClass = constants.characterSpecClass;
         this.characterClassSpecs = constants.characterClassSpecs;
+        this.maxCharacterScore = constants.maxCharacterScore;
 
         if (process.env.SEASONAL && process.env.SEASONAL === "true") {
             this.seasonal = true;

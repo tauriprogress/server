@@ -229,6 +229,7 @@ export async function updateRaidBossCache(db: Database) {
 
     return new Promise(async (resolve, reject) => {
         try {
+            console.log("Updating raidboss cache.");
             if (!db.connection) throw ERR_DB_CONNECTION;
 
             if (!db.firstCacheLoad) {
@@ -247,7 +248,7 @@ export async function updateRaidBossCache(db: Database) {
 
                 db.resetUpdatedBossIds();
             }
-
+            console.log("Raidboss cache updated.");
             resolve(true);
         } catch (err) {
             reject(err);
@@ -258,6 +259,7 @@ export async function updateRaidBossCache(db: Database) {
 export function updateCharacterDocumentRanks(db: Database) {
     return new Promise(async (resolve, reject) => {
         try {
+            console.log("Updating character ranks.");
             if (!db.connection) throw ERR_DB_CONNECTION;
 
             const collectionsToUpdate =
@@ -281,6 +283,8 @@ export function updateCharacterDocumentRanks(db: Database) {
             }
 
             db.resetUpdatedCharacterDocumentCollections();
+
+            console.log("Character ranks updated.");
 
             resolve(true);
         } catch (e) {

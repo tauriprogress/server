@@ -32,6 +32,7 @@ import {
     getCharacterId,
     getRaidBossBestOfClass,
     getRaidBossBestOfSpec,
+    getNestedObjectValue,
 } from "../helpers";
 
 import { MongoClient, Db, ClientSession } from "mongodb";
@@ -55,6 +56,7 @@ import {
     ClassId,
     RaidName,
     GuildLeaderboard,
+    SpecId,
 } from "../types";
 import {
     ERR_BOSS_NOT_FOUND,
@@ -1375,9 +1377,14 @@ class DBInterface {
                         getCharacterId(characterName, realm, specId)
                     );
 
-                    let lookups: object[] = [];
-
                     const bosses = getRaidInfoFromName(raidName).bosses;
+                    const bossCount = getRaidInfoFromName(raidName).bossCount;
+
+                    let facetCounter = 1;
+                    let lookupCounter = 1;
+                    let facet: { $facet: { [key: string]: object[] } } = {
+                        $facet: {},
+                    };
 
                     for (let bossInfo of bosses) {
                         const difficulties = Object.keys(
@@ -1397,13 +1404,18 @@ class DBInterface {
                                         difficulty,
                                         combatMetric
                                     );
-
-                                lookups.push({
+                                if (!facet.$facet[facetCounter]) {
+                                    facet.$facet[facetCounter] = [
+                                        { $limit: 1 },
+                                        { $project: { _id: 1 } },
+                                    ];
+                                }
+                                facet.$facet[facetCounter].push({
                                     $lookup: {
                                         from: collectionName,
                                         pipeline: [
                                             {
-                                                match: {
+                                                $match: {
                                                     _id: {
                                                         $in: characterIds,
                                                     },
@@ -1413,20 +1425,34 @@ class DBInterface {
                                         as: collectionName,
                                     },
                                 });
+
+                                lookupCounter += 1;
+                                if (lookupCounter === 40) {
+                                    facetCounter += 1;
+                                    lookupCounter = 0;
+                                }
                             }
                         }
                     }
 
-                    const characterData = (
+                    const result = (
                         await this.connection
                             .collection(this.collections.maintenance)
                             .aggregate([
                                 { $limit: 1 },
                                 { $project: { _id: 1 } },
-                                ...lookups,
+                                facet,
                             ])
                             .toArray()
-                    )[0] as { [key: string]: CharacterDocument[] };
+                    )[0];
+
+                    let characterData = {} as {
+                        [key: string]: CharacterDocument[];
+                    };
+
+                    for (let i = 1; i <= facetCounter; i++) {
+                        characterData = { ...characterData, ...result[i][0] };
+                    }
 
                     let characterPerformance: CharacterPerformance =
                         {} as CharacterPerformance;
@@ -1443,28 +1469,6 @@ class DBInterface {
                                 bossInfo.bossIdOfDifficulty[difficulty];
 
                             for (let combatMetric of combatMetrics) {
-                                function addDocToPerformance(
-                                    keyName: string | number,
-                                    doc: CharacterDocument,
-                                    bestDoc: CharacterDocument | undefined
-                                ): void {
-                                    characterPerformance = addNestedObjectValue(
-                                        characterPerformance,
-                                        [
-                                            ...categorization,
-                                            keyName,
-                                            combatMetric,
-                                        ],
-                                        {
-                                            ...doc,
-                                            performance: getRelativePerformance(
-                                                doc[combatMetric],
-                                                bestDoc?.[combatMetric] ||
-                                                    doc[combatMetric]
-                                            ),
-                                        }
-                                    ) as CharacterPerformance;
-                                }
                                 const categorization = [
                                     raidName,
                                     difficulty,
@@ -1474,14 +1478,15 @@ class DBInterface {
                                     combatMetric
                                 )}NoCat` as const;
 
-                                const bossId = getCharacterDocumentCollectionId(
-                                    ingameBossId,
-                                    difficulty,
-                                    combatMetric
-                                );
+                                const collectionId =
+                                    getCharacterDocumentCollectionId(
+                                        ingameBossId,
+                                        difficulty,
+                                        combatMetric
+                                    );
 
                                 const characterDocuments =
-                                    characterData[bossId];
+                                    characterData[collectionId];
 
                                 const currentBoss = await this.getRaidBoss(
                                     ingameBossId,
@@ -1506,8 +1511,10 @@ class DBInterface {
                                                 document.spec === specId
                                         );
                                     if (!characterDoc) {
-                                        addDocToPerformance(
+                                        addToPerformance(
+                                            categorization,
                                             specId,
+                                            combatMetric,
                                             {
                                                 [combatMetric]: 0,
                                             } as CharacterDocument,
@@ -1515,8 +1522,23 @@ class DBInterface {
                                         );
                                         continue;
                                     } else {
-                                        addDocToPerformance(
+                                        addToPerformance(
+                                            categorization,
                                             specId,
+                                            combatMetric,
+                                            characterDoc,
+                                            bestOfSpec
+                                        );
+                                        addToPerformance(
+                                            [
+                                                ...categorization.slice(
+                                                    0,
+                                                    categorization.length - 1
+                                                ),
+                                                "total",
+                                            ],
+                                            specId,
+                                            combatMetric,
                                             characterDoc,
                                             bestOfSpec
                                         );
@@ -1536,8 +1558,10 @@ class DBInterface {
                                         dps: 0,
                                         hps: 0,
                                     } as unknown as CharacterDocument);
-                                addDocToPerformance(
+                                addToPerformance(
+                                    categorization,
                                     "all",
+                                    combatMetric,
                                     bestOfCharacter,
                                     currentBest
                                 );
@@ -1547,11 +1571,52 @@ class DBInterface {
                                     characterClass,
                                     combatMetric
                                 );
-                                addDocToPerformance(
+                                addToPerformance(
+                                    categorization,
                                     "class",
+                                    combatMetric,
                                     bestOfCharacter,
                                     bestOfClass
                                 );
+
+                                addToPerformance(
+                                    [
+                                        ...categorization.slice(
+                                            0,
+                                            categorization.length - 1
+                                        ),
+                                        "total",
+                                    ],
+                                    "class",
+                                    combatMetric,
+                                    bestOfCharacter,
+                                    bestOfClass
+                                );
+                            }
+                        }
+                    }
+
+                    for (const key in characterPerformance[raidName]) {
+                        const difficulty = Number(
+                            key
+                        ) as keyof typeof characterPerformance[typeof raidName];
+
+                        for (const key in characterPerformance[raidName][
+                            difficulty
+                        ].total) {
+                            const spec = key as "class" | SpecId;
+                            for (let combatMetric of combatMetrics) {
+                                const performance =
+                                    characterPerformance[raidName][difficulty]
+                                        .total[spec][combatMetric];
+
+                                if (typeof performance !== "number") continue;
+
+                                characterPerformance[raidName][
+                                    difficulty
+                                ].total[spec][combatMetric] =
+                                    (performance / bossCount / 100) *
+                                    environment.maxCharacterScore;
                             }
                         }
                     }
@@ -1566,6 +1631,54 @@ class DBInterface {
                     }
 
                     resolve(characterPerformance);
+
+                    function addToPerformance(
+                        categorization: string[],
+                        keyName: string | number,
+                        combatMetric: CombatMetric,
+                        doc: CharacterDocument,
+                        bestDoc: CharacterDocument | undefined
+                    ): void {
+                        if (
+                            categorization[categorization.length - 1] ===
+                            "total"
+                        ) {
+                            const fullPathToValue = [
+                                ...categorization,
+                                keyName,
+                                combatMetric,
+                            ];
+                            const performance = getNestedObjectValue(
+                                characterPerformance,
+                                fullPathToValue
+                            );
+                            const currentPerformance = getRelativePerformance(
+                                doc[combatMetric],
+                                bestDoc?.[combatMetric] || doc[combatMetric]
+                            );
+
+                            characterPerformance = addNestedObjectValue(
+                                characterPerformance,
+                                fullPathToValue,
+                                performance
+                                    ? performance + currentPerformance
+                                    : currentPerformance
+                            ) as CharacterPerformance;
+                        } else {
+                            characterPerformance = addNestedObjectValue(
+                                characterPerformance,
+                                [...categorization, keyName, combatMetric],
+                                {
+                                    ...doc,
+                                    performance: getRelativePerformance(
+                                        doc[combatMetric],
+                                        bestDoc?.[combatMetric] ||
+                                            doc[combatMetric]
+                                    ),
+                                }
+                            ) as CharacterPerformance;
+                        }
+                    }
                 }
             } catch (err) {
                 console.error(err);
