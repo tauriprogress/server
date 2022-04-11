@@ -135,6 +135,22 @@ export function getRaidInfoFromName(raidName: string) {
     throw ERR_INVALID_RAID_NAME;
 }
 
+export function getRaidNameFromIngamebossId(ingameBossId: number) {
+    for (const raid of environment.currentContent.raids) {
+        for (const boss of raid.bosses) {
+            for (const key in boss.bossIdOfDifficulty) {
+                const difficulty = Number(
+                    key
+                ) as keyof typeof boss.bossIdOfDifficulty;
+
+                if (ingameBossId === boss.bossIdOfDifficulty[difficulty])
+                    return raid.name;
+            }
+        }
+    }
+    return false;
+}
+
 export function getTaskDueDate(
     interval: number,
     minDelay: number,

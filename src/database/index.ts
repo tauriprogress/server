@@ -33,6 +33,7 @@ import {
     getRaidBossBestOfClass,
     getRaidBossBestOfSpec,
     getNestedObjectValue,
+    getRaidNameFromIngamebossId,
 } from "../helpers";
 
 import { MongoClient, Db, ClientSession } from "mongodb";
@@ -57,6 +58,7 @@ import {
     RaidName,
     GuildLeaderboard,
     SpecId,
+    LeaderboardCharacterDocument,
 } from "../types";
 import {
     ERR_BOSS_NOT_FOUND,
@@ -69,6 +71,7 @@ import {
     updateCharacterDocumentRanks,
     updateRaidBossCache,
 } from "../DBTaskManger/tasks";
+import { createLeaderboardCharacterDocument } from "../helpers/documents/leaderboardCharacter";
 
 const raidSummaryLock = new Lock();
 
@@ -76,6 +79,8 @@ const collectionNames = {
     guilds: "Guilds",
     maintenance: "Maintenance",
     raidBosses: "RaidBosses",
+    characterLeaderboardDps: "CharacterLeaderboardDps",
+    characterLeaderboardHps: "CharacterLeaderboardHps",
 } as const;
 
 class DBInterface {
@@ -222,7 +227,7 @@ class DBInterface {
 
                     let combatMetric: keyof typeof characterPerformanceOfBoss[number];
                     for (combatMetric in characterPerformanceOfBoss[bossId]) {
-                        let characters = [];
+                        let characters: CharacterDocument[] = [];
                         for (const charId in characterPerformanceOfBoss[bossId][
                             combatMetric
                         ]) {
@@ -248,6 +253,16 @@ class DBInterface {
 
                         try {
                             await bossCollection.insertMany(characters);
+
+                            const raidName =
+                                getRaidNameFromIngamebossId(ingameBossId);
+                            if (raidName)
+                                await this.saveCharactersToLeaderboard(
+                                    characters,
+                                    raidName,
+                                    difficulty,
+                                    combatMetric
+                                );
                             this.updatedCharacterDocumentCollections.push(
                                 collectionName
                             );
@@ -285,6 +300,58 @@ class DBInterface {
             } catch (err) {
                 this.isUpdating = false;
                 reject(err);
+            }
+        });
+    }
+
+    saveCharactersToLeaderboard(
+        characters: CharacterDocument[],
+        raidName: RaidName,
+        difficulty: Difficulty,
+        combatMetric: CombatMetric
+    ) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                if (!this.connection) throw ERR_DB_CONNECTION;
+
+                const collection =
+                    this.connection.collection<LeaderboardCharacterDocument>(
+                        combatMetric === "dps"
+                            ? this.collections.characterLeaderboardDps
+                            : this.collections.characterLeaderboardHps
+                    );
+
+                await collection.bulkWrite(
+                    characters.map((character) => {
+                        const doc = createLeaderboardCharacterDocument(
+                            character,
+                            raidName,
+                            difficulty
+                        );
+                        return {
+                            updateOne: {
+                                filter: {
+                                    _id: doc._id,
+                                },
+                                update: {
+                                    $set: {
+                                        ...(({ ilvl, score, ...rest }) => {
+                                            return rest;
+                                        })(doc),
+                                    },
+                                    $max: {
+                                        score: doc.score,
+                                        ilvl: doc.ilvl,
+                                    },
+                                },
+                                upsert: true,
+                            },
+                        };
+                    })
+                );
+                resolve(true);
+            } catch (e) {
+                reject(e);
             }
         });
     }

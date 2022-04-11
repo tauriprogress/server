@@ -4,8 +4,6 @@ import {
     RaidName,
     Realm,
     SpecId,
-    ClassId,
-    LeaderboardType,
     RaidId,
     CombatMetric,
 } from "../types";
@@ -17,12 +15,10 @@ export function getCharacterId(name: string, realm: Realm, spec: SpecId) {
 export function getLeaderboardCharacterId(
     name: string,
     realm: Realm,
-    spec: SpecId | ClassId,
     raidName: RaidName,
-    difficulty: Difficulty,
-    leaderboardType: LeaderboardType
+    difficulty: Difficulty
 ) {
-    return `${name},${environment.shortRealms[realm]},${spec},${raidName},${difficulty},${leaderboardType}`;
+    return `${name},${environment.shortRealms[realm]},${raidName},${difficulty}`;
 }
 
 export function getGuildId(guildName: string, guildRealm: Realm) {
