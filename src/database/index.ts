@@ -308,7 +308,8 @@ class DBInterface {
         characters: CharacterDocument[],
         raidName: RaidName,
         difficulty: Difficulty,
-        combatMetric: CombatMetric
+        combatMetric: CombatMetric,
+        session?: ClientSession
     ) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -347,7 +348,8 @@ class DBInterface {
                                 upsert: true,
                             },
                         };
-                    })
+                    }),
+                    { session }
                 );
                 resolve(true);
             } catch (e) {
@@ -518,9 +520,9 @@ class DBInterface {
                     }
                 }
 
-                console.log("db: Saving chars");
+                console.log("Saving chars");
                 for (const bossCollectionName in operationsOfBossCollection) {
-                    console.log(`db: to ${bossCollectionName}`);
+                    console.log(`${bossCollectionName}`);
 
                     const bossCollection =
                         this.connection.collection<CharacterDocument>(
@@ -536,7 +538,38 @@ class DBInterface {
                     );
                 }
 
-                console.log("db: Saving chars done");
+                console.log("Saving chars done");
+
+                console.log("Saving characters to leaderboard.");
+                for (const bossId in characterPerformanceOfBoss) {
+                    for (const combatMetricKey in characterPerformanceOfBoss[
+                        bossId
+                    ]) {
+                        const combatMetric = combatMetricKey as CombatMetric;
+
+                        console.log(bossId, combatMetric);
+
+                        const [ingameBossId, difficulty] =
+                            getDeconstructedRaidBossId(bossId);
+                        const raidName =
+                            getRaidNameFromIngamebossId(ingameBossId);
+
+                        if (raidName)
+                            await this.saveCharactersToLeaderboard(
+                                Object.values(
+                                    characterPerformanceOfBoss[bossId][
+                                        combatMetric
+                                    ]
+                                ),
+                                raidName,
+                                difficulty,
+                                combatMetric,
+                                session
+                            );
+                    }
+                }
+
+                console.log("Characters saved to leaderboards.");
 
                 await this.connection
                     .collection<MaintenanceDocument>(
