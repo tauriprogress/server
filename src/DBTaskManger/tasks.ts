@@ -352,8 +352,6 @@ export function updateLeaderboardScores(db: Database) {
                                     ).difficulties;
                                     let result = [];
 
-                                    console.log(document.name);
-
                                     for (const difficulty of difficulties) {
                                         result.push({
                                             updateOne: {
