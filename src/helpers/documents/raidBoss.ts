@@ -78,6 +78,7 @@ export function addLogToRaidBossDocument(
                 );
                 raidBossDocument.fastestKills[realm]![faction] =
                     raidBossDocument.fastestKills[realm]![faction].slice(0, 50);
+                break;
             }
         }
     }
