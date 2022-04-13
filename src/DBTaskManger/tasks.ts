@@ -128,7 +128,7 @@ function updateGuilds(db: Database) {
             if (!db.connection) throw ERR_DB_CONNECTION;
             if (db.isUpdating) throw ERR_DB_ALREADY_UPDATING;
 
-            if (minutesAgo(db.lastGuildsUpdate) > 2800) {
+            if (minutesAgo(db.lastGuildsUpdate) > 720) {
                 const updateStarted = new Date().getTime() / 1000;
                 const maintenanceCollection =
                     db.connection.collection<MaintenanceDocument>(
@@ -141,7 +141,7 @@ function updateGuilds(db: Database) {
                 db.lastGuildsUpdate = updateStarted;
 
                 const guilds = (await db.connection
-                    .collection<GuildDocument>(db.collections.maintenance)
+                    .collection<GuildDocument>(db.collections.guilds)
                     .find()
                     .project({
                         _id: 1,
@@ -200,9 +200,10 @@ function updateGuilds(db: Database) {
                 db.updateStatus = "";
 
                 console.log("Guilds updated.");
+            } else {
+                console.log("Guild update is not due yet.");
             }
 
-            console.log("Guild update is not due yet.");
             resolve(true);
         } catch (e) {
             db.isUpdating = false;
