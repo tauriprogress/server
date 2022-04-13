@@ -28,5 +28,7 @@ export function createLeaderboardCharacterDocument(
         ilvl: character.ilvl,
         race: character.race,
         score: 0,
+
+        lastUpdated: 0,
     };
 }

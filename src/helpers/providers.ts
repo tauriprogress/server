@@ -73,8 +73,8 @@ export function getNestedObjectValue(
     }
 }
 
-export function minutesAgo(time: number) {
-    return Math.round((new Date().getTime() / 1000 - Number(time)) / 60);
+export function minutesAgo(seconds: number) {
+    return Math.round((new Date().getTime() / 1000 - Number(seconds)) / 60);
 }
 
 export function getLastLogIds<T extends { log_id: number; realm: Realm }>(

@@ -14,4 +14,13 @@ export interface LeaderboardCharacterDocument extends Document {
     name: string;
     realm: Realm;
     race: string;
+    lastUpdated: number;
+}
+
+export interface LeaderboardCharacterAggregated extends Document {
+    _id: string;
+    name: string;
+    realm: Realm;
+    class: ClassId;
+    raidName: RaidName;
 }

@@ -69,6 +69,7 @@ import {
 import { combatMetrics } from "../constants";
 import {
     updateCharacterDocumentRanks,
+    updateLeaderboardScores,
     updateRaidBossCache,
 } from "../DBTaskManger/tasks";
 import { createLeaderboardCharacterDocument } from "../helpers/documents/leaderboardCharacter";
@@ -290,7 +291,7 @@ class DBInterface {
                 );
 
                 await updateRaidBossCache(db);
-                await this.updateLeaderboard();
+                await updateLeaderboardScores(db);
 
                 this.isUpdating = false;
                 this.updateStatus = "";
@@ -336,13 +337,20 @@ class DBInterface {
                                 },
                                 update: {
                                     $set: {
-                                        ...(({ ilvl, score, ...rest }) => {
+                                        ...(({
+                                            ilvl,
+                                            score,
+                                            lastUpdated,
+                                            ...rest
+                                        }) => {
                                             return rest;
                                         })(doc),
                                     },
                                     $max: {
                                         score: doc.score,
                                         ilvl: doc.ilvl,
+                                        lastUpdated:
+                                            new Date().getTime() / 1000,
                                     },
                                 },
                                 upsert: true,
@@ -414,6 +422,50 @@ class DBInterface {
                     .findOne();
 
                 resolve(maintenance ? maintenance.lastGuildsUpdate : 0);
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+
+    async getLastLeaderboardUpdate(): Promise<number> {
+        return new Promise(async (resolve, reject) => {
+            try {
+                if (!this.connection) throw ERR_DB_CONNECTION;
+
+                const maintenance = await this.connection
+                    .collection<MaintenanceDocument>(
+                        this.collections.maintenance
+                    )
+                    .findOne();
+
+                resolve(maintenance ? maintenance.lastLeaderboardUpdate : 0);
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+
+    async saveLastLeaderboardUpdateDate(date: Date) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                if (!this.connection) throw ERR_DB_CONNECTION;
+
+                const collection =
+                    this.connection.collection<MaintenanceDocument>(
+                        this.collections.maintenance
+                    );
+
+                await collection.updateOne(
+                    {},
+                    {
+                        $set: {
+                            lastLeaderboardUpdate: date.getTime() / 1000,
+                        },
+                    }
+                );
+
+                resolve(true);
             } catch (err) {
                 reject(err);
             }
@@ -784,365 +836,6 @@ class DBInterface {
         });
     }
 
-    async updateLeaderboard() {
-        /*
-        await this.firstCacheLoad;
-
-        for (const combatMetric of ["dps", "hps"] as const) {
-            for (const raid of environment.currentContent.raids) {
-                let leaderboards: {
-                    overall?: CharacterLeaderboard;
-                    specs: { [propName: string]: CharacterLeaderboard };
-                    roles: { [propName: string]: CharacterLeaderboard };
-                } = {
-                    overall: {},
-                    roles: {},
-                    specs: {},
-                };
-                for (const difficulty of raid.difficulties) {
-                    let characters: {
-                        [propName: string]: {
-                            best: CharacterOfLeaderboard;
-                            specs: {
-                                [propName: string]: CharacterOfLeaderboard;
-                            };
-                            roles: {
-                                [propName: string]: CharacterOfLeaderboard;
-                            };
-                        };
-                    } = {};
-
-                    let bestRelativePerformance = 0;
-
-                    for (const bossInfo of raid.bosses) {
-                        let boss = cache.getRaidBoss(
-                            getRaidBossCacheId(raid.id, bossInfo.name)
-                        );
-
-                        if (!boss) continue;
-
-                        let charactersOfBoss: {
-                            [propName: string]: RankedCharacter[];
-                        } = {};
-                        let bestPerformanceOfBoss = 0;
-
-                        for (const character of boss[difficulty][
-                            combatMetric
-                        ]) {
-                            let currentPerformance = character[combatMetric];
-                            const charId = `${character.name},${character.realm},${character.class}`;
-
-                            if (!charactersOfBoss[charId]) {
-                                charactersOfBoss[charId] = [];
-                            }
-
-                            charactersOfBoss[charId].push(character);
-
-                            if (
-                                typeof currentPerformance === "number" &&
-                                currentPerformance > bestPerformanceOfBoss
-                            ) {
-                                bestPerformanceOfBoss = currentPerformance;
-                            }
-                        }
-
-                        for (const charId in charactersOfBoss) {
-                            let characterContainer = charactersOfBoss[charId];
-                            let bestOfCharacter:
-                                | CharacterOfLeaderboard
-                                | undefined;
-
-                            let bestOfRoles: {
-                                [propName: string]:
-                                    | CharacterOfLeaderboard
-                                    | undefined;
-                            } = {};
-
-                            for (const characterData of characterContainer) {
-                                const currentPerformance =
-                                    characterData[combatMetric];
-                                const currentPercent = currentPerformance
-                                    ? getRelativePerformance(
-                                          currentPerformance,
-                                          bestPerformanceOfBoss
-                                      )
-                                    : 0;
-
-                                const modifiedCharacter: CharacterOfLeaderboard =
-                                    {
-                                        _id: characterData._id,
-                                        class: characterData.class,
-                                        f: characterData.f,
-                                        ilvl: characterData.ilvl,
-                                        name: characterData.name,
-                                        realm: characterData.realm,
-                                        spec: characterData.spec,
-                                        topPercent: currentPercent,
-                                        date: characterData.date,
-                                        race: characterData.race,
-                                    };
-
-                                if (!bestOfCharacter) {
-                                    bestOfCharacter = modifiedCharacter;
-                                } else {
-                                    bestOfCharacter =
-                                        updateCharacterOfLeaderboard(
-                                            bestOfCharacter,
-                                            modifiedCharacter
-                                        );
-                                }
-
-                                let currentRoleChar =
-                                    bestOfRoles[
-                                        environment.specs[
-                                            String(
-                                                characterData.spec
-                                            ) as keyof typeof environment.specs
-                                        ].role
-                                    ];
-
-                                if (!currentRoleChar) {
-                                    bestOfRoles[
-                                        environment.specs[
-                                            String(
-                                                characterData.spec
-                                            ) as keyof typeof environment.specs
-                                        ].role
-                                    ] = modifiedCharacter;
-                                } else {
-                                    bestOfRoles[
-                                        environment.specs[
-                                            String(
-                                                characterData.spec
-                                            ) as keyof typeof environment.specs
-                                        ].role
-                                    ] = updateCharacterOfLeaderboard(
-                                        currentRoleChar,
-                                        modifiedCharacter
-                                    );
-                                }
-
-                                if (!characters[charId]) {
-                                    characters[charId] = {
-                                        best: {
-                                            ...bestOfCharacter,
-                                            topPercent: 0,
-                                        },
-                                        specs: {},
-                                        roles: {},
-                                    };
-                                }
-
-                                if (
-                                    !characters[charId].specs[
-                                        characterData.spec
-                                    ]
-                                ) {
-                                    characters[charId].specs[
-                                        characterData.spec
-                                    ] = modifiedCharacter;
-                                } else {
-                                    const updatedChar =
-                                        updateCharacterOfLeaderboard(
-                                            characters[charId].specs[
-                                                characterData.spec
-                                            ],
-                                            modifiedCharacter
-                                        );
-
-                                    const performance =
-                                        characters[charId].specs[
-                                            characterData.spec
-                                        ].topPercent +
-                                        modifiedCharacter.topPercent;
-
-                                    characters[charId].specs[
-                                        characterData.spec
-                                    ] = updatedChar;
-
-                                    characters[charId].specs[
-                                        characterData.spec
-                                    ].topPercent = performance;
-                                }
-                            }
-
-                            if (bestOfCharacter) {
-                                const updatedChar =
-                                    updateCharacterOfLeaderboard(
-                                        characters[charId].best,
-                                        bestOfCharacter
-                                    );
-
-                                const performance =
-                                    characters[charId].best.topPercent +
-                                    bestOfCharacter.topPercent;
-
-                                characters[charId].best = updatedChar;
-
-                                characters[charId].best.topPercent =
-                                    performance;
-
-                                if (performance > bestRelativePerformance) {
-                                    bestRelativePerformance = performance;
-                                }
-                            }
-
-                            for (const role in bestOfRoles) {
-                                let currentChar = bestOfRoles[role];
-                                if (currentChar) {
-                                    let prevOfRole = characters[charId].roles[
-                                        role
-                                    ] || { ...currentChar, topPercent: 0 };
-
-                                    const updatedChar =
-                                        updateCharacterOfLeaderboard(
-                                            prevOfRole,
-                                            currentChar
-                                        );
-
-                                    const performance =
-                                        prevOfRole.topPercent +
-                                        currentChar.topPercent;
-
-                                    characters[charId].roles[role] =
-                                        updatedChar;
-
-                                    characters[charId].roles[role].topPercent =
-                                        performance;
-                                }
-                            }
-                        }
-                        runGC();
-                        await sleep(150);
-                    }
-                    if (!leaderboards.overall) {
-                        leaderboards.overall = {};
-                    }
-                    if (!leaderboards.overall[difficulty]) {
-                        leaderboards.overall[difficulty] = [];
-                    }
-
-                    for (const charId in characters) {
-                        characters[charId].best.topPercent =
-                            getRelativePerformance(
-                                characters[charId].best.topPercent,
-                                bestRelativePerformance
-                            );
-
-                        leaderboards.overall[difficulty].push(
-                            characters[charId].best
-                        );
-
-                        for (const specId in characters[charId].specs) {
-                            if (!leaderboards.specs[specId]) {
-                                leaderboards.specs[specId] = {};
-                            }
-
-                            if (!leaderboards.specs[specId][difficulty]) {
-                                leaderboards.specs[specId][difficulty] = [];
-                            }
-
-                            characters[charId].specs[specId].topPercent =
-                                getRelativePerformance(
-                                    characters[charId].specs[specId].topPercent,
-                                    bestRelativePerformance
-                                );
-
-                            leaderboards.specs[specId][difficulty].push(
-                                characters[charId].specs[specId]
-                            );
-                        }
-
-                        for (const role in characters[charId].roles) {
-                            if (!leaderboards.roles[role]) {
-                                leaderboards.roles[role] = {};
-                            }
-
-                            if (!leaderboards.roles[role][difficulty]) {
-                                leaderboards.roles[role][difficulty] = [];
-                            }
-
-                            characters[charId].roles[role].topPercent =
-                                getRelativePerformance(
-                                    characters[charId].roles[role].topPercent,
-                                    bestRelativePerformance
-                                );
-
-                            leaderboards.roles[role][difficulty].push(
-                                characters[charId].roles[role]
-                            );
-                        }
-                    }
-
-                    leaderboards.overall[difficulty].sort(
-                        (a, b) => b.topPercent - a.topPercent
-                    );
-
-                    for (const specId in leaderboards.specs) {
-                        if (!!leaderboards.specs[specId][difficulty]) {
-                            leaderboards.specs[specId][difficulty].sort(
-                                (a, b) => b.topPercent - a.topPercent
-                            );
-                        }
-                    }
-
-                    for (const role in leaderboards.roles) {
-                        if (!!leaderboards.roles[role][difficulty]) {
-                            leaderboards.roles[role][difficulty].sort(
-                                (a, b) => b.topPercent - a.topPercent
-                            );
-                        }
-                    }
-                }
-
-                const overallLeaderboardId = getLeaderboardCacheId(
-                    raid.id,
-                    combatMetric
-                );
-
-                cache.characterLeaderboard.set(
-                    overallLeaderboardId,
-                    leaderboards.overall
-                );
-
-                delete leaderboards.overall;
-
-                for (let specId in leaderboards.specs) {
-                    const currentLeaderboardId = getLeaderboardCacheId(
-                        raid.id,
-                        combatMetric,
-                        specId
-                    );
-
-                    cache.characterLeaderboard.set(
-                        currentLeaderboardId,
-                        leaderboards.specs[specId]
-                    );
-
-                    delete leaderboards.specs[specId];
-                    runGC();
-                }
-
-                for (let role in leaderboards.roles) {
-                    const currentLeaderboardId = getLeaderboardCacheId(
-                        raid.id,
-                        combatMetric,
-                        role
-                    );
-
-                    cache.characterLeaderboard.set(
-                        currentLeaderboardId,
-                        leaderboards.roles[role]
-                    );
-
-                    delete leaderboards.specs[role];
-                    runGC();
-                }
-            }
-        }
-        */
-    }
-
     async getGuildList(): Promise<GuildList> {
         return new Promise(async (resolve, reject) => {
             try {
@@ -1368,6 +1061,7 @@ class DBInterface {
             resolve();
         });
     }
+
     async getGuildLeaderboard(): Promise<GuildLeaderboard> {
         return new Promise(async (resolve, reject) => {
             try {
@@ -1726,9 +1420,7 @@ class DBInterface {
                             cacheId,
                             characterPerformance
                         );
-                    } catch (err) {
-                        console.log("db: Character cache is full");
-                    }
+                    } catch (err) {}
 
                     resolve(characterPerformance);
 

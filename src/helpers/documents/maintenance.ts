@@ -8,5 +8,6 @@ export function createMaintenanceDocument(): MaintenanceDocument {
         lastGuildsUpdate: 0,
         lastLogIds: {},
         isInitalized: true,
+        lastLeaderboardUpdate: 0,
     };
 }
