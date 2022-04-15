@@ -83,30 +83,35 @@ export function addLogToRaidBossDocument(
         }
     }
 
-    const firstExists = !!getNestedObjectValue(
+    const oldFirstKills = getNestedObjectValue(
         raidBossDocument.firstKills,
         logCategorization
     );
 
-    if (!firstExists) {
+    if (!oldFirstKills) {
         raidBossDocument.firstKills = addNestedObjectValue(
             raidBossDocument.firstKills,
             logCategorization,
             [trimmedLog]
         );
-    } else {
+    } else if (oldFirstKills.length < 3) {
         const arr = raidBossDocument.firstKills[realm]![faction];
         for (let i = 0; i < arr.length; i++) {
-            if (trimmedLog.date < arr[i].date) {
+            if (i === arr.length - 1) {
+                raidBossDocument.firstKills[realm]![faction].push(trimmedLog);
+                break;
+            } else if (trimmedLog.date < arr[i].date) {
                 raidBossDocument.firstKills[realm]![faction].splice(
                     i,
                     0,
                     trimmedLog
                 );
-                raidBossDocument.firstKills[realm]![faction] =
-                    raidBossDocument.firstKills[realm]![faction].slice(0, 3);
+
+                break;
             }
         }
+        raidBossDocument.firstKills[realm]![faction] =
+            raidBossDocument.firstKills[realm]![faction].slice(0, 3);
     }
 
     return raidBossDocument;
