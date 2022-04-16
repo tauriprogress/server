@@ -160,7 +160,7 @@ export function verifyGetBossKillCount(
     }
 }
 
-export function verifyGetBossRecentKills(
+export function verifyGetBossLatestKills(
     req: Request,
     res: Response,
     next: NextFunction

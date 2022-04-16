@@ -941,7 +941,7 @@ class DBInterface {
         });
     }
 
-    async getRaidBossRecentKills(
+    async getRaidBossLatestKills(
         ingameBossId: number,
         difficulty: Difficulty
     ): Promise<TrimmedLog[]> {
@@ -951,7 +951,7 @@ class DBInterface {
 
                 resolve(
                     (await this.getRaidBoss(ingameBossId, difficulty))
-                        .recentKills
+                        .latestKills
                 );
             } catch (err) {
                 reject(err);

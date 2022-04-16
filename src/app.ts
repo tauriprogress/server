@@ -11,7 +11,7 @@ import {
     verifyGetCharacter,
     verifyGetRaidSummary,
     verifyGetBossKillCount,
-    verifyGetBossRecentKills,
+    verifyGetBossLatestKills,
     verifyGetBossFastestKills,
     verifyGetBossCharacters,
     verifyGetLog,
@@ -187,15 +187,15 @@ const speedLimiter = slowDown({
     );
 
     app.post(
-        "/getboss/recentKills",
+        "/getboss/latestKills",
         waitDbCache,
-        verifyGetBossRecentKills,
+        verifyGetBossLatestKills,
         async (req, res) => {
             try {
                 res.send({
                     success: true,
                     response: {
-                        recentKills: await db.getRaidBossRecentKills(
+                        recentKills: await db.getRaidBossLatestKills(
                             req.body.ingameBossId,
                             req.body.difficulty
                         ),
