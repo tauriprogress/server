@@ -1042,7 +1042,9 @@ class DBInterface {
                             },
                             {
                                 $addFields: {
-                                    itemCount: "$$CURRENT.itemCount.n",
+                                    itemCount: {
+                                        $first: "$$CURRENT.itemCount.n",
+                                    },
                                 },
                             },
                         ])
