@@ -362,12 +362,17 @@ const speedLimiter = slowDown({
         "/leaderboard/character",
         waitDbCache,
         verifyCharacterLeaderboard,
-        async (_, res) => {
+        async (req, res) => {
             try {
-                let data = await db.getCharacterLeaderboard();
                 res.send({
                     success: true,
-                    response: data,
+                    response: await db.getCharacterLeaderboard(
+                        req.body.raidName,
+                        req.body.combatMetric,
+                        req.body.filters,
+                        req.body.page,
+                        req.body.pageSize
+                    ),
                 });
             } catch (err) {
                 res.send({

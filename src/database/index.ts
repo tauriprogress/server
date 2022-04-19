@@ -1058,9 +1058,73 @@ class DBInterface {
         });
     }
 
-    async getCharacterLeaderboard(): Promise<void> {
-        return new Promise(async (resolve) => {
-            resolve();
+    async getCharacterLeaderboard(
+        raidName: RaidName,
+        combatMetric: CombatMetric,
+        filters: Filters,
+        page: number,
+        pageSize: number
+    ) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                if (!this.connection) throw ERR_DB_CONNECTION;
+
+                const collection =
+                    this.connection.collection<LeaderboardCharacterDocument>(
+                        combatMetric === "dps"
+                            ? this.collections.characterLeaderboardDps
+                            : this.collections.characterLeaderboardHps
+                    );
+
+                const matchQuery = {
+                    ...filtersToAggregationMatchQuery(filters),
+                    difficulty: filters.difficulty,
+                    raidName: raidName,
+                };
+                const sort = { score: -1 };
+                const skip = pageSize * page;
+                const limit = pageSize;
+
+                const result = (
+                    await collection
+                        .aggregate([
+                            {
+                                $facet: {
+                                    characters: [
+                                        { $match: matchQuery },
+                                        { $sort: sort },
+                                        { $skip: skip },
+                                        { $limit: limit },
+                                    ],
+                                    itemCount: [
+                                        { $match: matchQuery },
+                                        {
+                                            $group: {
+                                                _id: null,
+                                                n: { $sum: 1 },
+                                            },
+                                        },
+                                    ],
+                                },
+                            },
+                            {
+                                $addFields: {
+                                    itemCount: {
+                                        $first: "$$CURRENT.itemCount.n",
+                                    },
+                                },
+                            },
+                        ])
+                        .toArray()
+                )[0] as {
+                    characters: LeaderboardCharacterDocument[];
+                    itemCount: number;
+                };
+
+                resolve(result);
+            } catch (e) {
+                reject(e);
+            }
         });
     }
 
