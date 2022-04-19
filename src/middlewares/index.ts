@@ -18,12 +18,14 @@ import {
     validItemids,
     isError,
     validIngameBossId,
+    validDifficulty,
 } from "../helpers";
 import {
     ERR_INVALID_BOSS_ID,
     ERR_INVALID_CHARACTER_CLASS,
     ERR_INVALID_CHARACTER_NAME,
     ERR_INVALID_COMBAT_METRIC,
+    ERR_INVALID_DIFFICULTY,
     ERR_INVALID_FILTERS,
     ERR_INVALID_GUILD_NAME,
     ERR_INVALID_ITEM_IDS,
@@ -34,6 +36,8 @@ import {
     ERR_INVALID_RAID_ID,
     ERR_INVALID_RAID_NAME,
 } from "../helpers/errors";
+import { raidNameId } from "tauriprogress-constants";
+import { RaidName } from "../types";
 
 export async function waitDbCache(
     req: Request,
@@ -285,15 +289,28 @@ export function verifyCharacterRecentKills(
 }
 
 export function verifyCharacterLeaderboard(
-    _: Request,
+    req: Request,
     res: Response,
     next: NextFunction
 ) {
     try {
-        /*
-        if (!validLeaderboardId(req.body.dataId))
-            throw ERR_INVALID_LEADERBOARD_ID;
-        */
+        if (!validRaidName(req.body.raidName)) throw ERR_INVALID_RAID_NAME;
+        const raidId = raidNameId[req.body.raidName as RaidName];
+
+        if (!validFilters(raidId, req.body.filters)) throw ERR_INVALID_FILTERS;
+        if (!validDifficulty(raidId, req.body.filters.difficulty))
+            throw ERR_INVALID_DIFFICULTY;
+
+        if (!validCombatMetric(req.body.combatMetric))
+            throw ERR_INVALID_COMBAT_METRIC;
+
+        if (!validPage(req.body.page)) throw ERR_INVALID_PAGE;
+
+        if (!validPageSize(req.body.pageSize)) throw ERR_INVALID_PAGESIZE;
+
+        if (!validRealm(req.body.realm)) {
+            req.body.realm = environment.defaultRealm;
+        }
         next();
     } catch (err) {
         res.send({

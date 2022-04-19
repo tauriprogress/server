@@ -199,7 +199,7 @@ export function validFilters(raidId: number, filters: any) {
             return false;
         }
 
-        if (filters.realm !== undefined && !validShortRealm(filters.realm)) {
+        if (filters.realm !== undefined && !validRealm(filters.realm)) {
             return false;
         }
 
