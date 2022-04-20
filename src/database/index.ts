@@ -1452,6 +1452,20 @@ class DBInterface {
                                     bestOfCharacter,
                                     bestOfClass
                                 );
+
+                                addToPerformance(
+                                    [
+                                        ...categorization.slice(
+                                            0,
+                                            categorization.length - 1
+                                        ),
+                                        "total",
+                                    ],
+                                    "all",
+                                    combatMetric,
+                                    bestOfCharacter,
+                                    currentBest
+                                );
                             }
                         }
                     }
