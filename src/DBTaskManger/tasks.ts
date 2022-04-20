@@ -367,8 +367,7 @@ export function updateLeaderboardScores(db: Database) {
                                                     $set: {
                                                         score: characterPerformance[
                                                             document.raidName
-                                                        ][difficulty].total
-                                                            .class[
+                                                        ][difficulty].total.all[
                                                             combatMetric
                                                         ],
                                                     },
