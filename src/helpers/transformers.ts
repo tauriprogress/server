@@ -227,7 +227,7 @@ export function filtersToAggregationMatchQuery(filters: Filters) {
         matchQuery.class = filters.class;
     }
 
-    if (filters.faction) {
+    if (typeof filters.faction === "number") {
         matchQuery.f = filters.faction;
     }
     if (filters.realm) {
