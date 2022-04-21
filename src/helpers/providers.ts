@@ -9,6 +9,10 @@ import {
     CharacterDocument,
     ClassId,
     SpecId,
+    CharacterPerformance,
+    RaidName,
+    Difficulty,
+    CombatMetric,
 } from "../types";
 import {
     ERR_INVALID_BOSS_NAME,
@@ -197,4 +201,31 @@ export function getCharacterDocumentRankBulkwriteOperations(
             },
         };
     });
+}
+
+export function getFactionFromCharacterPerformance(
+    characterPerformance: CharacterPerformance,
+    raidName: RaidName,
+    difficulty: Difficulty,
+    combatMetric: CombatMetric
+): Faction {
+    let faction: Faction = 1;
+    let recentDate = 0;
+    const bosses = getRaidInfoFromName(raidName).bosses;
+    for (const boss of bosses) {
+        const bossPerformance =
+            characterPerformance[raidName][difficulty][boss.name];
+
+        for (const keyString in bossPerformance) {
+            const key = keyString as keyof typeof bossPerformance;
+            const document = bossPerformance[key][combatMetric];
+            if (typeof document === "number" || !document.performance) continue;
+
+            if (document.date > recentDate) {
+                recentDate = document.date;
+                faction = document.f;
+            }
+        }
+    }
+    return faction;
 }

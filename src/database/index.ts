@@ -341,6 +341,7 @@ class DBInterface {
                                             ilvl,
                                             score,
                                             lastUpdated,
+                                            f,
                                             ...rest
                                         }) => {
                                             return rest;
@@ -351,6 +352,9 @@ class DBInterface {
                                         ilvl: doc.ilvl,
                                         lastUpdated:
                                             new Date().getTime() / 1000,
+                                    },
+                                    $setOnInsert: {
+                                        f: doc.f,
                                     },
                                 },
                                 upsert: true,
@@ -598,8 +602,6 @@ class DBInterface {
                         bossId
                     ]) {
                         const combatMetric = combatMetricKey as CombatMetric;
-
-                        console.log(bossId, combatMetric);
 
                         const [ingameBossId, difficulty] =
                             getDeconstructedRaidBossId(bossId);
