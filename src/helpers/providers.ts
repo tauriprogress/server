@@ -126,6 +126,7 @@ export function getRelativePerformance(
     currentPerformance: number,
     bestPerformance: number
 ) {
+    if (currentPerformance === 0 || bestPerformance === 0) return 0;
     return Math.round((currentPerformance / bestPerformance) * 1000) / 10;
 }
 
