@@ -342,6 +342,7 @@ class DBInterface {
                                             score,
                                             lastUpdated,
                                             f,
+                                            race,
                                             ...rest
                                         }) => {
                                             return rest;
@@ -355,6 +356,7 @@ class DBInterface {
                                     },
                                     $setOnInsert: {
                                         f: doc.f,
+                                        race: doc.race,
                                     },
                                 },
                                 upsert: true,

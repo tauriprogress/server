@@ -203,14 +203,15 @@ export function getCharacterDocumentRankBulkwriteOperations(
     });
 }
 
-export function getFactionFromCharacterPerformance(
+export function getPropertiesFromCharacterPerformance(
     characterPerformance: CharacterPerformance,
     raidName: RaidName,
     difficulty: Difficulty,
     combatMetric: CombatMetric
-): Faction {
-    let faction: Faction = 1;
+): { f: Faction; race: string } | { f: Faction } {
+    let f: Faction = 1;
     let recentDate = 0;
+    let race;
     const bosses = getRaidInfoFromName(raidName).bosses;
     for (const boss of bosses) {
         const bossPerformance =
@@ -223,9 +224,13 @@ export function getFactionFromCharacterPerformance(
 
             if (document.date > recentDate) {
                 recentDate = document.date;
-                faction = document.f;
+                f = document.f;
+                race = document.race;
             }
         }
     }
-    return faction;
+    if (race) {
+        return { f, race };
+    }
+    return { f };
 }

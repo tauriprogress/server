@@ -29,7 +29,7 @@ import {
     getDeconstructedCharacterDocumentCollectionId,
     getRaidInfoFromName,
     getLeaderboardCharacterId,
-    getFactionFromCharacterPerformance,
+    getPropertiesFromCharacterPerformance,
 } from "../helpers";
 import { combatMetrics } from "../constants";
 
@@ -354,13 +354,6 @@ export function updateLeaderboardScores(db: Database) {
                                     let result = [];
 
                                     for (const difficulty of difficulties) {
-                                        const faction =
-                                            getFactionFromCharacterPerformance(
-                                                characterPerformance,
-                                                document.raidName,
-                                                difficulty,
-                                                combatMetric
-                                            );
                                         result.push({
                                             updateOne: {
                                                 filter: {
@@ -378,7 +371,12 @@ export function updateLeaderboardScores(db: Database) {
                                                         ][difficulty].total.all[
                                                             combatMetric
                                                         ],
-                                                        f: faction,
+                                                        ...getPropertiesFromCharacterPerformance(
+                                                            characterPerformance,
+                                                            document.raidName,
+                                                            difficulty,
+                                                            combatMetric
+                                                        ),
                                                     },
                                                 },
                                             },
