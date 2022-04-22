@@ -1,23 +1,26 @@
-import * as constants from "tauriprogress-constants";
+import constants, { realmGroups } from "tauriprogress-constants";
 
 import * as dotenv from "dotenv";
 dotenv.config();
 
 const defaultPort = 3001;
 
-const realmGroups = {
-    tauri: "",
-    crystalsong: ""
-};
+type RealmGroup = typeof realmGroups[number];
 
-type realmGroupType = keyof typeof realmGroups;
+function isRealmGroup(str: string): str is RealmGroup {
+    let index = -1;
+    for (let i = 0; i < realmGroups.length; i++) {
+        const realmGroup = realmGroups[i];
+        if (realmGroup === str) {
+            index = i;
+        }
+    }
 
-function isRealmGroup(x: string): x is realmGroupType {
-    return realmGroups.hasOwnProperty(x);
+    return index > -1 ? true : false;
 }
 
 class Environment {
-    readonly REALM_GROUP: realmGroupType;
+    readonly REALM_GROUP: RealmGroup;
     readonly TAURI_API_KEY: string;
     readonly TAURI_API_SECRET: string;
     readonly MONGODB_USER: string;
@@ -25,21 +28,22 @@ class Environment {
     readonly MONGODB_ADDRESS: string;
     readonly PORT: number;
 
-    readonly defaultRealm: string;
+    readonly defaultRealm;
     readonly realms;
     readonly characterClassNames;
     readonly shortRealms;
     readonly currentContent;
-    readonly characterRaceToFaction;
+    readonly characterRaceFaction;
     readonly specs;
-    readonly characterSpecToClass;
+    readonly characterSpecClass;
     readonly logBugs;
     readonly guildFactionBugs;
-    readonly characterClassToSpec;
+    readonly characterClassSpecs;
     readonly difficultyNames;
     readonly forceInit;
     readonly seasonal;
     readonly seasons;
+    readonly maxCharacterScore;
 
     constructor() {
         if (process.env.FORCE_INIT && process.env.FORCE_INIT === "true") {
@@ -110,87 +114,41 @@ class Environment {
             this.PORT = defaultPort;
         }
 
-        if (this.REALM_GROUP === "tauri") {
-            this.realms = constants.tauri.realms;
+        const realmGroupEnv =
+            this.REALM_GROUP === "tauri"
+                ? constants.tauri
+                : constants.crystalsong;
 
-            this.defaultRealm =
-                constants.tauri.realms[
-                    Object.keys(
-                        constants.tauri.realms
-                    )[0] as keyof typeof constants.tauri.realms
-                ];
-
-            this.characterClassNames = constants.tauri.characterClassNames;
-
-            this.specs = constants.tauri.specs;
-
-            this.logBugs = constants.tauri.logBugs;
-
-            this.guildFactionBugs = constants.tauri.guildFactionBugs;
-
-            this.difficultyNames = constants.tauri.difficultyNames;
-
-            this.seasons = constants.tauri.seasons;
-        } else {
-            this.realms = constants.crystalsong.realms;
-
-            this.defaultRealm =
-                constants.crystalsong.realms[
-                    Object.keys(
-                        constants.crystalsong.realms
-                    )[0] as keyof typeof constants.crystalsong.realms
-                ];
-
-            this.characterClassNames =
-                constants.crystalsong.characterClassNames;
-
-            this.specs = constants.crystalsong.specs;
-
-            this.logBugs = constants.crystalsong.logBugs;
-
-            this.guildFactionBugs = constants.crystalsong.guildFactionBugs;
-
-            this.difficultyNames = constants.crystalsong.difficultyNames;
-
-            this.seasons = constants.crystalsong.seasons;
-        }
+        this.realms = realmGroupEnv.realms;
+        this.characterClassNames = realmGroupEnv.characterClassNames;
+        this.specs = realmGroupEnv.specs;
+        this.logBugs = realmGroupEnv.logBugs;
+        this.guildFactionBugs = realmGroupEnv.guildFactionBugs;
+        this.difficultyNames = realmGroupEnv.difficultyNames;
+        this.seasons = realmGroupEnv.seasons;
+        this.defaultRealm = realmGroupEnv.realms[0];
 
         this.shortRealms = constants.shortRealms;
-
-        this.characterRaceToFaction = constants.characterRaceToFaction;
-
-        this.characterSpecToClass = constants.characterSpecToClass;
-
-        this.characterClassToSpec = constants.characterClassToSpec;
+        this.characterRaceFaction = constants.characterRaceFaction;
+        this.characterSpecClass = constants.characterSpecClass;
+        this.characterClassSpecs = constants.characterClassSpecs;
+        this.maxCharacterScore = constants.maxCharacterScore;
 
         if (process.env.SEASONAL && process.env.SEASONAL === "true") {
             this.seasonal = true;
 
-            if (this.REALM_GROUP === "tauri") {
-                const currentContent = {
-                    ...constants.tauri.currentContent,
-                    raids: [constants.tauri.currentContent.raids[0]]
-                };
-                this.currentContent = currentContent;
-            } else {
-                const currentContent = {
-                    ...constants.crystalsong.currentContent,
-                    raids: [constants.crystalsong.currentContent.raids[0]]
-                };
-                this.currentContent = currentContent;
-            }
+            const currentContent = {
+                ...realmGroupEnv.currentContent,
+                raids: [realmGroupEnv.currentContent.raids[0]],
+            };
+
+            this.currentContent = currentContent;
         } else {
             this.seasonal = false;
-
-            if (this.REALM_GROUP === "tauri") {
-                this.currentContent = constants.tauri.currentContent;
-            } else {
-                this.currentContent = constants.crystalsong.currentContent;
-            }
+            this.currentContent = realmGroupEnv.currentContent;
         }
     }
 }
 
 const environment = new Environment();
-
-export { environment };
+export default environment;

@@ -1,94 +1,107 @@
-import { environment } from "../environment";
+import environment from "../environment";
 import cache from "./cache";
 
 import {
-    getBossCollectionName,
-    getLogs,
+    getLogData,
     processLogs,
     logBugHandler,
-    updateRaidBoss,
-    requestGuildData,
-    getRecentGuildRaidDays,
-    getGuildContentCompletion,
-    updateGuildData,
-    minutesAgo,
     getRaidInfoFromId,
-    getBossInfo,
-    applyCharacterPerformanceRanks,
-    getRaidBossCacheId,
     getRelativePerformance,
-    getLeaderboardCacheId,
-    updateCharacterOfLeaderboard,
     getRaidInfoFromName,
     capitalize,
-    getCharacterId,
     addNestedObjectValue,
-    getNestedObjectValue,
-    addToCharTotalPerformance,
-    updateGuildRanking,
     runGC,
-    getDefaultBoss,
-    getRaidBossId,
-    applyCharacterFilters,
-    isError,
-    sleep,
     Lock,
     getRaidBossSummary,
-    loadLogsFromFile,
-    getLastLogsIdsFromFile,
     writeLogsToFile,
     updateLastLogIdsOfFile,
+    createMaintenanceDocument,
+    getRaidBossId,
+    createRaidBossDocument,
+    getCharacterDocumentCollectionId,
+    areLogsSaved,
+    updateRaidBossDocument,
+    updateGuildDocument,
+    requestGuildDocument,
+    createGuildDocument,
+    getDeconstructedRaidBossId,
+    getGuildId,
+    filtersToAggregationMatchQuery,
+    getRaidSummaryCacheId,
+    getCharacterPerformanceCacheId,
+    getCharacterId,
+    getRaidBossBestOfClass,
+    getRaidBossBestOfSpec,
+    getNestedObjectValue,
+    getRaidNameFromIngamebossId,
 } from "../helpers";
 
-import { MongoClient, Db, ClientSession, ObjectId, ReadConcern } from "mongodb";
+import { MongoClient, Db, ClientSession } from "mongodb";
 import {
-    DbMaintenance,
-    RaidLogWithRealm,
-    RaidBoss,
-    DbRaidBoss,
-    Guild,
     LastLogIds,
-    RaidBossDataToServe,
-    DbRaidBossDataResponse,
     LooseObject,
-    CharacterLeaderboard,
-    RankedCharacter,
-    CharacterOfLeaderboard,
-    RaidSummary,
     CharacterPerformance,
-    CharPerfBossData,
     TrimmedLog,
-    Filters,
     CombatMetric,
     GuildList,
+    Difficulty,
+    MaintenanceDocument,
+    CharacterDocument,
+    RaidBossDocument,
+    GuildDocument,
+    Realm,
+    Faction,
+    Filters,
+    RaidSummary,
+    RaidId,
+    ClassId,
+    RaidName,
     GuildLeaderboard,
+    SpecId,
+    LeaderboardCharacterDocument,
 } from "../types";
 import {
-    ERR_DATA_NOT_EXIST,
+    ERR_BOSS_NOT_FOUND,
     ERR_DB_CONNECTION,
-    ERR_DB_UPDATING,
+    ERR_DB_ALREADY_UPDATING,
     ERR_GUILD_NOT_FOUND,
-    ERR_LOADING,
 } from "../helpers/errors";
+import { combatMetrics } from "../constants";
+import {
+    updateCharacterDocumentRanks,
+    updateLeaderboardScores,
+    updateRaidBossCache,
+} from "../DBTaskManger/tasks";
+import { createLeaderboardCharacterDocument } from "../helpers/documents/leaderboardCharacter";
 
 const raidSummaryLock = new Lock();
 
-class Database {
-    public db: Db | undefined;
+const collectionNames = {
+    guilds: "Guilds",
+    maintenance: "Maintenance",
+    raidBosses: "RaidBosses",
+    characterLeaderboardDps: "CharacterLeaderboardDps",
+    characterLeaderboardHps: "CharacterLeaderboardHps",
+} as const;
 
-    private client: MongoClient | undefined;
+class DBInterface {
+    public connection: Db | undefined;
+    public client: MongoClient | undefined;
 
     public lastUpdated: number;
     public isUpdating: boolean;
     public updateStatus: string;
-    private lastGuildsUpdate: number;
+    public lastGuildsUpdate: number;
+    public collections: typeof collectionNames;
+    public updatedRaidBosses: ReturnType<typeof getRaidBossId>[];
+    public updatedCharacterDocumentCollections: ReturnType<
+        typeof getCharacterDocumentCollectionId
+    >[];
 
     public firstCacheLoad: false | true | Promise<true>;
 
-    private updatedRaidBosses: { raidId: number; name: string }[];
-
     constructor() {
-        this.db = undefined;
+        this.connection = undefined;
         this.client = undefined;
 
         this.lastUpdated = 0;
@@ -97,9 +110,10 @@ class Database {
         this.updateStatus = "";
         this.firstCacheLoad = false;
         this.updatedRaidBosses = [];
-    }
+        this.updatedCharacterDocumentCollections = [];
 
-    checkConnection() {}
+        this.collections = collectionNames;
+    }
 
     async connect() {
         try {
@@ -107,9 +121,10 @@ class Database {
             const client = new MongoClient(
                 `mongodb+srv://${environment.MONGODB_USER}:${environment.MONGODB_PASSWORD}@${environment.MONGODB_ADDRESS}`
             );
-            this.client = await client.connect();
+            await client.connect();
 
-            this.db = this.client.db("tauriprogress");
+            this.client = client;
+            this.connection = this.client.db("tauriprogress");
 
             this.lastUpdated = 0;
             this.lastGuildsUpdate = await this.getLastGuildsUpdate();
@@ -121,70 +136,46 @@ class Database {
     async initalizeDatabase(): Promise<true> {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!this.db) throw ERR_DB_CONNECTION;
+                if (!this.connection) throw ERR_DB_CONNECTION;
+                if (this.isUpdating) throw ERR_DB_ALREADY_UPDATING;
 
-                console.log("db: Initalizing database");
-                this.db.dropDatabase();
+                console.log("Initalizing database.");
+                await this.connection.dropDatabase();
 
-                console.log("db: Creating maintenance collection");
-                const maintenanceCollection = await this.db.collection(
-                    "maintenance"
+                const maintenanceCollection = this.connection.collection(
+                    this.collections.maintenance
                 );
 
-                if (await maintenanceCollection.findOne({}))
-                    await maintenanceCollection.deleteMany({});
+                maintenanceCollection.insertOne(createMaintenanceDocument());
 
-                const defaultMaintenance: DbMaintenance = {
-                    _id: new ObjectId(),
-                    lastUpdated: 0,
-                    lastGuildsUpdate: 0,
-                    lastLogIds: {},
-                    isInitalized: true,
-                };
-
-                maintenanceCollection.insertOne(defaultMaintenance);
-
-                console.log("db: Creating guilds collection");
-                const guildsCollection = await this.db.collection("guilds");
-                if (await guildsCollection.findOne({}))
-                    await guildsCollection.deleteMany({});
-
-                console.log(`db: Creating collections for raids and bosses`);
                 for (const raid of environment.currentContent.raids) {
-                    const raidCollection = await this.db.collection(
-                        String(raid.id)
-                    );
-
-                    if (await raidCollection.findOne({}))
-                        await raidCollection.deleteMany({});
-
                     for (const boss of raid.bosses) {
-                        for (const difficulty in boss.difficultyIds) {
+                        for (const difficulty in boss.bossIdOfDifficulty) {
+                            const ingameBossId =
+                                boss.bossIdOfDifficulty[
+                                    difficulty as keyof typeof boss.bossIdOfDifficulty
+                                ];
                             await this.saveRaidBoss(
-                                getDefaultBoss(
-                                    getRaidBossId(
-                                        boss.difficultyIds[
-                                            difficulty as keyof typeof boss.difficultyIds
-                                        ],
-                                        Number(difficulty)
-                                    ),
+                                createRaidBossDocument(
                                     raid.id,
+                                    getRaidBossId(
+                                        ingameBossId,
+                                        Number(difficulty) as Difficulty
+                                    ),
                                     boss.name,
-                                    Number(difficulty)
+                                    Number(difficulty) as Difficulty
                                 )
                             );
 
                             for (const combatMetric of ["dps", "hps"]) {
-                                const collectionName = getBossCollectionName(
-                                    boss.difficultyIds[
-                                        difficulty as keyof typeof boss.difficultyIds
-                                    ],
-                                    Number(difficulty),
-                                    combatMetric
-                                );
-                                const bossCollection = await this.db.collection(
-                                    collectionName
-                                );
+                                const collectionName =
+                                    getCharacterDocumentCollectionId(
+                                        ingameBossId,
+                                        Number(difficulty),
+                                        combatMetric
+                                    );
+                                const bossCollection =
+                                    this.connection.collection(collectionName);
 
                                 if (await bossCollection.findOne({}))
                                     await bossCollection.deleteMany({});
@@ -193,8 +184,119 @@ class Database {
                     }
                 }
 
-                await this.updateDatabase(true);
-                console.log("db: Initalization done.");
+                const updateStarted = new Date().getTime() / 1000;
+                this.isUpdating = true;
+                this.updateStatus = "Database is updating.";
+                this.lastUpdated = updateStarted;
+                const lastLogIds = {};
+
+                let { logs, lastLogIds: newLastLogIds } = await getLogData(
+                    true,
+                    lastLogIds
+                );
+
+                logs = logBugHandler(logs);
+
+                if (!areLogsSaved()) {
+                    console.log(
+                        "Saving logs in case something goes wrong in the initalization process."
+                    );
+                    writeLogsToFile(logs);
+                    updateLastLogIdsOfFile(newLastLogIds);
+                }
+
+                console.log("Processing logs.");
+                const { bosses, guilds, characterPerformanceOfBoss } =
+                    processLogs(logs);
+
+                console.log("Saving raid bosses.");
+                for (const bossId in bosses) {
+                    await this.saveRaidBoss(bosses[bossId]);
+                }
+
+                // initalization should keep this empty since there is no update
+                this.resetUpdatedBossIds();
+
+                console.log("Saving guilds.");
+                for (const guildId in guilds) {
+                    await this.saveGuild(guilds[guildId]);
+                }
+
+                console.log("Saving characters.");
+                for (const bossId in characterPerformanceOfBoss) {
+                    console.log(`Filling collection ${bossId}`);
+
+                    let combatMetric: keyof typeof characterPerformanceOfBoss[number];
+                    for (combatMetric in characterPerformanceOfBoss[bossId]) {
+                        let characters: CharacterDocument[] = [];
+                        for (const charId in characterPerformanceOfBoss[bossId][
+                            combatMetric
+                        ]) {
+                            characters.push(
+                                characterPerformanceOfBoss[bossId][
+                                    combatMetric
+                                ][charId]
+                            );
+                        }
+
+                        const [ingameBossId, difficulty] =
+                            getDeconstructedRaidBossId(bossId);
+
+                        const collectionName = getCharacterDocumentCollectionId(
+                            ingameBossId,
+                            Number(difficulty),
+                            combatMetric
+                        );
+                        const bossCollection =
+                            this.connection.collection<CharacterDocument>(
+                                collectionName
+                            );
+
+                        try {
+                            await bossCollection.insertMany(characters);
+
+                            const raidName =
+                                getRaidNameFromIngamebossId(ingameBossId);
+                            if (raidName)
+                                await this.saveCharactersToLeaderboard(
+                                    characters,
+                                    raidName,
+                                    difficulty,
+                                    combatMetric
+                                );
+                            this.updatedCharacterDocumentCollections.push(
+                                collectionName
+                            );
+                        } catch (err) {
+                            console.error(err);
+                        }
+                    }
+                }
+                console.log("Characters saved.");
+
+                console.log("Update character ranks");
+                await updateCharacterDocumentRanks(this);
+                console.log("Character ranks updated");
+
+                await maintenanceCollection.updateOne(
+                    {},
+                    {
+                        $set: {
+                            lastUpdated: updateStarted,
+                            lastLogIds: newLastLogIds,
+                            lastGuildsUpdate: updateStarted,
+                            isInitalized: true,
+                        },
+                    }
+                );
+
+                await updateRaidBossCache(db);
+                await updateLeaderboardScores(db);
+
+                this.isUpdating = false;
+                this.updateStatus = "";
+
+                console.log("Initalization done.");
                 resolve(true);
             } catch (err) {
                 this.isUpdating = false;
@@ -203,206 +305,109 @@ class Database {
         });
     }
 
-    async updateDatabase(isInitalization: boolean): Promise<number> {
+    saveCharactersToLeaderboard(
+        characters: CharacterDocument[],
+        raidName: RaidName,
+        difficulty: Difficulty,
+        combatMetric: CombatMetric,
+        session?: ClientSession
+    ) {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!this.db) throw ERR_DB_CONNECTION;
-                if (!this.client) throw ERR_DB_CONNECTION;
+                if (!this.connection) throw ERR_DB_CONNECTION;
 
-                if (this.isUpdating) throw ERR_DB_UPDATING;
-
-                console.log("db: Updating database");
-                const updateStarted = new Date().getTime() / 1000;
-                this.isUpdating = true;
-                this.updateStatus = "Database is updating.";
-                this.lastUpdated = updateStarted;
-
-                const maintenanceCollection = await this.db.collection(
-                    "maintenance"
-                );
-
-                const lastLogIds = isInitalization
-                    ? {}
-                    : (
-                          (await maintenanceCollection.findOne(
-                              {}
-                          )) as DbMaintenance
-                      ).lastLogIds;
-
-                let oldLogData:
-                    | {
-                          logs: RaidLogWithRealm[];
-                          lastLogIds: { [propName: string]: number };
-                      }
-                    | false = false;
-                if (isInitalization) {
-                    try {
-                        oldLogData = {
-                            logs: await loadLogsFromFile(),
-                            lastLogIds: getLastLogsIdsFromFile(),
-                        };
-                        console.log("db: Using old log data for initalization");
-                    } catch (err) {
-                        console.log("db: Requesting logs");
-                    }
-                } else {
-                    console.log("db: Requesting logs");
-                }
-                let { logs, lastLogIds: newLastLogIds } = oldLogData
-                    ? oldLogData
-                    : await getLogs(lastLogIds);
-
-                logs = logBugHandler(logs);
-
-                if (isInitalization) {
-                    if (!oldLogData) {
-                        console.log(
-                            "db: Saving logs in case something goes wrong in the initalization process to"
-                        );
-                        writeLogsToFile(logs);
-                        updateLastLogIdsOfFile(newLastLogIds);
-                    }
-
-                    console.log("db: Processing logs");
-                    const { bosses, guilds, combatMetrics } = processLogs(logs);
-
-                    console.log("db: Saving raid bosses");
-                    for (const bossId in bosses) {
-                        await this.saveRaidBoss(bosses[bossId]);
-                    }
-
-                    console.log("db: Saving guilds");
-                    for (const guildId in guilds) {
-                        await this.saveGuild(guilds[guildId]);
-                    }
-
-                    console.log("db: Saving chars");
-                    for (const bossId in combatMetrics) {
-                        console.log(`db: to ${bossId}`);
-
-                        for (const combatMetric in combatMetrics[bossId]) {
-                            let characters = [];
-                            for (const charId in combatMetrics[bossId][
-                                combatMetric
-                            ]) {
-                                characters.push(
-                                    combatMetrics[bossId][combatMetric][charId]
-                                );
-                            }
-
-                            const bossCollection = await this.db.collection(
-                                `${bossId} ${combatMetric}`
-                            );
-
-                            try {
-                                await bossCollection.insertMany(characters);
-                            } catch (err) {
-                                console.log("-------------");
-                                console.error(
-                                    `Error while tring to save to ${bossId} ${combatMetric}`
-                                );
-                                console.error(err);
-                                console.log("-------------");
-                            }
-                        }
-                    }
-                    console.log("db: Saving chars done");
-
-                    await maintenanceCollection.updateOne(
-                        {},
-                        {
-                            $set: {
-                                lastUpdated: updateStarted,
-                                lastLogIds: newLastLogIds,
-                                lastGuildsUpdate: updateStarted,
-                                isInitalized: true,
-                            },
-                        }
+                const collection =
+                    this.connection.collection<LeaderboardCharacterDocument>(
+                        combatMetric === "dps"
+                            ? this.collections.characterLeaderboardDps
+                            : this.collections.characterLeaderboardHps
                     );
-                } else {
-                    const session = this.client.startSession();
 
-                    try {
-                        console.log("db: Opening new transaction session");
-                        await session.withTransaction(
-                            async () => {
-                                await this.saveLogs(
-                                    processLogs(logs),
-                                    {
-                                        lastLogIds: newLastLogIds,
-                                        updateStarted,
-                                    },
-                                    session
-                                );
-                            },
-                            {
-                                readConcern: new ReadConcern("majority"),
-                                writeConcern: {
-                                    w: "majority",
-                                    j: true,
+                await collection.bulkWrite(
+                    characters.map((character) => {
+                        const doc = createLeaderboardCharacterDocument(
+                            character,
+                            raidName,
+                            difficulty
+                        );
+                        return {
+                            updateOne: {
+                                filter: {
+                                    _id: doc._id,
                                 },
-                            }
-                        );
-                    } catch (err) {
-                        console.log("transaction error");
-                        console.error(err);
-                    } finally {
-                        session.endSession();
-                        console.log("db: Transaction session closed");
-                    }
-                }
-
-                if (
-                    !isInitalization &&
-                    minutesAgo(this.lastGuildsUpdate) > 2800
-                ) {
-                    console.log("db: Updating guilds");
-                    this.lastGuildsUpdate = updateStarted;
-                    await maintenanceCollection.updateOne(
-                        {},
-                        {
-                            $set: {
-                                lastGuildsUpdate: this.lastGuildsUpdate,
+                                update: {
+                                    $set: {
+                                        ...(({
+                                            ilvl,
+                                            score,
+                                            lastUpdated,
+                                            f,
+                                            race,
+                                            ...rest
+                                        }) => {
+                                            return rest;
+                                        })(doc),
+                                    },
+                                    $max: {
+                                        score: doc.score,
+                                        ilvl: doc.ilvl,
+                                        lastUpdated:
+                                            new Date().getTime() / 1000,
+                                    },
+                                    $setOnInsert: {
+                                        f: doc.f,
+                                        race: doc.race,
+                                    },
+                                },
+                                upsert: true,
                             },
-                        }
-                    );
-
-                    await this.updateGuilds();
-                }
-
-                await this.updateRaidBossCache();
-                runGC();
-                await this.updateLeaderboard();
-                runGC();
-
-                cache.clearRaidSummary();
-                cache.clearCharacterPerformance();
-
-                this.isUpdating = false;
-                this.updateStatus = "";
-
-                console.log("db: Database update finished");
-                resolve(minutesAgo(updateStarted));
-            } catch (err) {
-                if (!isError(err) || err.message !== ERR_DB_UPDATING.message) {
-                    console.log(`Database update error`);
-                    console.error(err);
-                    this.isUpdating = false;
-                    this.updateStatus = "";
-                }
-                reject(err);
+                        };
+                    }),
+                    { session }
+                );
+                resolve(true);
+            } catch (e) {
+                reject(e);
             }
         });
+    }
+
+    getUpdatedBossIds() {
+        let bossIds: { [key: string]: true } = {};
+
+        for (const bossId of this.updatedRaidBosses) {
+            bossIds[bossId] = true;
+        }
+        return Object.keys(bossIds);
+    }
+
+    resetUpdatedBossIds() {
+        this.updatedRaidBosses = [];
+    }
+
+    getUpdatedCharacterDocumentCollectionIds() {
+        let ids: { [key: string]: true } = {};
+
+        for (const collectionName of this.updatedCharacterDocumentCollections) {
+            ids[collectionName] = true;
+        }
+        return Object.keys(ids);
+    }
+
+    resetUpdatedCharacterDocumentCollections() {
+        this.updatedCharacterDocumentCollections = [];
     }
 
     async getLastUpdated(): Promise<number> {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!this.db) throw ERR_DB_CONNECTION;
+                if (!this.connection) throw ERR_DB_CONNECTION;
 
-                const maintenance = (await this.db
-                    .collection("maintenance")
-                    .findOne({})) as DbMaintenance | null;
+                const maintenance = await this.connection
+                    .collection<MaintenanceDocument>(
+                        this.collections.maintenance
+                    )
+                    .findOne();
 
                 resolve(maintenance ? maintenance.lastUpdated : 0);
             } catch (err) {
@@ -414,13 +419,59 @@ class Database {
     async getLastGuildsUpdate(): Promise<number> {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!this.db) throw ERR_DB_CONNECTION;
+                if (!this.connection) throw ERR_DB_CONNECTION;
 
-                const maintenance = (await this.db
-                    .collection("maintenance")
-                    .findOne({})) as DbMaintenance | null;
+                const maintenance = await this.connection
+                    .collection<MaintenanceDocument>(
+                        this.collections.maintenance
+                    )
+                    .findOne();
 
                 resolve(maintenance ? maintenance.lastGuildsUpdate : 0);
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+
+    async getLastLeaderboardUpdate(): Promise<number> {
+        return new Promise(async (resolve, reject) => {
+            try {
+                if (!this.connection) throw ERR_DB_CONNECTION;
+
+                const maintenance = await this.connection
+                    .collection<MaintenanceDocument>(
+                        this.collections.maintenance
+                    )
+                    .findOne();
+
+                resolve(maintenance ? maintenance.lastLeaderboardUpdate : 0);
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+
+    async saveLastLeaderboardUpdateDate(date: Date) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                if (!this.connection) throw ERR_DB_CONNECTION;
+
+                const collection =
+                    this.connection.collection<MaintenanceDocument>(
+                        this.collections.maintenance
+                    );
+
+                await collection.updateOne(
+                    {},
+                    {
+                        $set: {
+                            lastLeaderboardUpdate: date.getTime() / 1000,
+                        },
+                    }
+                );
+
+                resolve(true);
             } catch (err) {
                 reject(err);
             }
@@ -430,11 +481,13 @@ class Database {
     async isInitalized(): Promise<boolean> {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!this.db) throw ERR_DB_CONNECTION;
+                if (!this.connection) throw ERR_DB_CONNECTION;
 
-                const maintenance = (await this.db
-                    .collection("maintenance")
-                    .findOne({})) as DbMaintenance | null;
+                const maintenance = await this.connection
+                    .collection<MaintenanceDocument>(
+                        this.collections.maintenance
+                    )
+                    .findOne({});
 
                 resolve(maintenance ? maintenance.isInitalized : false);
             } catch (err) {
@@ -443,131 +496,12 @@ class Database {
         });
     }
 
-    async saveRaidBoss(boss: RaidBoss, session?: ClientSession) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                if (!this.db) throw ERR_DB_CONNECTION;
-
-                const raidCollection = this.db.collection(String(boss.raidId));
-                const oldData = (await raidCollection.findOne(
-                    {
-                        name: boss.name,
-                    },
-                    { session: session }
-                )) as DbRaidBoss | null;
-
-                if (!oldData) {
-                    await raidCollection.insertOne(
-                        {
-                            name: boss.name,
-                            [boss.difficulty]: boss,
-                        },
-                        {
-                            session,
-                        }
-                    );
-                } else {
-                    let updatedBoss = oldData[boss.difficulty]
-                        ? updateRaidBoss(oldData[boss.difficulty], boss)
-                        : boss;
-
-                    await raidCollection.updateOne(
-                        {
-                            name: boss.name,
-                        },
-                        {
-                            $set: {
-                                ...oldData,
-                                _id: oldData._id,
-                                [boss.difficulty]: updatedBoss,
-                            },
-                        },
-                        {
-                            session,
-                        }
-                    );
-                }
-
-                this.updatedRaidBosses.push({
-                    raidId: boss.raidId,
-                    name: boss.name,
-                });
-
-                resolve(true);
-            } catch (err) {
-                reject(err);
-            }
-        });
-    }
-
-    async saveGuild(newGuild: Guild, session?: ClientSession) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                if (!this.db) throw ERR_DB_CONNECTION;
-
-                let oldGuild = await this.db
-                    .collection<Guild>("guilds")
-                    .findOne(
-                        {
-                            _id: newGuild._id,
-                        },
-                        { session }
-                    );
-
-                if (!oldGuild) {
-                    try {
-                        let guildData = await requestGuildData(
-                            newGuild.name,
-                            newGuild.realm
-                        ).catch((err) => {
-                            if (err.message === ERR_GUILD_NOT_FOUND.message)
-                                throw ERR_GUILD_NOT_FOUND;
-                            return false as const;
-                        });
-
-                        await this.db.collection("guilds").insertOne(
-                            guildData
-                                ? updateGuildData(newGuild, guildData)
-                                : ({
-                                      ...updateGuildRanking(newGuild),
-                                      raidDays: {
-                                          ...newGuild.raidDays,
-                                          recent: getRecentGuildRaidDays(
-                                              newGuild.progression.recentKills
-                                          ),
-                                      },
-                                      progression: {
-                                          ...newGuild.progression,
-                                          completion: getGuildContentCompletion(
-                                              newGuild.progression.raids
-                                          ),
-                                      },
-                                  } as any),
-                            { session }
-                        );
-                    } catch (err) {
-                        console.error(err);
-                    }
-                } else {
-                    await this.db.collection<Guild>("guilds").updateOne(
-                        {
-                            _id: newGuild._id,
-                        },
-                        {
-                            $set: updateGuildData(oldGuild, newGuild),
-                        },
-                        { session }
-                    );
-                }
-                resolve(true);
-            } catch (err) {
-                reject(err);
-            }
-        });
-    }
-
     async saveLogs(
-        { bosses, guilds, combatMetrics }: ReturnType<typeof processLogs>,
+        {
+            bosses,
+            guilds,
+            characterPerformanceOfBoss,
+        }: ReturnType<typeof processLogs>,
         {
             lastLogIds,
             updateStarted,
@@ -576,9 +510,8 @@ class Database {
     ) {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!this.db) throw ERR_DB_CONNECTION;
+                if (!this.connection) throw ERR_DB_CONNECTION;
 
-                const maintenanceCollection = this.db.collection("maintenance");
                 await this.bulkWriteRaidBosses(bosses, session);
                 runGC();
 
@@ -586,18 +519,29 @@ class Database {
                 for (const guildId in guilds) {
                     await this.saveGuild(guilds[guildId], session);
                 }
-
                 const operationsOfBossCollection: LooseObject = {};
 
-                for (const bossId in combatMetrics) {
-                    for (const combatMetric in combatMetrics[bossId]) {
-                        for (const charId in combatMetrics[bossId][
+                for (const bossId in characterPerformanceOfBoss) {
+                    for (const combatMetricKey in characterPerformanceOfBoss[
+                        bossId
+                    ]) {
+                        const combatMetric = combatMetricKey as CombatMetric;
+                        for (const charId in characterPerformanceOfBoss[bossId][
                             combatMetric
                         ]) {
-                            const bossCollectionName = `${bossId} ${combatMetric}`;
+                            const [ingameBossId, difficulty] =
+                                getDeconstructedRaidBossId(bossId);
+                            const bossCollectionName =
+                                getCharacterDocumentCollectionId(
+                                    ingameBossId,
+                                    difficulty,
+                                    combatMetric
+                                );
 
                             const char =
-                                combatMetrics[bossId][combatMetric][charId];
+                                characterPerformanceOfBoss[bossId][
+                                    combatMetric
+                                ][charId];
 
                             if (
                                 !operationsOfBossCollection[bossCollectionName]
@@ -606,152 +550,270 @@ class Database {
                                     [];
                             }
 
-                            const insertOperation = {
-                                updateOne: {
-                                    filter: { _id: char._id },
-                                    update: {
-                                        $setOnInsert: char,
-                                    },
-                                    upsert: true,
-                                },
-                            };
-
-                            const updateOperation = {
-                                updateOne: {
-                                    filter: {
-                                        _id: char._id,
-                                        [combatMetric]: {
-                                            $lt: char[combatMetric],
-                                        },
-                                    },
-                                    update: { $set: char },
-                                },
-                            };
-
                             operationsOfBossCollection[bossCollectionName].push(
-                                insertOperation,
-                                updateOperation
+                                {
+                                    updateOne: {
+                                        filter: {
+                                            _id: char._id,
+                                        },
+                                        update: {
+                                            $setOnInsert: char,
+                                        },
+                                        upsert: true,
+                                    },
+                                },
+                                {
+                                    updateOne: {
+                                        filter: {
+                                            _id: char._id,
+                                            [combatMetric]: {
+                                                $lt: char[combatMetric],
+                                            },
+                                        },
+                                        update: { $set: char },
+                                    },
+                                }
                             );
                         }
                     }
                 }
 
-                console.log("db: Saving chars");
+                console.log("Saving chars");
                 for (const bossCollectionName in operationsOfBossCollection) {
-                    console.log(`db: to ${bossCollectionName}`);
+                    console.log(`${bossCollectionName}`);
 
-                    const bossCollection = await this.db.collection(
-                        bossCollectionName
-                    );
-
+                    const bossCollection =
+                        this.connection.collection<CharacterDocument>(
+                            bossCollectionName
+                        );
                     await bossCollection.bulkWrite(
                         operationsOfBossCollection[bossCollectionName],
                         { session }
                     );
+
+                    this.updatedCharacterDocumentCollections.push(
+                        bossCollectionName
+                    );
                 }
 
-                console.log("db: Saving chars done");
+                console.log("Saving chars done");
 
-                await maintenanceCollection.updateOne(
-                    {},
-                    {
-                        $set: {
-                            lastUpdated: updateStarted,
-                            lastLogIds: lastLogIds,
-                            isInitalized: true,
-                        },
-                    },
-                    {
-                        session,
+                console.log("Saving characters to leaderboard.");
+                for (const bossId in characterPerformanceOfBoss) {
+                    for (const combatMetricKey in characterPerformanceOfBoss[
+                        bossId
+                    ]) {
+                        const combatMetric = combatMetricKey as CombatMetric;
+
+                        const [ingameBossId, difficulty] =
+                            getDeconstructedRaidBossId(bossId);
+                        const raidName =
+                            getRaidNameFromIngamebossId(ingameBossId);
+
+                        if (raidName)
+                            await this.saveCharactersToLeaderboard(
+                                Object.values(
+                                    characterPerformanceOfBoss[bossId][
+                                        combatMetric
+                                    ]
+                                ),
+                                raidName,
+                                difficulty,
+                                combatMetric,
+                                session
+                            );
                     }
-                );
+                }
+
+                console.log("Characters saved to leaderboards.");
+
+                await this.connection
+                    .collection<MaintenanceDocument>(
+                        this.collections.maintenance
+                    )
+                    .updateOne(
+                        {},
+                        {
+                            $set: {
+                                lastUpdated: updateStarted,
+                                lastLogIds: lastLogIds,
+                                isInitalized: true,
+                            },
+                        },
+                        {
+                            session,
+                        }
+                    );
             } catch (err) {
+                db.resetUpdatedBossIds();
+                db.resetUpdatedCharacterDocumentCollections();
                 reject(err);
             }
             resolve(true);
         });
     }
+
+    async saveRaidBoss(boss: RaidBossDocument, session?: ClientSession) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                if (!this.connection) throw ERR_DB_CONNECTION;
+
+                const raidCollection =
+                    this.connection.collection<RaidBossDocument>(
+                        this.collections.raidBosses
+                    );
+
+                const oldBoss = await raidCollection.findOne(
+                    {
+                        _id: boss._id,
+                    },
+                    { session: session }
+                );
+
+                if (!oldBoss) {
+                    await raidCollection.insertOne(boss, {
+                        session,
+                    });
+                } else {
+                    await raidCollection.updateOne(
+                        {
+                            _id: boss._id,
+                        },
+                        {
+                            $set: updateRaidBossDocument(oldBoss, boss),
+                        },
+                        {
+                            session,
+                        }
+                    );
+                }
+
+                this.updatedRaidBosses.push(boss._id);
+
+                resolve(true);
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+
+    async saveGuild(guild: GuildDocument, session?: ClientSession) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                if (!this.connection) throw ERR_DB_CONNECTION;
+
+                const guildsCollection =
+                    this.connection.collection<GuildDocument>(
+                        this.collections.guilds
+                    );
+
+                let oldGuild = await guildsCollection.findOne(
+                    {
+                        _id: guild._id,
+                    },
+                    { session }
+                );
+
+                if (!oldGuild) {
+                    try {
+                        let guildData = await requestGuildDocument(
+                            guild.name,
+                            guild.realm
+                        ).catch((err) => {
+                            if (err.message === ERR_GUILD_NOT_FOUND.message)
+                                throw ERR_GUILD_NOT_FOUND;
+                            return false as const;
+                        });
+
+                        await guildsCollection.insertOne(
+                            guildData
+                                ? updateGuildDocument(guild, guildData)
+                                : updateGuildDocument(
+                                      createGuildDocument(
+                                          guild.name,
+                                          guild.realm,
+                                          guild.f
+                                      ),
+                                      guild
+                                  ),
+                            { session }
+                        );
+                    } catch (err) {
+                        console.error(err);
+                    }
+                } else {
+                    await guildsCollection.updateOne(
+                        {
+                            _id: guild._id,
+                        },
+                        {
+                            $set: updateGuildDocument(oldGuild, guild),
+                        },
+                        { session }
+                    );
+                }
+                resolve(true);
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+
     async bulkWriteRaidBosses(
         bosses: {
-            [key: string]: RaidBoss;
+            [key: string]: RaidBossDocument;
         },
         session?: ClientSession
     ): Promise<void> {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!this.db) throw ERR_DB_CONNECTION;
+                if (!this.connection) throw ERR_DB_CONNECTION;
+
                 console.log("db: Saving raid bosses");
-                let bossNameOfRaids: LooseObject = {};
-                for (const bossId in bosses) {
-                    if (!bossNameOfRaids[bosses[bossId].raidId]) {
-                        bossNameOfRaids[bosses[bossId].raidId] = [];
-                    }
-                    bossNameOfRaids[bosses[bossId].raidId].push(
-                        bosses[bossId].name
+                const raidBossCollection =
+                    this.connection.collection<RaidBossDocument>(
+                        this.collections.raidBosses
                     );
-                }
-                let bossesOfDb: { [key: string]: DbRaidBoss } = {};
-                for (const raidId in bossNameOfRaids) {
-                    for (let boss of await this.db
-                        .collection(String(raidId))
-                        .aggregate(
-                            [
-                                {
-                                    $match: {
-                                        name: {
-                                            $in: bossNameOfRaids[raidId],
-                                        },
+                const oldBosses = (await raidBossCollection
+                    .aggregate(
+                        [
+                            {
+                                $match: {
+                                    _id: {
+                                        $in: Object.keys(bosses),
                                     },
                                 },
-                            ],
-                            { session }
-                        )
-                        .toArray()) {
-                        bossesOfDb[boss.name] = boss as DbRaidBoss;
-                    }
-                }
+                            },
+                        ],
+                        { session }
+                    )
+                    .toArray()) as RaidBossDocument[];
 
-                let raidBossOperations: LooseObject = {};
-                for (const bossId in bosses) {
-                    const raidId = bosses[bossId].raidId;
-                    const bossName = bosses[bossId].name;
-                    const difficulty = bosses[bossId].difficulty;
-
-                    if (!raidBossOperations[raidId]) {
-                        raidBossOperations[raidId] = [];
-                    }
-
-                    raidBossOperations[raidId].push({
+                let operations = [];
+                for (const oldBoss of oldBosses) {
+                    operations.push({
                         updateOne: {
                             filter: {
-                                name: bossName,
+                                _id: oldBoss._id,
                             },
                             update: {
-                                $set: {
-                                    [difficulty]: updateRaidBoss(
-                                        bossesOfDb[bossName][difficulty],
-                                        bosses[bossId]
-                                    ),
-                                },
+                                $set: updateRaidBossDocument(
+                                    oldBoss,
+                                    bosses[oldBoss._id]
+                                ),
                             },
                         },
                     });
                 }
 
-                for (let raidId in raidBossOperations) {
-                    await this.db
-                        .collection(String(raidId))
-                        .bulkWrite(raidBossOperations[raidId], {
-                            session,
-                        });
-                }
-                for (const bossId in bosses) {
-                    const raidId = bosses[bossId].raidId;
-                    const bossName = bosses[bossId].name;
-                    this.updatedRaidBosses.push({
-                        raidId: raidId,
-                        name: bossName,
+                if (operations.length) {
+                    await raidBossCollection.bulkWrite(operations, {
+                        session,
                     });
+                }
+
+                for (const bossId in bosses) {
+                    this.updatedRaidBosses.push(bossId);
                 }
 
                 resolve();
@@ -761,636 +823,35 @@ class Database {
         });
     }
 
-    async updateGuilds() {
+    async removeGuild(_id: ReturnType<typeof getGuildId>) {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!this.db) throw ERR_DB_CONNECTION;
+                if (!this.connection) throw ERR_DB_CONNECTION;
 
-                this.updateStatus = "Updating guilds";
-
-                const guilds = (await this.db
-                    .collection("guilds")
-                    .find({})
-                    .project({
-                        _id: 1,
-                        name: 1,
-                        realm: 1,
-                    })
-                    .toArray()) as {
-                    _id: string;
-                    name: string;
-                    realm: string;
-                }[];
-
-                let total = guilds.length;
-                let current = 0;
-
-                for (let guild of guilds) {
-                    try {
-                        current++;
-                        console.log(
-                            `db: Updating ${guild.name} ${current}/${total}`
-                        );
-
-                        const newGuild = await requestGuildData(
-                            guild.name,
-                            guild.realm
-                        );
-
-                        await this.saveGuild({
-                            ...newGuild,
-                            _id: guild._id,
-                        });
-                    } catch (err) {
-                        if (
-                            isError(err) &&
-                            err.message &&
-                            err.message.includes(ERR_GUILD_NOT_FOUND.message)
-                        ) {
-                            this.removeGuild(guild._id);
-                        } else {
-                            console.log(`Error with updating ${guild.name}:`);
-                            console.error(err);
-                        }
-                    }
-
-                    runGC();
-                }
-
+                await this.connection
+                    .collection<GuildDocument>(this.collections.guilds)
+                    .deleteOne({
+                        _id: _id,
+                    });
                 resolve(true);
             } catch (err) {
                 reject(err);
             }
         });
-    }
-
-    async removeGuild(guildId: string) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                if (!this.db) throw ERR_DB_CONNECTION;
-
-                await this.db.collection<Guild>("guilds").deleteOne({
-                    _id: guildId,
-                });
-                resolve(true);
-            } catch (err) {
-                reject(err);
-            }
-        });
-    }
-
-    async requestRaidBoss(
-        raidId: number,
-        bossName: string
-    ): Promise<RaidBossDataToServe> {
-        return new Promise(async (resolve, reject) => {
-            try {
-                if (!this.db) throw ERR_DB_CONNECTION;
-
-                const difficulties = getRaidInfoFromId(raidId).difficulties;
-
-                const bossInfo = getBossInfo(raidId, bossName);
-
-                let lookUps = [];
-                for (const difficulty in bossInfo.difficultyIds) {
-                    const bossId =
-                        bossInfo.difficultyIds[
-                            difficulty as keyof typeof bossInfo.difficultyIds
-                        ];
-
-                    for (const combatMetric of ["dps", "hps"]) {
-                        const bossCollectionName = getBossCollectionName(
-                            bossId,
-                            Number(difficulty),
-                            combatMetric
-                        );
-
-                        lookUps.push({
-                            $lookup: {
-                                from: bossCollectionName,
-                                pipeline: [
-                                    {
-                                        $sort: {
-                                            [combatMetric]: -1,
-                                        },
-                                    },
-                                ],
-                                as: `${difficulty}.${combatMetric}`,
-                            },
-                        });
-                    }
-                }
-
-                const dbResponse = (
-                    await this.db
-                        .collection(String(raidId))
-                        .aggregate([
-                            {
-                                $match: {
-                                    name: bossName,
-                                },
-                            },
-                            ...lookUps,
-                        ])
-                        .toArray()
-                )[0] as DbRaidBossDataResponse;
-
-                let bossData: RaidBossDataToServe = {
-                    _id: dbResponse._id,
-                    name: dbResponse.name,
-                };
-
-                for (const difficulty of difficulties) {
-                    const boss = dbResponse[difficulty];
-                    let newBoss: RaidBossDataToServe[number] = {
-                        ...boss,
-                        fiftyFastestKills: [],
-                        dps: [],
-                        hps: [],
-                    };
-                    for (let combatMetric of ["dps", "hps"] as const) {
-                        newBoss[combatMetric] = applyCharacterPerformanceRanks(
-                            boss[combatMetric],
-                            combatMetric
-                        );
-                    }
-
-                    let fastestKills: DbRaidBossDataResponse[number]["fastestKills"][string][number] =
-                        [];
-                    for (const realm in boss.fastestKills) {
-                        for (const faction in boss.fastestKills[realm]) {
-                            const objectKeys = [realm, faction];
-
-                            fastestKills = fastestKills.concat(
-                                getNestedObjectValue(
-                                    boss.fastestKills,
-                                    objectKeys
-                                )
-                            );
-                        }
-                    }
-
-                    newBoss.fiftyFastestKills = fastestKills
-                        .sort((a, b) => {
-                            return a.fightLength - b.fightLength;
-                        })
-                        .slice(0, 50);
-
-                    bossData[difficulty] = newBoss;
-                }
-                resolve(bossData);
-            } catch (err) {
-                reject(err);
-            }
-        });
-    }
-
-    async updateRaidBossCache() {
-        const fullLoad = async (): Promise<true> => {
-            return new Promise(async (resolve, reject) => {
-                try {
-                    for (const raid of environment.currentContent.raids) {
-                        let promises = [];
-                        for (const boss of raid.bosses) {
-                            promises.push(
-                                this.requestRaidBoss(raid.id, boss.name)
-                            );
-                        }
-
-                        const bosses = await Promise.all(promises);
-
-                        for (const boss of bosses) {
-                            const cacheId = getRaidBossCacheId(
-                                raid.id,
-                                boss.name
-                            );
-
-                            cache.raidBoss.set(cacheId, boss);
-                        }
-                    }
-                    resolve(true);
-                } catch (err) {
-                    reject(err);
-                }
-            });
-        };
-
-        const getBossesToUpdate = () => {
-            let encounteredBosses: LooseObject = {};
-            let uniqueBosses = [];
-
-            for (let bossData of this.updatedRaidBosses) {
-                if (!encounteredBosses[bossData.name]) {
-                    uniqueBosses.push(bossData);
-                    encounteredBosses[bossData.name] = true;
-                }
-            }
-            return uniqueBosses;
-        };
-
-        return new Promise(async (resolve, reject) => {
-            try {
-                if (!this.firstCacheLoad) {
-                    this.firstCacheLoad = fullLoad();
-                } else {
-                    const bossesToUpdate = getBossesToUpdate();
-
-                    for (let bossData of bossesToUpdate) {
-                        const cacheId = getRaidBossCacheId(
-                            bossData.raidId,
-                            bossData.name
-                        );
-
-                        cache.raidBoss.set(
-                            cacheId,
-                            await this.requestRaidBoss(
-                                bossData.raidId,
-                                bossData.name
-                            )
-                        );
-
-                        runGC();
-                    }
-
-                    this.updatedRaidBosses = [];
-                }
-
-                resolve(true);
-            } catch (err) {
-                reject(err);
-            }
-        });
-    }
-
-    async updateLeaderboard() {
-        await this.firstCacheLoad;
-
-        for (const combatMetric of ["dps", "hps"] as const) {
-            for (const raid of environment.currentContent.raids) {
-                let leaderboards: {
-                    overall?: CharacterLeaderboard;
-                    specs: { [propName: string]: CharacterLeaderboard };
-                    roles: { [propName: string]: CharacterLeaderboard };
-                } = {
-                    overall: {},
-                    roles: {},
-                    specs: {},
-                };
-                for (const difficulty of raid.difficulties) {
-                    let characters: {
-                        [propName: string]: {
-                            best: CharacterOfLeaderboard;
-                            specs: {
-                                [propName: string]: CharacterOfLeaderboard;
-                            };
-                            roles: {
-                                [propName: string]: CharacterOfLeaderboard;
-                            };
-                        };
-                    } = {};
-
-                    let bestRelativePerformance = 0;
-
-                    for (const bossInfo of raid.bosses) {
-                        let boss = cache.getRaidBoss(
-                            getRaidBossCacheId(raid.id, bossInfo.name)
-                        );
-
-                        if (!boss) continue;
-
-                        let charactersOfBoss: {
-                            [propName: string]: RankedCharacter[];
-                        } = {};
-                        let bestPerformanceOfBoss = 0;
-
-                        for (const character of boss[difficulty][
-                            combatMetric
-                        ]) {
-                            let currentPerformance = character[combatMetric];
-                            const charId = `${character.name},${character.realm},${character.class}`;
-
-                            if (!charactersOfBoss[charId]) {
-                                charactersOfBoss[charId] = [];
-                            }
-
-                            charactersOfBoss[charId].push(character);
-
-                            if (
-                                typeof currentPerformance === "number" &&
-                                currentPerformance > bestPerformanceOfBoss
-                            ) {
-                                bestPerformanceOfBoss = currentPerformance;
-                            }
-                        }
-
-                        for (const charId in charactersOfBoss) {
-                            let characterContainer = charactersOfBoss[charId];
-                            let bestOfCharacter:
-                                | CharacterOfLeaderboard
-                                | undefined;
-
-                            let bestOfRoles: {
-                                [propName: string]:
-                                    | CharacterOfLeaderboard
-                                    | undefined;
-                            } = {};
-
-                            for (const characterData of characterContainer) {
-                                const currentPerformance =
-                                    characterData[combatMetric];
-                                const currentPercent = currentPerformance
-                                    ? getRelativePerformance(
-                                          currentPerformance,
-                                          bestPerformanceOfBoss
-                                      )
-                                    : 0;
-
-                                const modifiedCharacter: CharacterOfLeaderboard =
-                                    {
-                                        _id: characterData._id,
-                                        class: characterData.class,
-                                        f: characterData.f,
-                                        ilvl: characterData.ilvl,
-                                        name: characterData.name,
-                                        realm: characterData.realm,
-                                        spec: characterData.spec,
-                                        topPercent: currentPercent,
-                                        date: characterData.date,
-                                        race: characterData.race,
-                                    };
-
-                                if (!bestOfCharacter) {
-                                    bestOfCharacter = modifiedCharacter;
-                                } else {
-                                    bestOfCharacter =
-                                        updateCharacterOfLeaderboard(
-                                            bestOfCharacter,
-                                            modifiedCharacter
-                                        );
-                                }
-
-                                let currentRoleChar =
-                                    bestOfRoles[
-                                        environment.specs[
-                                            String(
-                                                characterData.spec
-                                            ) as keyof typeof environment.specs
-                                        ].role
-                                    ];
-
-                                if (!currentRoleChar) {
-                                    bestOfRoles[
-                                        environment.specs[
-                                            String(
-                                                characterData.spec
-                                            ) as keyof typeof environment.specs
-                                        ].role
-                                    ] = modifiedCharacter;
-                                } else {
-                                    bestOfRoles[
-                                        environment.specs[
-                                            String(
-                                                characterData.spec
-                                            ) as keyof typeof environment.specs
-                                        ].role
-                                    ] = updateCharacterOfLeaderboard(
-                                        currentRoleChar,
-                                        modifiedCharacter
-                                    );
-                                }
-
-                                if (!characters[charId]) {
-                                    characters[charId] = {
-                                        best: {
-                                            ...bestOfCharacter,
-                                            topPercent: 0,
-                                        },
-                                        specs: {},
-                                        roles: {},
-                                    };
-                                }
-
-                                if (
-                                    !characters[charId].specs[
-                                        characterData.spec
-                                    ]
-                                ) {
-                                    characters[charId].specs[
-                                        characterData.spec
-                                    ] = modifiedCharacter;
-                                } else {
-                                    const updatedChar =
-                                        updateCharacterOfLeaderboard(
-                                            characters[charId].specs[
-                                                characterData.spec
-                                            ],
-                                            modifiedCharacter
-                                        );
-
-                                    const performance =
-                                        characters[charId].specs[
-                                            characterData.spec
-                                        ].topPercent +
-                                        modifiedCharacter.topPercent;
-
-                                    characters[charId].specs[
-                                        characterData.spec
-                                    ] = updatedChar;
-
-                                    characters[charId].specs[
-                                        characterData.spec
-                                    ].topPercent = performance;
-                                }
-                            }
-
-                            if (bestOfCharacter) {
-                                const updatedChar =
-                                    updateCharacterOfLeaderboard(
-                                        characters[charId].best,
-                                        bestOfCharacter
-                                    );
-
-                                const performance =
-                                    characters[charId].best.topPercent +
-                                    bestOfCharacter.topPercent;
-
-                                characters[charId].best = updatedChar;
-
-                                characters[charId].best.topPercent =
-                                    performance;
-
-                                if (performance > bestRelativePerformance) {
-                                    bestRelativePerformance = performance;
-                                }
-                            }
-
-                            for (const role in bestOfRoles) {
-                                let currentChar = bestOfRoles[role];
-                                if (currentChar) {
-                                    let prevOfRole = characters[charId].roles[
-                                        role
-                                    ] || { ...currentChar, topPercent: 0 };
-
-                                    const updatedChar =
-                                        updateCharacterOfLeaderboard(
-                                            prevOfRole,
-                                            currentChar
-                                        );
-
-                                    const performance =
-                                        prevOfRole.topPercent +
-                                        currentChar.topPercent;
-
-                                    characters[charId].roles[role] =
-                                        updatedChar;
-
-                                    characters[charId].roles[role].topPercent =
-                                        performance;
-                                }
-                            }
-                        }
-                        runGC();
-                        await sleep(150);
-                    }
-                    if (!leaderboards.overall) {
-                        leaderboards.overall = {};
-                    }
-                    if (!leaderboards.overall[difficulty]) {
-                        leaderboards.overall[difficulty] = [];
-                    }
-
-                    for (const charId in characters) {
-                        characters[charId].best.topPercent =
-                            getRelativePerformance(
-                                characters[charId].best.topPercent,
-                                bestRelativePerformance
-                            );
-
-                        leaderboards.overall[difficulty].push(
-                            characters[charId].best
-                        );
-
-                        for (const specId in characters[charId].specs) {
-                            if (!leaderboards.specs[specId]) {
-                                leaderboards.specs[specId] = {};
-                            }
-
-                            if (!leaderboards.specs[specId][difficulty]) {
-                                leaderboards.specs[specId][difficulty] = [];
-                            }
-
-                            characters[charId].specs[specId].topPercent =
-                                getRelativePerformance(
-                                    characters[charId].specs[specId].topPercent,
-                                    bestRelativePerformance
-                                );
-
-                            leaderboards.specs[specId][difficulty].push(
-                                characters[charId].specs[specId]
-                            );
-                        }
-
-                        for (const role in characters[charId].roles) {
-                            if (!leaderboards.roles[role]) {
-                                leaderboards.roles[role] = {};
-                            }
-
-                            if (!leaderboards.roles[role][difficulty]) {
-                                leaderboards.roles[role][difficulty] = [];
-                            }
-
-                            characters[charId].roles[role].topPercent =
-                                getRelativePerformance(
-                                    characters[charId].roles[role].topPercent,
-                                    bestRelativePerformance
-                                );
-
-                            leaderboards.roles[role][difficulty].push(
-                                characters[charId].roles[role]
-                            );
-                        }
-                    }
-
-                    leaderboards.overall[difficulty].sort(
-                        (a, b) => b.topPercent - a.topPercent
-                    );
-
-                    for (const specId in leaderboards.specs) {
-                        if (!!leaderboards.specs[specId][difficulty]) {
-                            leaderboards.specs[specId][difficulty].sort(
-                                (a, b) => b.topPercent - a.topPercent
-                            );
-                        }
-                    }
-
-                    for (const role in leaderboards.roles) {
-                        if (!!leaderboards.roles[role][difficulty]) {
-                            leaderboards.roles[role][difficulty].sort(
-                                (a, b) => b.topPercent - a.topPercent
-                            );
-                        }
-                    }
-                }
-
-                const overallLeaderboardId = getLeaderboardCacheId(
-                    raid.id,
-                    combatMetric
-                );
-
-                cache.characterLeaderboard.set(
-                    overallLeaderboardId,
-                    leaderboards.overall
-                );
-
-                delete leaderboards.overall;
-
-                for (let specId in leaderboards.specs) {
-                    const currentLeaderboardId = getLeaderboardCacheId(
-                        raid.id,
-                        combatMetric,
-                        specId
-                    );
-
-                    cache.characterLeaderboard.set(
-                        currentLeaderboardId,
-                        leaderboards.specs[specId]
-                    );
-
-                    delete leaderboards.specs[specId];
-                    runGC();
-                }
-
-                for (let role in leaderboards.roles) {
-                    const currentLeaderboardId = getLeaderboardCacheId(
-                        raid.id,
-                        combatMetric,
-                        role
-                    );
-
-                    cache.characterLeaderboard.set(
-                        currentLeaderboardId,
-                        leaderboards.roles[role]
-                    );
-
-                    delete leaderboards.specs[role];
-                    runGC();
-                }
-            }
-        }
     }
 
     async getGuildList(): Promise<GuildList> {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!this.db) throw ERR_DB_CONNECTION;
+                if (!this.connection) throw ERR_DB_CONNECTION;
 
                 const guildList = cache.getGuildList();
 
                 if (guildList) {
                     resolve(guildList);
                 } else {
-                    const guildList = (await this.db
-                        .collection("guilds")
+                    const guildList = (await this.connection
+                        .collection<GuildDocument>(this.collections.guilds)
                         .find()
                         .project({
                             name: 1,
@@ -1411,15 +872,17 @@ class Database {
         });
     }
 
-    async getGuild(realm: string, guildName: string) {
+    async getGuild(realm: Realm, guildName: string) {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!this.db) throw ERR_DB_CONNECTION;
+                if (!this.connection) throw ERR_DB_CONNECTION;
 
-                const guild = await this.db.collection("guilds").findOne({
-                    name: guildName,
-                    realm: realm,
-                });
+                const guild = await this.connection
+                    .collection<GuildDocument>(this.collections.guilds)
+                    .findOne({
+                        name: guildName,
+                        realm: realm,
+                    });
 
                 if (!guild) throw ERR_GUILD_NOT_FOUND;
 
@@ -1431,25 +894,31 @@ class Database {
     }
 
     async getRaidBoss(
-        raidId: number,
-        bossName: string
-    ): Promise<RaidBossDataToServe> {
+        ingameBossId: number,
+        difficulty: Difficulty
+    ): Promise<RaidBossDocument> {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!this.db) throw ERR_DB_CONNECTION;
+                if (!this.connection) throw ERR_DB_CONNECTION;
 
-                const cacheId = getRaidBossCacheId(raidId, bossName);
+                const bossId = getRaidBossId(ingameBossId, difficulty);
 
-                const cachedData = cache.getRaidBoss(cacheId);
+                const cachedData = cache.getRaidBoss(bossId);
 
                 if (cachedData) {
                     resolve(cachedData);
                 } else {
-                    const bossData = await this.requestRaidBoss(
-                        raidId,
-                        bossName
-                    );
-                    cache.raidBoss.set(cacheId, bossData);
+                    const bossData = await this.connection
+                        .collection<RaidBossDocument>(
+                            this.collections.raidBosses
+                        )
+                        .findOne({ _id: bossId });
+
+                    if (!bossData) {
+                        throw ERR_BOSS_NOT_FOUND;
+                    }
+
+                    cache.raidBoss.set(bossId, bossData);
 
                     resolve(bossData);
                 }
@@ -1460,35 +929,34 @@ class Database {
     }
 
     async getRaidBossKillCount(
-        raidId: number,
-        bossName: string,
-        difficulty: number
+        ingameBossId: number,
+        difficulty: Difficulty
     ): Promise<number> {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!this.db) throw ERR_DB_CONNECTION;
+                if (!this.connection) throw ERR_DB_CONNECTION;
 
-                const bossData = await this.getRaidBoss(raidId, bossName);
-
-                resolve(bossData[difficulty].killCount);
+                resolve(
+                    (await this.getRaidBoss(ingameBossId, difficulty)).killCount
+                );
             } catch (err) {
                 reject(err);
             }
         });
     }
 
-    async getRaidBossRecentKills(
-        raidId: number,
-        bossName: string,
-        difficulty: number
+    async getRaidBossLatestKills(
+        ingameBossId: number,
+        difficulty: Difficulty
     ): Promise<TrimmedLog[]> {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!this.db) throw ERR_DB_CONNECTION;
+                if (!this.connection) throw ERR_DB_CONNECTION;
 
-                const bossData = await this.getRaidBoss(raidId, bossName);
-
-                resolve(bossData[difficulty].recentKills);
+                resolve(
+                    (await this.getRaidBoss(ingameBossId, difficulty))
+                        .latestKills
+                );
             } catch (err) {
                 reject(err);
             }
@@ -1496,85 +964,186 @@ class Database {
     }
 
     async getRaidBossFastestKills(
-        raidId: number,
-        bossName: string,
-        difficulty: number
+        ingameBossId: number,
+        difficulty: Difficulty
     ): Promise<TrimmedLog[]> {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!this.db) throw ERR_DB_CONNECTION;
+                if (!this.connection) throw ERR_DB_CONNECTION;
+                const categorizedFastestKills = (
+                    await this.getRaidBoss(ingameBossId, difficulty)
+                ).fastestKills;
+                let fastestKills: TrimmedLog[] = [];
 
-                const bossData = await this.getRaidBoss(raidId, bossName);
+                for (const key in categorizedFastestKills) {
+                    const realm = key as unknown as Realm;
+                    for (const key in categorizedFastestKills[realm]) {
+                        const faction = key as unknown as Faction;
+                        const logs =
+                            categorizedFastestKills?.[realm]?.[faction];
+                        if (logs) {
+                            fastestKills = fastestKills.concat(logs);
+                        }
+                    }
+                }
 
-                resolve(bossData[difficulty].fiftyFastestKills);
+                resolve(
+                    fastestKills
+                        .sort((a, b) => a.fightLength - b.fightLength)
+                        .slice(0, 50)
+                );
             } catch (err) {
                 reject(err);
             }
         });
     }
     async getRaidBossCharacters(
-        raidId: number,
-        bossName: string,
+        ingameBossId: number,
         combatMetric: CombatMetric,
         filters: Filters,
         page: number,
         pageSize: number
-    ): Promise<{ characters: RankedCharacter[]; itemCount: number }> {
+    ): Promise<{ characters: CharacterDocument[]; itemCount: number }> {
         return new Promise(async (resolve, reject) => {
             try {
-                const difficulty = filters.difficulty;
+                if (!this.connection) throw ERR_DB_CONNECTION;
 
-                if (!this.db) throw ERR_DB_CONNECTION;
+                const collection =
+                    this.connection.collection<CharacterDocument>(
+                        getCharacterDocumentCollectionId(
+                            ingameBossId,
+                            filters.difficulty,
+                            combatMetric
+                        )
+                    );
 
-                const bossData = await this.getRaidBoss(raidId, bossName);
+                const matchQuery = filtersToAggregationMatchQuery(filters);
+                const sort = { [combatMetric]: -1 };
+                const skip = pageSize * page;
+                const limit = pageSize;
 
-                const characters = applyCharacterFilters(
-                    bossData[difficulty][combatMetric],
-                    filters
-                );
+                const result = (
+                    await collection
+                        .aggregate([
+                            {
+                                $facet: {
+                                    characters: [
+                                        { $match: matchQuery },
+                                        { $sort: sort },
+                                        { $skip: skip },
+                                        { $limit: limit },
+                                    ],
+                                    itemCount: [
+                                        { $match: matchQuery },
+                                        {
+                                            $group: {
+                                                _id: null,
+                                                n: { $sum: 1 },
+                                            },
+                                        },
+                                    ],
+                                },
+                            },
+                            {
+                                $addFields: {
+                                    itemCount: {
+                                        $first: "$$CURRENT.itemCount.n",
+                                    },
+                                },
+                            },
+                        ])
+                        .toArray()
+                )[0] as { characters: CharacterDocument[]; itemCount: number };
 
-                resolve({
-                    characters: characters.slice(
-                        page * pageSize,
-                        (page + 1) * pageSize
-                    ),
-                    itemCount: characters.length,
-                });
+                resolve(result);
             } catch (err) {
                 reject(err);
             }
         });
     }
 
-    async getCharacterLeaderboard(id: string): Promise<CharacterLeaderboard> {
+    async getCharacterLeaderboard(
+        raidName: RaidName,
+        combatMetric: CombatMetric,
+        filters: Filters,
+        page: number,
+        pageSize: number
+    ) {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!this.firstCacheLoad) throw ERR_LOADING;
+                if (!this.connection) throw ERR_DB_CONNECTION;
 
-                const data = cache.getCharacterLeaderboard(id);
+                const collection =
+                    this.connection.collection<LeaderboardCharacterDocument>(
+                        combatMetric === "dps"
+                            ? this.collections.characterLeaderboardDps
+                            : this.collections.characterLeaderboardHps
+                    );
 
-                if (!data) {
-                    throw ERR_DATA_NOT_EXIST;
-                } else {
-                    resolve(data);
-                }
-            } catch (err) {
-                reject(err);
+                const matchQuery = {
+                    ...filtersToAggregationMatchQuery(filters),
+                    difficulty: filters.difficulty,
+                    raidName: raidName,
+                };
+                const sort = { score: -1 };
+                const skip = pageSize * page;
+                const limit = pageSize;
+
+                const result = (
+                    await collection
+                        .aggregate([
+                            {
+                                $facet: {
+                                    characters: [
+                                        { $match: matchQuery },
+                                        { $sort: sort },
+                                        { $skip: skip },
+                                        { $limit: limit },
+                                    ],
+                                    itemCount: [
+                                        { $match: matchQuery },
+                                        {
+                                            $group: {
+                                                _id: null,
+                                                n: { $sum: 1 },
+                                            },
+                                        },
+                                    ],
+                                },
+                            },
+                            {
+                                $addFields: {
+                                    itemCount: {
+                                        $first: "$$CURRENT.itemCount.n",
+                                    },
+                                },
+                            },
+                        ])
+                        .toArray()
+                )[0] as {
+                    characters: LeaderboardCharacterDocument[];
+                    itemCount: number;
+                };
+
+                resolve(result);
+            } catch (e) {
+                reject(e);
             }
         });
     }
+
     async getGuildLeaderboard(): Promise<GuildLeaderboard> {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!this.db) throw ERR_DB_CONNECTION;
+                if (!this.connection) throw ERR_DB_CONNECTION;
 
                 const cachedData = cache.getGuildLeaderboard();
 
                 if (cachedData) {
                     resolve(cachedData);
                 } else {
-                    const guildLeaderboard = (await this.db
-                        .collection("guilds")
+                    const guildLeaderboard = (await this.connection
+                        .collection<GuildDocument>(this.collections.guilds)
                         .find()
                         .project({
                             name: 1,
@@ -1597,34 +1166,42 @@ class Database {
         });
     }
 
-    async getRaidSummary(raidId: number): Promise<RaidSummary> {
+    async getRaidSummary(raidId: RaidId): Promise<RaidSummary> {
         return new Promise(async (resolve, reject) => {
             try {
                 await raidSummaryLock.acquire();
-                if (!this.db) throw ERR_DB_CONNECTION;
+                if (!this.connection) throw ERR_DB_CONNECTION;
 
-                const cachedData = cache.getRaidSummary(raidId);
+                const cacheId = getRaidSummaryCacheId(raidId);
+                const cachedData = cache.getRaidSummary(cacheId);
 
                 if (cachedData) {
                     resolve(cachedData);
                 } else {
-                    const difficulties = getRaidInfoFromId(raidId).difficulties;
-
                     let raidSummary: RaidSummary = {};
 
                     const bosses = getRaidInfoFromId(raidId).bosses;
                     for (const bossInfo of bosses) {
-                        let bossData = await this.getRaidBoss(
-                            raidId,
-                            bossInfo.name
-                        );
-                        for (const difficulty of difficulties) {
-                            raidSummary[bossData[difficulty]._id] =
-                                getRaidBossSummary(bossData[difficulty]);
+                        for (const key in bossInfo.bossIdOfDifficulty) {
+                            const difficulty = Number(
+                                key
+                            ) as unknown as Difficulty;
+                            const ref =
+                                key as keyof typeof bossInfo.bossIdOfDifficulty;
+                            const ingameBossId =
+                                bossInfo.bossIdOfDifficulty[ref];
+                            const bossId = getRaidBossId(
+                                ingameBossId,
+                                difficulty
+                            );
+
+                            raidSummary[bossId] = getRaidBossSummary(
+                                await this.getRaidBoss(ingameBossId, difficulty)
+                            );
                         }
                     }
 
-                    cache.raidSummary.set(raidId, raidSummary);
+                    cache.raidSummary.set(cacheId, raidSummary);
 
                     resolve(raidSummary);
                 }
@@ -1638,288 +1215,346 @@ class Database {
 
     async getCharacterPerformance(
         characterName: string,
-        characterClass: keyof typeof environment.characterClassToSpec,
-        realm: keyof typeof environment.shortRealms,
-        raidName: string
+        characterClass: ClassId,
+        realm: Realm,
+        raidName: RaidName
     ): Promise<CharacterPerformance> {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!this.db) throw ERR_DB_CONNECTION;
+                if (!this.connection) throw ERR_DB_CONNECTION;
 
-                const cacheId = `${characterName}${realm}${raidName}`;
+                const cacheId = getCharacterPerformanceCacheId(
+                    characterName,
+                    realm,
+                    raidName
+                );
 
                 const cachedData = cache.getCharacterPerformance(cacheId);
 
                 if (cachedData) {
                     resolve(cachedData);
                 } else {
-                    const {
-                        bossCount,
-                        bosses,
-                        id: raidId,
-                        difficulties,
-                    } = getRaidInfoFromName(raidName);
-                    const characterSpecs =
-                        environment.characterClassToSpec[characterClass];
+                    const specs =
+                        environment.characterClassSpecs[characterClass];
 
-                    let characterPerformance: CharacterPerformance = {};
+                    const characterIds = specs.map((specId) =>
+                        getCharacterId(characterName, realm, specId)
+                    );
 
-                    for (const difficulty of difficulties) {
-                        let characterTotal: LooseObject = {};
-                        let bestTotal: LooseObject = {};
+                    const bosses = getRaidInfoFromName(raidName).bosses;
+                    const bossCount = getRaidInfoFromName(raidName).bossCount;
 
-                        for (const boss of bosses) {
-                            const currentBoss = await this.getRaidBoss(
-                                raidId,
-                                boss.name
-                            );
+                    let facetCounter = 1;
+                    let lookupCounter = 1;
+                    let facet: { $facet: { [key: string]: object[] } } = {
+                        $facet: {},
+                    };
 
-                            for (const combatMetric of [
-                                "dps",
-                                "hps",
-                            ] as const) {
-                                const bestCombatMetricOfBoss =
-                                    currentBoss[difficulty][
-                                        `best${capitalize(combatMetric)}` as
-                                            | "bestDps"
-                                            | "bestHps"
-                                    ];
-                                const bestOverall = currentBoss[difficulty][
-                                    `best${capitalize(combatMetric)}NoCat` as
-                                        | "bestDpsNoCat"
-                                        | "bestHpsNoCat"
-                                ] || { dps: 0, hps: 0 };
+                    for (let bossInfo of bosses) {
+                        const difficulties = Object.keys(
+                            bossInfo.bossIdOfDifficulty
+                        ).map((key) =>
+                            Number(key)
+                        ) as (keyof typeof bossInfo.bossIdOfDifficulty)[];
 
-                                let bestOfClass: LooseObject = {};
-                                let bestOfCharacter: LooseObject = {
-                                    [combatMetric]: 0,
-                                };
+                        for (let difficulty of difficulties) {
+                            const ingameBossId =
+                                bossInfo.bossIdOfDifficulty[difficulty];
 
-                                for (const specId of characterSpecs) {
-                                    let bestOfSpec: LooseObject = {};
-                                    let characterSpecData: LooseObject = {
-                                        [combatMetric]: 0,
-                                    };
-
-                                    for (const realmName in bestCombatMetricOfBoss) {
-                                        for (const faction in bestCombatMetricOfBoss[
-                                            realmName
-                                        ]) {
-                                            if (
-                                                !bestCombatMetricOfBoss[
-                                                    realmName
-                                                ][faction][characterClass] ||
-                                                !bestCombatMetricOfBoss[
-                                                    realmName
-                                                ][faction][characterClass][
-                                                    specId
-                                                ]
-                                            ) {
-                                                continue;
-                                            }
-
-                                            const currentBest =
-                                                bestCombatMetricOfBoss[
-                                                    realmName
-                                                ][faction][characterClass][
-                                                    specId
-                                                ][0];
-
-                                            if (
-                                                currentBest &&
-                                                currentBest[combatMetric]
-                                            ) {
-                                                const currentBestCombatMetric =
-                                                    currentBest[combatMetric];
-                                                if (currentBestCombatMetric) {
-                                                    if (
-                                                        !bestOfSpec[
-                                                            combatMetric
-                                                        ] ||
-                                                        bestOfSpec[
-                                                            combatMetric
-                                                        ] <
-                                                            currentBestCombatMetric
-                                                    ) {
-                                                        bestOfSpec =
-                                                            currentBest;
-                                                    }
-                                                    if (
-                                                        !bestOfClass[
-                                                            combatMetric
-                                                        ] ||
-                                                        bestOfClass[
-                                                            combatMetric
-                                                        ] <
-                                                            currentBestCombatMetric
-                                                    ) {
-                                                        bestOfClass =
-                                                            currentBest;
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    const bossData = (
-                                        await this.getRaidBoss(
-                                            raidId,
-                                            boss.name
-                                        )
-                                    )[difficulty][combatMetric];
-
-                                    const charData =
-                                        bossData.find(
-                                            (character) =>
-                                                character._id ===
-                                                getCharacterId(
-                                                    characterName,
-                                                    realm,
-                                                    specId
-                                                )
-                                        ) || ({} as LooseObject);
-                                    if (
-                                        bestOfCharacter[combatMetric] <
-                                        charData[combatMetric]
-                                    ) {
-                                        bestOfCharacter = charData;
-                                    }
-
-                                    characterSpecData = {
-                                        ...charData,
-                                        topPercent: getRelativePerformance(
-                                            charData[combatMetric],
-                                            bestOfSpec[combatMetric]
-                                        ),
-                                    };
-
-                                    const categorization = [
-                                        raidName,
+                            for (let combatMetric of combatMetrics) {
+                                const collectionName =
+                                    getCharacterDocumentCollectionId(
+                                        ingameBossId,
                                         difficulty,
-                                        boss.name,
-                                        specId,
-                                        combatMetric,
+                                        combatMetric
+                                    );
+                                if (!facet.$facet[facetCounter]) {
+                                    facet.$facet[facetCounter] = [
+                                        { $limit: 1 },
+                                        { $project: { _id: 1 } },
                                     ];
-
-                                    characterPerformance = addNestedObjectValue(
-                                        characterPerformance,
-                                        categorization,
-                                        characterSpecData
-                                    );
-
-                                    characterTotal = addToCharTotalPerformance(
-                                        characterTotal,
-                                        [specId, combatMetric],
-                                        characterSpecData[combatMetric]
-                                    );
-
-                                    bestTotal = addToCharTotalPerformance(
-                                        bestTotal,
-                                        [specId, combatMetric],
-                                        bestOfSpec[combatMetric]
-                                    );
                                 }
+                                facet.$facet[facetCounter].push({
+                                    $lookup: {
+                                        from: collectionName,
+                                        pipeline: [
+                                            {
+                                                $match: {
+                                                    _id: {
+                                                        $in: characterIds,
+                                                    },
+                                                },
+                                            },
+                                        ],
+                                        as: collectionName,
+                                    },
+                                });
 
-                                const categorization = [
-                                    raidName,
-                                    difficulty,
-                                    boss.name,
-                                ];
-
-                                characterPerformance = addNestedObjectValue(
-                                    characterPerformance,
-                                    [...categorization, "class", combatMetric],
-                                    {
-                                        ...bestOfCharacter,
-                                        topPercent: getRelativePerformance(
-                                            bestOfCharacter[combatMetric],
-                                            bestOfClass[combatMetric]
-                                        ),
-                                    }
-                                );
-
-                                bestTotal = addToCharTotalPerformance(
-                                    bestTotal,
-                                    ["class", combatMetric],
-                                    bestOfClass[combatMetric]
-                                );
-
-                                characterTotal = addToCharTotalPerformance(
-                                    characterTotal,
-                                    ["class", combatMetric],
-                                    bestOfCharacter[combatMetric]
-                                );
-
-                                characterPerformance = addNestedObjectValue(
-                                    characterPerformance,
-                                    [...categorization, "noSpec", combatMetric],
-                                    {
-                                        ...bestOfCharacter,
-                                        topPercent: getRelativePerformance(
-                                            bestOfCharacter[combatMetric],
-                                            bestOverall[combatMetric] || 0
-                                        ),
-                                    }
-                                );
-                                bestTotal = addToCharTotalPerformance(
-                                    bestTotal,
-                                    ["noSpec", combatMetric],
-                                    bestOverall[combatMetric] || 0
-                                );
-
-                                characterTotal = addToCharTotalPerformance(
-                                    characterTotal,
-                                    ["noSpec", combatMetric],
-                                    bestOfCharacter[combatMetric]
-                                );
-                            }
-                        }
-
-                        for (const specId in characterTotal) {
-                            for (const combatMetric in characterTotal[specId]) {
-                                const categorization = [specId, combatMetric];
-                                const bestCombatMetricOfTotal =
-                                    getNestedObjectValue(
-                                        bestTotal,
-                                        categorization
-                                    );
-                                const characterCombatMetricOfTotal =
-                                    getNestedObjectValue(
-                                        characterTotal,
-                                        categorization
-                                    );
-                                const characterPerformanceTotal =
-                                    characterPerformance[raidName][difficulty]
-                                        .total;
-
-                                characterPerformance[raidName][
-                                    difficulty
-                                ].total = addNestedObjectValue(
-                                    characterPerformanceTotal || {},
-                                    categorization,
-                                    {
-                                        [combatMetric]:
-                                            characterCombatMetricOfTotal /
-                                            bossCount,
-                                        topPercent: getRelativePerformance(
-                                            characterCombatMetricOfTotal,
-                                            bestCombatMetricOfTotal
-                                        ),
-                                    }
-                                ) as CharPerfBossData;
+                                lookupCounter += 1;
+                                if (lookupCounter === 40) {
+                                    facetCounter += 1;
+                                    lookupCounter = 0;
+                                }
                             }
                         }
                     }
+
+                    const result = (
+                        await this.connection
+                            .collection(this.collections.maintenance)
+                            .aggregate([
+                                { $limit: 1 },
+                                { $project: { _id: 1 } },
+                                facet,
+                            ])
+                            .toArray()
+                    )[0];
+
+                    let characterData = {} as {
+                        [key: string]: CharacterDocument[];
+                    };
+
+                    for (let i = 1; i <= facetCounter; i++) {
+                        characterData = { ...characterData, ...result[i][0] };
+                    }
+
+                    let characterPerformance: CharacterPerformance =
+                        {} as CharacterPerformance;
+
+                    for (let bossInfo of bosses) {
+                        const difficulties = Object.keys(
+                            bossInfo.bossIdOfDifficulty
+                        ).map((key) =>
+                            Number(key)
+                        ) as (keyof typeof bossInfo.bossIdOfDifficulty)[];
+
+                        for (let difficulty of difficulties) {
+                            const ingameBossId =
+                                bossInfo.bossIdOfDifficulty[difficulty];
+
+                            for (let combatMetric of combatMetrics) {
+                                const categorization = [
+                                    raidName,
+                                    difficulty,
+                                    bossInfo.name,
+                                ];
+                                const bestOfNoCatKey = `best${capitalize(
+                                    combatMetric
+                                )}NoCat` as const;
+
+                                const collectionId =
+                                    getCharacterDocumentCollectionId(
+                                        ingameBossId,
+                                        difficulty,
+                                        combatMetric
+                                    );
+
+                                const characterDocuments =
+                                    characterData[collectionId];
+
+                                const currentBoss = await this.getRaidBoss(
+                                    ingameBossId,
+                                    difficulty
+                                );
+
+                                let bestOfCharacter: CharacterDocument = {
+                                    [combatMetric]: 0,
+                                } as CharacterDocument;
+
+                                for (const specId of environment
+                                    .characterClassSpecs[characterClass]) {
+                                    const bestOfSpec = getRaidBossBestOfSpec(
+                                        currentBoss,
+                                        specId,
+                                        combatMetric
+                                    );
+
+                                    const characterDoc =
+                                        characterDocuments.find(
+                                            (document) =>
+                                                document.spec === specId
+                                        );
+                                    if (!characterDoc) {
+                                        addToPerformance(
+                                            categorization,
+                                            specId,
+                                            combatMetric,
+                                            {
+                                                [combatMetric]: 0,
+                                            } as CharacterDocument,
+                                            bestOfSpec
+                                        );
+                                        continue;
+                                    } else {
+                                        addToPerformance(
+                                            categorization,
+                                            specId,
+                                            combatMetric,
+                                            characterDoc,
+                                            bestOfSpec
+                                        );
+                                        addToPerformance(
+                                            [
+                                                ...categorization.slice(
+                                                    0,
+                                                    categorization.length - 1
+                                                ),
+                                                "total",
+                                            ],
+                                            specId,
+                                            combatMetric,
+                                            characterDoc,
+                                            bestOfSpec
+                                        );
+                                    }
+
+                                    if (
+                                        characterDoc[combatMetric] >
+                                        bestOfCharacter[combatMetric]
+                                    ) {
+                                        bestOfCharacter = characterDoc;
+                                    }
+                                }
+
+                                const currentBest =
+                                    currentBoss[bestOfNoCatKey] ||
+                                    ({
+                                        dps: 0,
+                                        hps: 0,
+                                    } as unknown as CharacterDocument);
+                                addToPerformance(
+                                    categorization,
+                                    "all",
+                                    combatMetric,
+                                    bestOfCharacter,
+                                    currentBest
+                                );
+
+                                const bestOfClass = getRaidBossBestOfClass(
+                                    currentBoss,
+                                    characterClass,
+                                    combatMetric
+                                );
+                                addToPerformance(
+                                    categorization,
+                                    "class",
+                                    combatMetric,
+                                    bestOfCharacter,
+                                    bestOfClass
+                                );
+
+                                addToPerformance(
+                                    [
+                                        ...categorization.slice(
+                                            0,
+                                            categorization.length - 1
+                                        ),
+                                        "total",
+                                    ],
+                                    "class",
+                                    combatMetric,
+                                    bestOfCharacter,
+                                    bestOfClass
+                                );
+
+                                addToPerformance(
+                                    [
+                                        ...categorization.slice(
+                                            0,
+                                            categorization.length - 1
+                                        ),
+                                        "total",
+                                    ],
+                                    "all",
+                                    combatMetric,
+                                    bestOfCharacter,
+                                    currentBest
+                                );
+                            }
+                        }
+                    }
+
+                    for (const key in characterPerformance[raidName]) {
+                        const difficulty = Number(
+                            key
+                        ) as keyof typeof characterPerformance[typeof raidName];
+
+                        for (const key in characterPerformance[raidName][
+                            difficulty
+                        ].total) {
+                            const spec = key as "class" | SpecId;
+                            for (let combatMetric of combatMetrics) {
+                                const performance =
+                                    characterPerformance[raidName][difficulty]
+                                        .total[spec][combatMetric];
+
+                                if (typeof performance !== "number") continue;
+
+                                characterPerformance[raidName][
+                                    difficulty
+                                ].total[spec][combatMetric] =
+                                    (performance / bossCount / 100) *
+                                    environment.maxCharacterScore;
+                            }
+                        }
+                    }
+
                     try {
                         cache.characterPerformance.set(
                             cacheId,
                             characterPerformance
                         );
-                    } catch (err) {
-                        console.log("db: Character cache is full");
-                    }
+                    } catch (err) {}
 
                     resolve(characterPerformance);
+
+                    function addToPerformance(
+                        categorization: string[],
+                        keyName: string | number,
+                        combatMetric: CombatMetric,
+                        doc: CharacterDocument,
+                        bestDoc: CharacterDocument | undefined
+                    ): void {
+                        if (
+                            categorization[categorization.length - 1] ===
+                            "total"
+                        ) {
+                            const fullPathToValue = [
+                                ...categorization,
+                                keyName,
+                                combatMetric,
+                            ];
+                            const performance = getNestedObjectValue(
+                                characterPerformance,
+                                fullPathToValue
+                            );
+                            const currentPerformance = getRelativePerformance(
+                                doc[combatMetric],
+                                bestDoc?.[combatMetric] || doc[combatMetric]
+                            );
+
+                            characterPerformance = addNestedObjectValue(
+                                characterPerformance,
+                                fullPathToValue,
+                                performance
+                                    ? performance + currentPerformance
+                                    : currentPerformance
+                            ) as CharacterPerformance;
+                        } else {
+                            characterPerformance = addNestedObjectValue(
+                                characterPerformance,
+                                [...categorization, keyName, combatMetric],
+                                {
+                                    ...doc,
+                                    performance: getRelativePerformance(
+                                        doc[combatMetric],
+                                        bestDoc?.[combatMetric] ||
+                                            doc[combatMetric]
+                                    ),
+                                }
+                            ) as CharacterPerformance;
+                        }
+                    }
                 }
             } catch (err) {
                 console.error(err);
@@ -1929,8 +1564,8 @@ class Database {
     }
 }
 
-const db = new Database();
+const db = new DBInterface();
 
-export type DatabaseType = typeof db;
+export type Database = typeof db;
 
 export default db;

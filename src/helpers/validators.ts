@@ -1,6 +1,5 @@
-import { environment } from "../environment";
-import { LastRaidLogWithRealm } from "../types";
-import { getLeaderboardCacheId } from "./providers";
+import environment from "../environment";
+import { Difficulty, LastRaidLogWithRealm, Realm, ShortRealm } from "../types";
 
 export function validRaidId(raidId: any) {
     if (typeof raidId === "number") {
@@ -17,14 +16,16 @@ export function validRaidId(raidId: any) {
 export function validShortRealm(shortRealm: any) {
     return (
         typeof shortRealm === "string" &&
-        Object.values(environment.shortRealms).includes(shortRealm)
+        Object.values(environment.shortRealms).includes(
+            shortRealm as ShortRealm
+        )
     );
 }
 
 export function validRealm(realm: any) {
     return (
         typeof realm === "string" &&
-        Object.values(environment.realms).includes(realm)
+        Object.values(environment.realms).includes(realm as Realm)
     );
 }
 
@@ -73,6 +74,26 @@ export function validBossName(raidId: any, bossName: any) {
                         return true;
                     }
                 }
+            }
+        }
+    }
+
+    return false;
+}
+
+export function validIngameBossId(
+    ingameBossId: number,
+    difficulty: Difficulty
+): boolean {
+    if (typeof ingameBossId !== "number" || typeof difficulty !== "number")
+        return false;
+
+    for (const raid of environment.currentContent.raids) {
+        for (const boss of raid.bosses) {
+            const diff = difficulty as keyof typeof boss.bossIdOfDifficulty;
+            if (!boss.bossIdOfDifficulty[diff]) continue;
+            if (boss.bossIdOfDifficulty[diff] === ingameBossId) {
+                return true;
             }
         }
     }
@@ -178,7 +199,7 @@ export function validFilters(raidId: number, filters: any) {
             return false;
         }
 
-        if (filters.realm !== undefined && !validShortRealm(filters.realm)) {
+        if (filters.realm !== undefined && !validRealm(filters.realm)) {
             return false;
         }
 
@@ -241,7 +262,8 @@ export function validItemids(ids: any) {
     );
 }
 
-const possibleLeaderboardIds = (() => {
+export const possibleLeaderboardIds = (() => {
+    /*
     let leaderboardIds = [];
 
     const combatMetrics = ["dps", "hps"];
@@ -272,13 +294,16 @@ const possibleLeaderboardIds = (() => {
     }
 
     return leaderboardIds;
+    */
 })();
 
-export function validLeaderboardId(leaderboardId: any) {
+export function validLeaderboardId() {
+    /*
     return (
         typeof leaderboardId === "string" &&
         possibleLeaderboardIds.includes(leaderboardId)
     );
+    */
 }
 
 export function isError(variable: unknown): variable is Error {

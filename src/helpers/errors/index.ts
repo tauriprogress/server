@@ -3,8 +3,10 @@ export const ERR_UNKNOWN = new Error("Unkown error.");
 export const ERR_DB_CONNECTION = new Error(
     "Database connection is not established."
 );
-export const ERR_DB_UPDATING = new Error("Database is already updating.");
-
+export const ERR_DB_ALREADY_UPDATING = new Error(
+    "Database is already updating."
+);
+export const ERR_DB_TANSACTION = new Error("Database transaction error.");
 export const ERR_GUILD_NOT_FOUND = new Error("Guild not found.");
 export const ERR_CHARACTER_NOT_FOUND = new Error("Character not found.");
 export const ERR_TAURI_API_FAILURE = new Error("Api request failed.");
@@ -13,9 +15,11 @@ export const ERR_TAURI_API_TIMEOUT = new Error("Api request timed out.");
 export const ERR_DATA_NOT_EXIST = new Error("No data.");
 export const ERR_LOADING = new Error("Loading.");
 
+export const ERR_BOSS_NOT_FOUND = new Error("Boss not found.");
 export const ERR_INVALID_RAID_ID = new Error("Invalid raid ID.");
 export const ERR_INVALID_RAID_NAME = new Error("Invalid raid");
 export const ERR_INVALID_BOSS_NAME = new Error("Invalid boss name.");
+export const ERR_INVALID_BOSS_ID = new Error("Invalid boss ID.");
 export const ERR_INVALID_GUILD_NAME = new Error("Invalid guild name.");
 export const ERR_INVALID_CHARACTER_NAME = new Error("Invalid character name.");
 export const ERR_INVALID_CHARACTER_CLASS = new Error("Invalid character class");

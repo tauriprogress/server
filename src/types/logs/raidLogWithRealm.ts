@@ -1,5 +1,5 @@
-import { RaidLog } from "../../types";
+import { RaidLog, Realm } from "../../types";
 
 export interface RaidLogWithRealm extends RaidLog {
-    realm: string;
+    realm: Realm;
 }

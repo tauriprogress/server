@@ -1,11 +1,11 @@
-import { environment } from "../environment";
+import environment from "../environment";
 import {
-    Character,
     LooseObject,
     RaidLogWithRealm,
-    RankedCharacter,
-    CharacterOfLeaderboard,
     Filters,
+    SpecId,
+    CharacterDocumentAggregationMatch,
+    CharacterDocument,
 } from "../types";
 
 export function addNestedObjectValue<T>(
@@ -27,10 +27,13 @@ export function addNestedObjectValue<T>(
     }
 }
 
-export function capitalize(string: string) {
-    const capitalized = string.charAt(0).toUpperCase() + string.slice(1);
+export function capitalize<T extends string>(str: T): Capitalize<T> {
+    const capitalized = (str.charAt(0).toUpperCase() +
+        str.slice(1)) as Capitalize<T>;
 
-    return capitalized.length === string.length ? capitalized : string;
+    return capitalized.length === str.length
+        ? capitalized
+        : (str as Capitalize<T>);
 }
 
 export function logBugHandler(logs: RaidLogWithRealm[]): RaidLogWithRealm[] {
@@ -147,53 +150,8 @@ export function uniqueLogs<T extends { id: number }>(logs: T[]): T[] {
     return uniqueLogs;
 }
 
-export function applyCharacterPerformanceRanks(
-    characters: Character[],
-    combatMetric: "dps" | "hps"
-) {
-    let classes: { [propName: number]: number } = {};
-    let specs: { [propName: number]: number } = {};
-    let sortedCharacters = characters.sort((a, b) => {
-        const bPerf = b[combatMetric];
-        const aPerf = a[combatMetric];
-        if (bPerf && aPerf) {
-            return bPerf - aPerf;
-        }
-        return 0;
-    });
-
-    let rankedCharacters: RankedCharacter[] = [];
-
-    for (let i = 0; i < sortedCharacters.length; i++) {
-        let character = sortedCharacters[i];
-
-        if (!classes[character.class]) {
-            classes[character.class] = 1;
-        } else {
-            classes[character.class] += 1;
-        }
-
-        if (!specs[character.spec]) {
-            specs[character.spec] = 1;
-        } else {
-            specs[character.spec] += 1;
-        }
-
-        rankedCharacters.push({
-            ...character,
-            rank: i + 1,
-            cRank: classes[character.class],
-            sRank: specs[character.spec],
-        });
-    }
-
-    return rankedCharacters;
-}
-
-export function updateCharacterOfLeaderboard(
-    previousCharacter: CharacterOfLeaderboard,
-    currentCharacter: CharacterOfLeaderboard
-): CharacterOfLeaderboard {
+export function updateCharacterOfLeaderboard() {
+    /*
     const updatedDate =
         previousCharacter.date > currentCharacter.date
             ? previousCharacter.date
@@ -227,10 +185,11 @@ export function updateCharacterOfLeaderboard(
         topPercent: updatedTopPercent,
         race: updatedRace,
     };
+    */
 }
 
 export function applyCharacterFilters(
-    characters: RankedCharacter[],
+    characters: CharacterDocument[],
     filters: Filters
 ) {
     return characters.filter((character) => {
@@ -252,13 +211,42 @@ export function applyCharacterFilters(
 
         if (
             filters.role !== undefined &&
-            environment.specs[
-                String(character.spec) as keyof typeof environment.specs
-            ].role !== filters.role
+            environment.specs[character.spec as keyof typeof environment.specs]
+                .role !== filters.role
         ) {
             return false;
         }
 
         return true;
     });
+}
+
+export function filtersToAggregationMatchQuery(filters: Filters) {
+    let matchQuery: CharacterDocumentAggregationMatch = {};
+    if (filters.class) {
+        matchQuery.class = filters.class;
+    }
+
+    if (typeof filters.faction === "number") {
+        matchQuery.f = filters.faction;
+    }
+    if (filters.realm) {
+        matchQuery.realm = filters.realm;
+    }
+
+    if (filters.spec) {
+        matchQuery.spec = filters.spec;
+    } else if (filters.role) {
+        let validSpecs: SpecId[] = [];
+        for (const key in environment.specs) {
+            const specId = Number(key) as keyof typeof environment.specs;
+            const spec = environment.specs[specId];
+            if (spec.role === filters.role) {
+                validSpecs.push(specId);
+            }
+        }
+
+        matchQuery.spec = { $in: validSpecs };
+    }
+    return matchQuery;
 }

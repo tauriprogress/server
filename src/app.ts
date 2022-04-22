@@ -4,13 +4,14 @@ import * as bodyParser from "body-parser";
 import * as slowDown from "express-slow-down";
 
 import db from "./database";
+import dbTaskManager from "./DBTaskManger";
 
 import {
     verifyGetGuild,
     verifyGetCharacter,
     verifyGetRaidSummary,
     verifyGetBossKillCount,
-    verifyGetBossRecentKills,
+    verifyGetBossLatestKills,
     verifyGetBossFastestKills,
     verifyGetBossCharacters,
     verifyGetLog,
@@ -18,14 +19,13 @@ import {
     verifyGetCharacterPerformance,
     verifyGetItems,
     verifyCharacterLeaderboard,
-    updateDatabase,
     waitDbCache,
 } from "./middlewares";
 import tauriApi from "./tauriApi";
 
-import { isError, minutesAgo, sleep } from "./helpers";
+import { isError, minutesAgo } from "./helpers";
 import { LooseObject } from "./types";
-import { environment } from "./environment";
+import environment from "./environment";
 import cache from "./database/cache";
 import { ERR_UNKNOWN } from "./helpers/errors";
 
@@ -41,7 +41,6 @@ const speedLimiter = slowDown({
 
 (async function () {
     try {
-        await sleep(10000);
         await db.connect();
         if (!(await db.isInitalized())) {
             await db.initalizeDatabase();
@@ -75,9 +74,9 @@ const speedLimiter = slowDown({
         next();
     });
 
-    app.use(updateDatabase);
+    dbTaskManager.start();
 
-    app.get("/getguildlist", async (_1, res) => {
+    app.get("/guildlist", async (_1, res) => {
         try {
             res.send({
                 success: true,
@@ -107,14 +106,14 @@ const speedLimiter = slowDown({
 
     app.post("/getcharacter", verifyGetCharacter, async (req, res) => {
         try {
-            const character = await tauriApi.getCharacterData(
+            const apiResponse = await tauriApi.getCharacterData(
                 req.body.characterName,
                 req.body.realm
             );
 
             res.send({
                 success: true,
-                response: { ...character.response },
+                response: { ...apiResponse.response },
             });
         } catch (err) {
             res.send({
@@ -173,8 +172,7 @@ const speedLimiter = slowDown({
                     success: true,
                     response: {
                         killCount: await db.getRaidBossKillCount(
-                            req.body.raidId,
-                            req.body.bossName,
+                            req.body.ingameBossId,
                             req.body.difficulty
                         ),
                     },
@@ -189,17 +187,16 @@ const speedLimiter = slowDown({
     );
 
     app.post(
-        "/getboss/recentKills",
+        "/getboss/latestKills",
         waitDbCache,
-        verifyGetBossRecentKills,
+        verifyGetBossLatestKills,
         async (req, res) => {
             try {
                 res.send({
                     success: true,
                     response: {
-                        recentKills: await db.getRaidBossRecentKills(
-                            req.body.raidId,
-                            req.body.bossName,
+                        recentKills: await db.getRaidBossLatestKills(
+                            req.body.ingameBossId,
                             req.body.difficulty
                         ),
                     },
@@ -223,8 +220,7 @@ const speedLimiter = slowDown({
                     success: true,
                     response: {
                         fastestKills: await db.getRaidBossFastestKills(
-                            req.body.raidId,
-                            req.body.bossName,
+                            req.body.ingameBossId,
                             req.body.difficulty
                         ),
                     },
@@ -239,7 +235,7 @@ const speedLimiter = slowDown({
     );
 
     app.post(
-        "/getboss/Characters",
+        "/getboss/characters",
         waitDbCache,
         verifyGetBossCharacters,
         async (req, res) => {
@@ -247,8 +243,7 @@ const speedLimiter = slowDown({
                 res.send({
                     success: true,
                     response: await db.getRaidBossCharacters(
-                        req.body.raidId,
-                        req.body.bossName,
+                        req.body.ingameBossId,
                         req.body.combatMetric,
                         req.body.filters,
                         req.body.page,
@@ -369,10 +364,15 @@ const speedLimiter = slowDown({
         verifyCharacterLeaderboard,
         async (req, res) => {
             try {
-                let data = await db.getCharacterLeaderboard(req.body.dataId);
                 res.send({
                     success: true,
-                    response: data,
+                    response: await db.getCharacterLeaderboard(
+                        req.body.raidName,
+                        req.body.combatMetric,
+                        req.body.filters,
+                        req.body.page,
+                        req.body.pageSize
+                    ),
                 });
             } catch (err) {
                 res.send({

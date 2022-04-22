@@ -1,15 +1,12 @@
-import { environment } from "../environment";
+import environment from "../environment";
 import { Request, Response, NextFunction } from "express";
 
 import {
     capitalize,
-    minutesAgo,
     validRaidId,
     validClass,
     validRealm,
     validRaidName,
-    validBossName,
-    validDifficulty,
     validCombatMetric,
     validFilters,
     validPage,
@@ -18,12 +15,13 @@ import {
     validCharacterName,
     validLogId,
     validLimit,
-    validLeaderboardId,
     validItemids,
     isError,
+    validIngameBossId,
+    validDifficulty,
 } from "../helpers";
 import {
-    ERR_INVALID_BOSS_NAME,
+    ERR_INVALID_BOSS_ID,
     ERR_INVALID_CHARACTER_CLASS,
     ERR_INVALID_CHARACTER_NAME,
     ERR_INVALID_COMBAT_METRIC,
@@ -31,7 +29,6 @@ import {
     ERR_INVALID_FILTERS,
     ERR_INVALID_GUILD_NAME,
     ERR_INVALID_ITEM_IDS,
-    ERR_INVALID_LEADERBOARD_ID,
     ERR_INVALID_LIMIT,
     ERR_INVALID_LOG_ID,
     ERR_INVALID_PAGE,
@@ -39,6 +36,8 @@ import {
     ERR_INVALID_RAID_ID,
     ERR_INVALID_RAID_NAME,
 } from "../helpers/errors";
+import { raidNameId } from "tauriprogress-constants";
+import { RaidName } from "../types";
 
 export async function waitDbCache(
     req: Request,
@@ -153,13 +152,8 @@ export function verifyGetBossKillCount(
     next: NextFunction
 ) {
     try {
-        if (!validRaidId(req.body.raidId)) throw ERR_INVALID_RAID_ID;
-
-        if (!validBossName(req.body.raidId, req.body.bossName))
-            throw ERR_INVALID_BOSS_NAME;
-
-        if (!validDifficulty(req.body.raidId, req.body.difficulty))
-            throw ERR_INVALID_DIFFICULTY;
+        if (!validIngameBossId(req.body.ingameBossId, req.body.difficulty))
+            throw ERR_INVALID_BOSS_ID;
 
         next();
     } catch (err) {
@@ -170,19 +164,14 @@ export function verifyGetBossKillCount(
     }
 }
 
-export function verifyGetBossRecentKills(
+export function verifyGetBossLatestKills(
     req: Request,
     res: Response,
     next: NextFunction
 ) {
     try {
-        if (!validRaidId(req.body.raidId)) throw ERR_INVALID_RAID_ID;
-
-        if (!validBossName(req.body.raidId, req.body.bossName))
-            throw ERR_INVALID_BOSS_NAME;
-
-        if (!validDifficulty(req.body.raidId, req.body.difficulty))
-            throw ERR_INVALID_DIFFICULTY;
+        if (!validIngameBossId(req.body.ingameBossId, req.body.difficulty))
+            throw ERR_INVALID_BOSS_ID;
 
         next();
     } catch (err) {
@@ -199,13 +188,8 @@ export function verifyGetBossFastestKills(
     next: NextFunction
 ) {
     try {
-        if (!validRaidId(req.body.raidId)) throw ERR_INVALID_RAID_ID;
-
-        if (!validBossName(req.body.raidId, req.body.bossName))
-            throw ERR_INVALID_BOSS_NAME;
-
-        if (!validDifficulty(req.body.raidId, req.body.difficulty))
-            throw ERR_INVALID_DIFFICULTY;
+        if (!validIngameBossId(req.body.ingameBossId, req.body.difficulty))
+            throw ERR_INVALID_BOSS_ID;
 
         next();
     } catch (err) {
@@ -224,14 +208,19 @@ export function verifyGetBossCharacters(
     try {
         if (!validRaidId(req.body.raidId)) throw ERR_INVALID_RAID_ID;
 
-        if (!validBossName(req.body.raidId, req.body.bossName))
-            throw ERR_INVALID_BOSS_NAME;
+        if (!validFilters(req.body.raidId, req.body.filters))
+            throw ERR_INVALID_FILTERS;
+
+        if (
+            !validIngameBossId(
+                req.body.ingameBossId,
+                req.body.filters.difficulty
+            )
+        )
+            throw ERR_INVALID_BOSS_ID;
 
         if (!validCombatMetric(req.body.combatMetric))
             throw ERR_INVALID_COMBAT_METRIC;
-
-        if (!validFilters(req.body.raidId, req.body.filters))
-            throw ERR_INVALID_FILTERS;
 
         if (!validPage(req.body.page)) throw ERR_INVALID_PAGE;
 
@@ -305,9 +294,23 @@ export function verifyCharacterLeaderboard(
     next: NextFunction
 ) {
     try {
-        if (!validLeaderboardId(req.body.dataId))
-            throw ERR_INVALID_LEADERBOARD_ID;
+        if (!validRaidName(req.body.raidName)) throw ERR_INVALID_RAID_NAME;
+        const raidId = raidNameId[req.body.raidName as RaidName];
 
+        if (!validFilters(raidId, req.body.filters)) throw ERR_INVALID_FILTERS;
+        if (!validDifficulty(raidId, req.body.filters.difficulty))
+            throw ERR_INVALID_DIFFICULTY;
+
+        if (!validCombatMetric(req.body.combatMetric))
+            throw ERR_INVALID_COMBAT_METRIC;
+
+        if (!validPage(req.body.page)) throw ERR_INVALID_PAGE;
+
+        if (!validPageSize(req.body.pageSize)) throw ERR_INVALID_PAGESIZE;
+
+        if (!validRealm(req.body.realm)) {
+            req.body.realm = environment.defaultRealm;
+        }
         next();
     } catch (err) {
         res.send({
@@ -336,15 +339,4 @@ export function verifyGetItems(
             errorstring: isError(err) ? err.message : err,
         });
     }
-}
-
-export function updateDatabase(req: Request, _1: Response, next: NextFunction) {
-    if (minutesAgo(req.db.lastUpdated) > 30 && !req.db.isUpdating) {
-        try {
-            req.db.updateDatabase(false);
-        } catch (err) {
-            console.log(err);
-        }
-    }
-    next();
 }

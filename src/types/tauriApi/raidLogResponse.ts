@@ -1,3 +1,6 @@
+import { Faction, ClassId, SpecId, Race } from "../";
+import { Difficulty, RaidId, RaidName } from "../global";
+
 export interface RaidLogResponse {
     success: boolean;
     errorcode: number;
@@ -9,7 +12,7 @@ export interface RaidLog {
     log_id: number;
     map_id: number;
     mapentry: Mapentry;
-    difficulty: number;
+    difficulty: Difficulty;
     rid: number;
     guildid: number;
     guildrid: number;
@@ -51,21 +54,21 @@ interface Item {
 }
 
 interface Mapentry {
-    id: number;
+    id: RaidId;
     expansion: number;
     type: number;
-    name: string;
+    name: RaidName;
 }
 
 interface Member {
     valid_player: boolean;
     guid: number;
-    race: number;
-    class: number;
+    race: Race;
+    class: ClassId;
     gender: number;
     name: string;
     link: string;
-    spec: number;
+    spec: SpecId;
     dmg_done: number;
     dmg_taken: number;
     dmg_absorb: number;
@@ -77,5 +80,3 @@ interface Member {
     dispells: number;
     ilvl: number;
 }
-
-type Faction = 0 | 1;

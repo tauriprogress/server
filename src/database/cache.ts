@@ -1,12 +1,12 @@
 import * as NodeCache from "node-cache";
+import { getRaidSummaryCacheId } from "../helpers";
 import {
     GuildList,
-    RaidSummary,
     CharacterPerformance,
-    RaidBossDataToServe,
-    CharacterLeaderboard,
-    GuildLeaderboard,
     ItemWithGuid,
+    RaidBossDocument,
+    RaidSummary,
+    GuildLeaderboard,
 } from "../types";
 
 class Cache {
@@ -23,7 +23,7 @@ class Cache {
     public guildLeaderboardId: string;
 
     constructor() {
-        this.guildListId = "list";
+        this.guildListId = "GuildList";
         this.guildList = new NodeCache({
             stdTTL: 20 * 60,
             checkperiod: 60,
@@ -69,8 +69,8 @@ class Cache {
         return this.guildList.get(this.guildListId) as GuildList | undefined;
     }
 
-    getRaidSummary(raidId: number) {
-        return this.raidSummary.get(raidId) as RaidSummary | undefined;
+    getRaidSummary(cacheId: ReturnType<typeof getRaidSummaryCacheId>) {
+        return this.raidSummary.get(cacheId) as RaidSummary | undefined;
     }
 
     getCharacterPerformance(characterId: string) {
@@ -80,13 +80,11 @@ class Cache {
     }
 
     getRaidBoss(bossId: string) {
-        return this.raidBoss.get(bossId) as RaidBossDataToServe | undefined;
+        return this.raidBoss.get(bossId) as RaidBossDocument | undefined;
     }
 
     getCharacterLeaderboard(leaderboardId: string) {
-        return this.characterLeaderboard.get(leaderboardId) as
-            | CharacterLeaderboard
-            | undefined;
+        return this.characterLeaderboard.get(leaderboardId) as undefined;
     }
 
     getGuildLeaderboard() {

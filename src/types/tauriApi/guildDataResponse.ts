@@ -1,3 +1,5 @@
+import { ClassId, Faction } from "../global";
+
 export interface GuildDataResponse {
     success: boolean;
     errorcode: number;
@@ -13,7 +15,7 @@ export interface GuildData {
     titleName: string;
     realm: string;
     guildEmblemStyle: string;
-    gFaction: number;
+    gFaction: Faction;
     guildEmblemObject: string;
     GrantAccess: boolean;
     faction: number;
@@ -28,9 +30,9 @@ export interface GRank {
     rname: string;
 }
 
-export interface GuildMember {
+interface GuildMember {
     realm: string;
-    class: number;
+    class: ClassId;
     race: number;
     gender: number;
     level: number;

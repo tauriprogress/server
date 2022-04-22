@@ -1,26 +1,24 @@
-import { environment } from "../environment";
-import { LooseObject, RaidLogWithRealm, LastLogIds } from "../types";
+import { classIds, specIds } from "../constants";
+import environment from "../environment";
+import {
+    LooseObject,
+    RaidLogWithRealm,
+    LastLogIds,
+    Faction,
+    Realm,
+    CharacterDocument,
+    ClassId,
+    SpecId,
+    CharacterPerformance,
+    RaidName,
+    Difficulty,
+    CombatMetric,
+} from "../types";
 import {
     ERR_INVALID_BOSS_NAME,
     ERR_INVALID_RAID_ID,
-    ERR_INVALID_RAID_NAME
+    ERR_INVALID_RAID_NAME,
 } from "./errors";
-
-export function getCharacterId(
-    name: string,
-    realm: keyof typeof environment.shortRealms,
-    spec: number
-) {
-    return `${name},${environment.shortRealms[realm]},${spec}`;
-}
-
-export function getBossCollectionName(
-    id: number,
-    difficulty: number,
-    combatMetric: string
-) {
-    return `${id} ${difficulty} ${combatMetric}`;
-}
 
 export function getLatestWednesday(currentDate: Date = new Date()) {
     const currentDay = currentDate.getUTCDay();
@@ -48,14 +46,13 @@ export function unshiftDateDay(day: number) {
     return day - 1 >= 0 ? day - 1 : 6;
 }
 
-export function getLogFaction(log: RaidLogWithRealm) {
+export function getLogFaction(log: RaidLogWithRealm): Faction {
     let alliance = 0;
     let horde = 0;
     for (let member of log.members) {
-        const race = String(
-            member.race
-        ) as keyof typeof environment.characterRaceToFaction;
-        if (environment.characterRaceToFaction[race] === 0) {
+        const race = member.race;
+
+        if (environment.characterRaceFaction[race] === 0) {
             alliance++;
         } else {
             horde++;
@@ -80,11 +77,11 @@ export function getNestedObjectValue(
     }
 }
 
-export function minutesAgo(time: number) {
-    return Math.round((new Date().getTime() / 1000 - Number(time)) / 60);
+export function minutesAgo(seconds: number) {
+    return Math.round((new Date().getTime() / 1000 - Number(seconds)) / 60);
 }
 
-export function getLastLogIds<T extends { log_id: number; realm: string }>(
+export function getLastLogIds<T extends { log_id: number; realm: Realm }>(
     logs: T[]
 ) {
     let lastLogIds: LastLogIds = {};
@@ -125,31 +122,11 @@ export function getBossInfo(raidId: number, bossName: string) {
     }
 }
 
-export function getRaidBossId(bossId: number, difficulty: number) {
-    return `${bossId} ${difficulty}`;
-}
-
-export function getRaidBossCacheId(raidId: number, bossName: string) {
-    return `${raidId}${bossName}`;
-}
-
 export function getRelativePerformance(
     currentPerformance: number,
     bestPerformance: number
 ) {
     return Math.round((currentPerformance / bestPerformance) * 1000) / 10;
-}
-
-export function getLeaderboardCacheId(
-    raidId: number,
-    combatMetric: string,
-    spec?: string
-) {
-    if (spec) {
-        return `${raidId}${spec}${combatMetric}`;
-    }
-
-    return `${raidId}${combatMetric}`;
 }
 
 export function getRaidInfoFromName(raidName: string) {
@@ -160,4 +137,100 @@ export function getRaidInfoFromName(raidName: string) {
     }
 
     throw ERR_INVALID_RAID_NAME;
+}
+
+export function getRaidNameFromIngamebossId(ingameBossId: number) {
+    for (const raid of environment.currentContent.raids) {
+        for (const boss of raid.bosses) {
+            for (const key in boss.bossIdOfDifficulty) {
+                const difficulty = Number(
+                    key
+                ) as keyof typeof boss.bossIdOfDifficulty;
+
+                if (ingameBossId === boss.bossIdOfDifficulty[difficulty])
+                    return raid.name;
+            }
+        }
+    }
+    return false;
+}
+
+export function getTaskDueDate(
+    interval: number,
+    minDelay: number,
+    lastTaskStart: number
+): Date {
+    const now = new Date().getTime();
+    let delay = now - lastTaskStart + interval;
+
+    while (delay < minDelay) {
+        delay += interval;
+    }
+
+    return new Date(now + delay);
+}
+
+export function getCharacterDocumentRankBulkwriteOperations(
+    characters: CharacterDocument[]
+) {
+    let classes = classIds.reduce((acc, classId) => {
+        acc[classId] = 0;
+        return acc;
+    }, {} as { [key: number]: number }) as { [key in ClassId]: number };
+
+    let specs = specIds.reduce((acc, specId) => {
+        acc[specId] = 0;
+        return acc;
+    }, {} as { [key: number]: number }) as { [key in SpecId]: number };
+
+    return characters.map((character, i) => {
+        classes[character.class] += 1;
+        specs[character.spec] += 1;
+        return {
+            updateOne: {
+                filter: {
+                    _id: character._id,
+                },
+                update: {
+                    $set: {
+                        rank: i + 1,
+                        cRank: classes[character.class],
+                        sRank: specs[character.spec],
+                    },
+                },
+            },
+        };
+    });
+}
+
+export function getPropertiesFromCharacterPerformance(
+    characterPerformance: CharacterPerformance,
+    raidName: RaidName,
+    difficulty: Difficulty,
+    combatMetric: CombatMetric
+): { f: Faction; race: string } | { f: Faction } {
+    let f: Faction = 1;
+    let recentDate = 0;
+    let race;
+    const bosses = getRaidInfoFromName(raidName).bosses;
+    for (const boss of bosses) {
+        const bossPerformance =
+            characterPerformance[raidName][difficulty][boss.name];
+
+        for (const keyString in bossPerformance) {
+            const key = keyString as keyof typeof bossPerformance;
+            const document = bossPerformance[key][combatMetric];
+            if (typeof document === "number" || !document.performance) continue;
+
+            if (document.date > recentDate) {
+                recentDate = document.date;
+                f = document.f;
+                race = document.race;
+            }
+        }
+    }
+    if (race) {
+        return { f, race };
+    }
+    return { f };
 }
