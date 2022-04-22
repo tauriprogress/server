@@ -264,8 +264,8 @@ export function addLogToGuildDocument(
 
 export function createGuildRaidDays(): GuildRaidDays {
     return {
-        total: new Array(7).fill(new Array(24).fill(0)),
-        latest: new Array(7).fill(new Array(24).fill(0)),
+        total: new Array(7).fill(0).map(() => new Array(24).fill(0)),
+        latest: new Array(7).fill(0).map(() => new Array(24).fill(0)),
     };
 }
 
