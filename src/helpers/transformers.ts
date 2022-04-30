@@ -236,6 +236,13 @@ export function filtersToAggregationMatchQuery(filters: Filters) {
 
     if (filters.spec) {
         matchQuery.spec = filters.spec;
+        if (
+            filters.role &&
+            environment.specs[filters.spec as keyof typeof environment.specs]
+                .role !== filters.role
+        ) {
+            matchQuery.spec = -1;
+        }
     } else if (filters.role) {
         let validSpecs: SpecId[] = [];
         for (const key in environment.specs) {
