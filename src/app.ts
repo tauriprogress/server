@@ -303,7 +303,8 @@ const speedLimiter = slowDown({
                 if (!item) {
                     const data = await tauriApi.getItemByGuid(
                         guid,
-                        req.body.realm
+                        req.body.realm,
+                        req.body.isEntry
                     );
 
                     if (data.success) {

@@ -332,6 +332,7 @@ export function verifyGetItems(
 
         if (!validItemids(req.body.ids)) throw ERR_INVALID_ITEM_IDS;
 
+        req.body.isEntry = !!req.body.isEntry;
         next();
     } catch (err) {
         res.send({

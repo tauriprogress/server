@@ -325,7 +325,8 @@ class TauriApi {
         });
     }
 
-    getItemByGuid(guid: number, realm: Realm) {
+    getItemByGuid(guid: number, realm: Realm, isEntry: Boolean = false) {
+        const field = isEntry ? "e" : "i";
         return this.request<ItemResponse>({
             method: "POST",
             body: encodeURIComponent(
@@ -334,7 +335,7 @@ class TauriApi {
                     url: "item-tooltip",
                     params: {
                         r: realm,
-                        i: guid,
+                        [field]: guid,
                     },
                 })
             ),
