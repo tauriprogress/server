@@ -129,7 +129,7 @@ function updateGuilds(db: Database) {
             if (!db.connection) throw ERR_DB_CONNECTION;
             if (db.isUpdating) throw ERR_DB_ALREADY_UPDATING;
 
-            if (minutesAgo(db.lastGuildsUpdate) > 720) {
+            if (minutesAgo(db.lastGuildsUpdate) > 60 * 36) {
                 const updateStarted = new Date().getTime() / 1000;
                 const maintenanceCollection =
                     db.connection.collection<MaintenanceDocument>(
@@ -416,8 +416,8 @@ export default [
     },
     {
         name: "Update guilds",
-        interval: 1000 * 60 * 60 * 12,
-        minDelay: 1000 * 60 * 60 * 10,
+        interval: 1000 * 60 * 60 * 36,
+        minDelay: 1000 * 60 * 60 * 30,
         perform: updateGuilds,
     },
 ];
