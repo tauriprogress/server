@@ -301,11 +301,9 @@ const speedLimiter = slowDown({
                 let item = cache.getItem(guid);
 
                 if (!item) {
-                    const data = await tauriApi.getItemByGuid(
-                        guid,
-                        req.body.realm,
-                        req.body.isEntry
-                    );
+                    const data = req.body.isEntry
+                        ? await tauriApi.getItem(guid, req.body.realm)
+                        : await tauriApi.getItemByGuid(guid, req.body.realm);
 
                     if (data.success) {
                         item = { ...data.response, guid };

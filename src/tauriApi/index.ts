@@ -72,6 +72,7 @@ class TauriApi {
                         throw new Error(response.errorstring);
                     }
                 } catch (err) {
+                    console.log(err);
                     if (
                         isError(err) &&
                         err.message !== ERR_TAURI_API_TIMEOUT.message
@@ -309,24 +310,7 @@ class TauriApi {
         });
     }
 
-    getItem(id: number) {
-        return this.request<ItemResponse>({
-            method: "POST",
-            body: encodeURIComponent(
-                JSON.stringify({
-                    secret: this.apisecret,
-                    url: "item-tooltip",
-                    params: {
-                        r: "[HU] Tauri WoW Server",
-                        e: id,
-                    },
-                })
-            ),
-        });
-    }
-
-    getItemByGuid(guid: number, realm: Realm, isEntry: Boolean = false) {
-        const field = isEntry ? "e" : "i";
+    getItem(id: number, realm: Realm) {
         return this.request<ItemResponse>({
             method: "POST",
             body: encodeURIComponent(
@@ -335,7 +319,23 @@ class TauriApi {
                     url: "item-tooltip",
                     params: {
                         r: realm,
-                        [field]: guid,
+                        e: id,
+                    },
+                })
+            ),
+        });
+    }
+
+    getItemByGuid(guid: number, realm: Realm) {
+        return this.request<ItemResponse>({
+            method: "POST",
+            body: encodeURIComponent(
+                JSON.stringify({
+                    secret: this.apisecret,
+                    url: "item-tooltip",
+                    params: {
+                        r: realm,
+                        i: guid,
                     },
                 })
             ),
