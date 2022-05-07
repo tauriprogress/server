@@ -79,4 +79,24 @@ interface Member {
     interrupts: number;
     dispells: number;
     ilvl: number;
+    talents?: string;
+    trinket_0?: Trinket;
+    trinket_1?: Trinket;
 }
+
+type Trinket = {
+    entry: number;
+    guid: number;
+    originalicon: string;
+    icon: string;
+    rarity: number;
+    stackcount: number;
+    ilevel: number;
+    originalname: string;
+    name: string;
+    transmogid: number;
+    transmogitemname: string;
+    transmogitemicon: string;
+    gems: [];
+    ench: {};
+};
