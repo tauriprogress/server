@@ -179,9 +179,28 @@ class DBInterface {
 
                                 if (await bossCollection.findOne({}))
                                     await bossCollection.deleteMany({});
+
+                                await bossCollection.createIndex({
+                                    [combatMetric]: -1,
+                                });
                             }
                         }
                     }
+                }
+
+                for (const combatMetric of ["dps", "hps"]) {
+                    const leaderboardCollection =
+                        this.connection.collection<LeaderboardCharacterDocument>(
+                            combatMetric === "dps"
+                                ? this.collections.characterLeaderboardDps
+                                : this.collections.characterLeaderboardHps
+                        );
+                    if (await leaderboardCollection.findOne({}))
+                        await leaderboardCollection.deleteMany({});
+
+                    await leaderboardCollection.createIndex({
+                        [combatMetric]: -1,
+                    });
                 }
 
                 const updateStarted = new Date().getTime() / 1000;
