@@ -21,8 +21,26 @@ export function createCharacterDocument(
                       (fightTime / 1000),
               };
 
+    const talentsAndTrinkets =
+        character.talents && character.trinket_0 && character.trinket_1
+            ? {
+                  talents: character.talents,
+                  trinkets: [
+                      {
+                          id: character.trinket_0.entry,
+                          icon: character.trinket_0.icon,
+                      },
+                      {
+                          id: character.trinket_1.entry,
+                          icon: character.trinket_1.icon,
+                      },
+                  ],
+              }
+            : {};
+
     return {
         ...combatMetricDoc,
+        ...talentsAndTrinkets,
         _id: getCharacterId(character.name, realm, character.spec),
         name: character.name,
         realm: realm,

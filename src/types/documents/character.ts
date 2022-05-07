@@ -16,7 +16,14 @@ export interface DefaultCharacterDocument extends Document {
     rank: number;
     cRank: number;
     sRank: number;
+    talents?: string;
+    trinkets?: Trinket[];
 }
+
+type Trinket = {
+    id: number;
+    icon: string;
+};
 
 export interface DamageCharacterDocument extends DefaultCharacterDocument {
     dps: number;
