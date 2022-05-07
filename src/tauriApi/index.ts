@@ -33,7 +33,7 @@ class TauriApi {
     constructor() {
         this.apikey = environment.TAURI_API_KEY;
         this.apisecret = environment.TAURI_API_SECRET;
-        this.baseUrl = "http://chapi.tauri.hu/apiIndex.php";
+        this.baseUrl = environment.apiUrl;
         this.retryCount = 3;
     }
 

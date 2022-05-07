@@ -28,7 +28,10 @@ class Environment {
     readonly MONGODB_ADDRESS: string;
     readonly PORT: number;
 
+    readonly apiUrl;
     readonly defaultRealm;
+    readonly defaultDifficulty;
+    readonly expansion;
     readonly realms;
     readonly characterClassNames;
     readonly shortRealms;
@@ -114,10 +117,7 @@ class Environment {
             this.PORT = defaultPort;
         }
 
-        const realmGroupEnv =
-            this.REALM_GROUP === "tauri"
-                ? constants.tauri
-                : constants.crystalsong;
+        const realmGroupEnv = constants[this.REALM_GROUP];
 
         this.realms = realmGroupEnv.realms;
         this.characterClassNames = realmGroupEnv.characterClassNames;
@@ -126,7 +126,10 @@ class Environment {
         this.guildFactionBugs = realmGroupEnv.guildFactionBugs;
         this.difficultyNames = realmGroupEnv.difficultyNames;
         this.seasons = realmGroupEnv.seasons;
-        this.defaultRealm = realmGroupEnv.realms[0];
+        this.defaultRealm = realmGroupEnv.defaultRealm;
+        this.defaultDifficulty = realmGroupEnv.defaultDifficulty;
+        this.apiUrl = realmGroupEnv.urls.api;
+        this.expansion = realmGroupEnv.expansion;
 
         this.shortRealms = constants.shortRealms;
         this.characterRaceFaction = constants.characterRaceFaction;
