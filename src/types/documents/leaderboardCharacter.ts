@@ -7,14 +7,20 @@ export interface LeaderboardCharacterDocument extends Document {
     _id: ReturnType<typeof getLeaderboardCharacterId>;
     raidName: RaidName;
     difficulty: Difficulty;
-    score: number;
     ilvl: number;
     class: ClassId;
     f: Faction;
     name: string;
     realm: Realm;
     race: string;
-    lastUpdated: number;
+    bosses: {
+        [key: string]: Boss;
+    };
+}
+
+interface Boss {
+    bossName: string;
+    performance: number;
 }
 
 export interface LeaderboardCharacterAggregated extends Document {
