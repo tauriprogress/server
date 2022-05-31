@@ -70,7 +70,6 @@ import {
 import { combatMetrics } from "../constants";
 import {
     updateCharacterDocumentRanks,
-    updateLeaderboardScores,
     updateRaidBossCache,
 } from "../DBTaskManger/tasks";
 import { createLeaderboardCharacterDocument } from "../helpers/documents/leaderboardCharacter";
@@ -315,7 +314,6 @@ class DBInterface {
                 );
 
                 await updateRaidBossCache(db);
-                await updateLeaderboardScores(db);
 
                 this.isUpdating = false;
                 this.updateStatus = "";

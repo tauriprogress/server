@@ -101,8 +101,6 @@ function updateDatabase(db: Database) {
             cache.clearRaidSummary();
             cache.clearCharacterPerformance();
 
-            await updateLeaderboardScores(db);
-
             db.isUpdating = false;
             db.updateStatus = "";
 
@@ -296,112 +294,6 @@ export function updateCharacterDocumentRanks(db: Database) {
 
             resolve(true);
         } catch (e) {
-            reject(e);
-        }
-    });
-}
-
-export function updateLeaderboardScores(db: Database) {
-    return new Promise(async (resolve, reject) => {
-        try {
-            console.log("Updating character leaderboard scores.");
-            if (!db.connection) throw ERR_DB_CONNECTION;
-
-            const lastLeaderboardUpdate = await db.getLastLeaderboardUpdate();
-            let operations: Promise<any[]>[] = [];
-
-            for (const combatMetric of combatMetrics) {
-                const collection =
-                    db.connection.collection<LeaderboardCharacterDocument>(
-                        combatMetric === "dps"
-                            ? db.collections.characterLeaderboardDps
-                            : db.collections.characterLeaderboardHps
-                    );
-
-                await collection
-                    .aggregate<LeaderboardCharacterAggregated>([
-                        {
-                            $match: {
-                                lastUpdated: {
-                                    $gt: lastLeaderboardUpdate,
-                                },
-                            },
-                        },
-                        {
-                            $group: {
-                                _id: { $concat: ["$name", " ", "$realm"] },
-                                name: { $last: "$name" },
-                                realm: { $last: "$realm" },
-                                class: { $last: "$class" },
-                                raidName: { $last: "$raidName" },
-                            },
-                        },
-                    ])
-                    .batchSize(1000)
-                    .forEach((document) => {
-                        operations.push(
-                            db
-                                .getCharacterPerformance(
-                                    document.name,
-                                    document.class,
-                                    document.realm,
-                                    document.raidName
-                                )
-                                .then((characterPerformance) => {
-                                    const difficulties = getRaidInfoFromName(
-                                        document.raidName
-                                    ).difficulties;
-                                    let result = [];
-
-                                    for (const difficulty of difficulties) {
-                                        result.push({
-                                            updateOne: {
-                                                filter: {
-                                                    _id: getLeaderboardCharacterId(
-                                                        document.name,
-                                                        document.realm,
-                                                        document.raidName,
-                                                        difficulty
-                                                    ),
-                                                },
-                                                update: {
-                                                    $set: {
-                                                        score: characterPerformance[
-                                                            document.raidName
-                                                        ][difficulty].total.all[
-                                                            combatMetric
-                                                        ],
-                                                        ...getPropertiesFromCharacterPerformance(
-                                                            characterPerformance,
-                                                            document.raidName,
-                                                            difficulty,
-                                                            combatMetric
-                                                        ),
-                                                    },
-                                                },
-                                            },
-                                        });
-                                    }
-
-                                    return result;
-                                })
-                        );
-                    });
-
-                if (operations.length) {
-                    await collection.bulkWrite(
-                        (await Promise.all(operations)).flat()
-                    );
-                }
-            }
-
-            db.saveLastLeaderboardUpdateDate(new Date());
-
-            console.log("Character scores updated");
-
-            resolve(true);
-        } catch (e) {
-            console.log(e);
             reject(e);
         }
     });
