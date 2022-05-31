@@ -364,7 +364,6 @@ class DBInterface {
                                     $set: {
                                         ...(({
                                             ilvl,
-                                            lastUpdated,
                                             f,
                                             race,
                                             bosses,
@@ -453,50 +452,6 @@ class DBInterface {
                     .findOne();
 
                 resolve(maintenance ? maintenance.lastGuildsUpdate : 0);
-            } catch (err) {
-                reject(err);
-            }
-        });
-    }
-
-    async getLastLeaderboardUpdate(): Promise<number> {
-        return new Promise(async (resolve, reject) => {
-            try {
-                if (!this.connection) throw ERR_DB_CONNECTION;
-
-                const maintenance = await this.connection
-                    .collection<MaintenanceDocument>(
-                        this.collections.maintenance
-                    )
-                    .findOne();
-
-                resolve(maintenance ? maintenance.lastLeaderboardUpdate : 0);
-            } catch (err) {
-                reject(err);
-            }
-        });
-    }
-
-    async saveLastLeaderboardUpdateDate(date: Date) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                if (!this.connection) throw ERR_DB_CONNECTION;
-
-                const collection =
-                    this.connection.collection<MaintenanceDocument>(
-                        this.collections.maintenance
-                    );
-
-                await collection.updateOne(
-                    {},
-                    {
-                        $set: {
-                            lastLeaderboardUpdate: date.getTime() / 1000,
-                        },
-                    }
-                );
-
-                resolve(true);
             } catch (err) {
                 reject(err);
             }
