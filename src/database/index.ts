@@ -34,6 +34,7 @@ import {
     getRaidBossBestOfSpec,
     getNestedObjectValue,
     getRaidNameFromIngamebossId,
+    getRaidBossNameFromIngameBossId,
 } from "../helpers";
 
 import { MongoClient, Db, ClientSession } from "mongodb";
@@ -276,11 +277,15 @@ class DBInterface {
 
                             const raidName =
                                 getRaidNameFromIngamebossId(ingameBossId);
-                            if (raidName)
+
+                            const bossName =
+                                getRaidBossNameFromIngameBossId(ingameBossId);
+                            if (raidName && bossName)
                                 await this.saveCharactersToLeaderboard(
                                     characters,
                                     raidName,
                                     difficulty,
+                                    bossName,
                                     combatMetric
                                 );
                             this.updatedCharacterDocumentCollections.push(
@@ -328,6 +333,7 @@ class DBInterface {
         characters: CharacterDocument[],
         raidName: RaidName,
         difficulty: Difficulty,
+        bossName: string,
         combatMetric: CombatMetric,
         session?: ClientSession
     ) {
@@ -358,21 +364,21 @@ class DBInterface {
                                     $set: {
                                         ...(({
                                             ilvl,
-                                            score,
                                             lastUpdated,
                                             f,
                                             race,
+                                            bosses,
                                             ...rest
                                         }) => {
                                             return rest;
                                         })(doc),
                                     },
                                     $max: {
-                                        score: doc.score,
                                         ilvl: doc.ilvl,
-                                        lastUpdated:
-                                            new Date().getTime() / 1000,
+                                        [`bosses.${bossName}`]:
+                                            character[combatMetric],
                                     },
+
                                     $setOnInsert: {
                                         f: doc.f,
                                         race: doc.race,
@@ -629,7 +635,10 @@ class DBInterface {
                         const raidName =
                             getRaidNameFromIngamebossId(ingameBossId);
 
-                        if (raidName)
+                        const bossName =
+                            getRaidBossNameFromIngameBossId(ingameBossId);
+
+                        if (raidName && bossName)
                             await this.saveCharactersToLeaderboard(
                                 Object.values(
                                     characterPerformanceOfBoss[bossId][
@@ -638,6 +647,7 @@ class DBInterface {
                                 ),
                                 raidName,
                                 difficulty,
+                                bossName,
                                 combatMetric,
                                 session
                             );

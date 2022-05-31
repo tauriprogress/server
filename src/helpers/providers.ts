@@ -156,6 +156,22 @@ export function getRaidNameFromIngamebossId(ingameBossId: number) {
     return false;
 }
 
+export function getRaidBossNameFromIngameBossId(ingameBossId: number) {
+    for (const raid of environment.currentContent.raids) {
+        for (const boss of raid.bosses) {
+            for (const key in boss.bossIdOfDifficulty) {
+                const difficulty = Number(
+                    key
+                ) as keyof typeof boss.bossIdOfDifficulty;
+
+                if (ingameBossId === boss.bossIdOfDifficulty[difficulty])
+                    return boss.name;
+            }
+        }
+    }
+    return false;
+}
+
 export function getTaskDueDate(
     interval: number,
     minDelay: number,
