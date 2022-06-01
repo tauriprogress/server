@@ -1055,6 +1055,23 @@ class DBInterface {
             try {
                 if (!this.connection) throw ERR_DB_CONNECTION;
 
+                const bosses = getRaidInfoFromName(raidName).bosses;
+
+                let bestPerformances: { [key: string]: number } = {};
+
+                for (const boss of bosses) {
+                    bestPerformances[boss.name] = (
+                        await this.getRaidBoss(
+                            boss.bossIdOfDifficulty[
+                                filters.difficulty as keyof typeof boss.bossIdOfDifficulty
+                            ],
+                            filters.difficulty
+                        )
+                    )[`best${capitalize(combatMetric)}NoCat` as const]?.[
+                        combatMetric
+                    ];
+                }
+
                 const collection =
                     this.connection.collection<LeaderboardCharacterDocument>(
                         combatMetric === "dps"
@@ -1067,10 +1084,51 @@ class DBInterface {
                     difficulty: filters.difficulty,
                     raidName: raidName,
                 };
-                const sort = { score: -1 };
+
+                const scoreField = {
+                    score: {
+                        $multiply: [
+                            {
+                                $divide: [
+                                    {
+                                        $add: bosses.map((boss) => {
+                                            const fieldName = `$bosses.${boss.name}`;
+                                            const calculation = {
+                                                $multiply: [
+                                                    {
+                                                        $divide: [
+                                                            {
+                                                                $cond: {
+                                                                    if: {
+                                                                        $isNumber:
+                                                                            fieldName,
+                                                                    },
+                                                                    then: fieldName,
+                                                                    else: 0,
+                                                                },
+                                                            },
+                                                            bestPerformances[
+                                                                boss.name
+                                                            ],
+                                                        ],
+                                                    },
+                                                    100,
+                                                ],
+                                            };
+                                            return bestPerformances[boss.name]
+                                                ? calculation
+                                                : 0;
+                                        }),
+                                    },
+                                    bosses.length * 100,
+                                ],
+                            },
+                            environment.maxCharacterScore,
+                        ],
+                    },
+                };
                 const skip = pageSize * page;
                 const limit = pageSize;
-
                 const result = (
                     await collection
                         .aggregate([
@@ -1078,7 +1136,7 @@ class DBInterface {
                                 $facet: {
                                     characters: [
                                         { $match: matchQuery },
-                                        { $sort: sort },
+                                        { $addFields: scoreField },
                                         { $skip: skip },
                                         { $limit: limit },
                                     ],
