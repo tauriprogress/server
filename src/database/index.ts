@@ -1127,6 +1127,7 @@ class DBInterface {
                         ],
                     },
                 };
+                const sort = { score: -1 };
                 const skip = pageSize * page;
                 const limit = pageSize;
                 const result = (
@@ -1137,6 +1138,7 @@ class DBInterface {
                                     characters: [
                                         { $match: matchQuery },
                                         { $addFields: scoreField },
+                                        { $sort: sort },
                                         { $skip: skip },
                                         { $limit: limit },
                                     ],
