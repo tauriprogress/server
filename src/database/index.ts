@@ -35,6 +35,7 @@ import {
     getNestedObjectValue,
     getRaidNameFromIngamebossId,
     getRaidBossNameFromIngameBossId,
+    getCharacterLeaderboardCacheId,
 } from "../helpers";
 
 import { MongoClient, Db, ClientSession } from "mongodb";
@@ -60,6 +61,7 @@ import {
     GuildLeaderboard,
     SpecId,
     LeaderboardCharacterDocument,
+    LeaderboardCharacterScoredDocument,
 } from "../types";
 import {
     ERR_BOSS_NOT_FOUND,
@@ -1054,120 +1056,137 @@ class DBInterface {
         return new Promise(async (resolve, reject) => {
             try {
                 if (!this.connection) throw ERR_DB_CONNECTION;
+                const leaderboardId = getCharacterLeaderboardCacheId(
+                    raidName,
+                    combatMetric,
+                    filters,
+                    page
+                );
 
-                const bosses = getRaidInfoFromName(raidName).bosses;
+                const cachedData = cache.getCharacterLeaderboard(leaderboardId);
+                if (cachedData) {
+                    resolve(cachedData);
+                } else {
+                    const bosses = getRaidInfoFromName(raidName).bosses;
 
-                let bestPerformances: { [key: string]: number } = {};
+                    let bestPerformances: { [key: string]: number } = {};
 
-                for (const boss of bosses) {
-                    bestPerformances[boss.name] = (
-                        await this.getRaidBoss(
-                            boss.bossIdOfDifficulty[
-                                filters.difficulty as keyof typeof boss.bossIdOfDifficulty
-                            ],
-                            filters.difficulty
-                        )
-                    )[`best${capitalize(combatMetric)}NoCat` as const]?.[
-                        combatMetric
-                    ];
-                }
-
-                const collection =
-                    this.connection.collection<LeaderboardCharacterDocument>(
-                        combatMetric === "dps"
-                            ? this.collections.characterLeaderboardDps
-                            : this.collections.characterLeaderboardHps
-                    );
-
-                const matchQuery = {
-                    ...filtersToAggregationMatchQuery(filters),
-                    difficulty: filters.difficulty,
-                    raidName: raidName,
-                };
-
-                const scoreField = {
-                    score: {
-                        $multiply: [
-                            {
-                                $divide: [
-                                    {
-                                        $add: bosses.map((boss) => {
-                                            const fieldName = `$bosses.${boss.name}`;
-                                            const calculation = {
-                                                $multiply: [
-                                                    {
-                                                        $divide: [
-                                                            {
-                                                                $cond: {
-                                                                    if: {
-                                                                        $isNumber:
-                                                                            fieldName,
-                                                                    },
-                                                                    then: fieldName,
-                                                                    else: 0,
-                                                                },
-                                                            },
-                                                            bestPerformances[
-                                                                boss.name
-                                                            ],
-                                                        ],
-                                                    },
-                                                    100,
-                                                ],
-                                            };
-                                            return bestPerformances[boss.name]
-                                                ? calculation
-                                                : 0;
-                                        }),
-                                    },
-                                    bosses.length * 100,
+                    for (const boss of bosses) {
+                        bestPerformances[boss.name] = (
+                            await this.getRaidBoss(
+                                boss.bossIdOfDifficulty[
+                                    filters.difficulty as keyof typeof boss.bossIdOfDifficulty
                                 ],
-                            },
-                            environment.maxCharacterScore,
-                        ],
-                    },
-                };
-                const sort = { score: -1 };
-                const skip = pageSize * page;
-                const limit = pageSize;
-                const result = (
-                    await collection
-                        .aggregate([
-                            {
-                                $facet: {
-                                    characters: [
-                                        { $match: matchQuery },
-                                        { $addFields: scoreField },
-                                        { $sort: sort },
-                                        { $skip: skip },
-                                        { $limit: limit },
-                                    ],
-                                    itemCount: [
-                                        { $match: matchQuery },
+                                filters.difficulty
+                            )
+                        )[`best${capitalize(combatMetric)}NoCat` as const]?.[
+                            combatMetric
+                        ];
+                    }
+
+                    const collection =
+                        this.connection.collection<LeaderboardCharacterDocument>(
+                            combatMetric === "dps"
+                                ? this.collections.characterLeaderboardDps
+                                : this.collections.characterLeaderboardHps
+                        );
+
+                    const matchQuery = {
+                        ...filtersToAggregationMatchQuery(filters),
+                        difficulty: filters.difficulty,
+                        raidName: raidName,
+                    };
+
+                    const scoreField = {
+                        score: {
+                            $multiply: [
+                                {
+                                    $divide: [
                                         {
-                                            $group: {
-                                                _id: null,
-                                                n: { $sum: 1 },
-                                            },
+                                            $add: bosses.map((boss) => {
+                                                const fieldName = `$bosses.${boss.name}`;
+                                                const calculation = {
+                                                    $multiply: [
+                                                        {
+                                                            $divide: [
+                                                                {
+                                                                    $cond: {
+                                                                        if: {
+                                                                            $isNumber:
+                                                                                fieldName,
+                                                                        },
+                                                                        then: fieldName,
+                                                                        else: 0,
+                                                                    },
+                                                                },
+                                                                bestPerformances[
+                                                                    boss.name
+                                                                ],
+                                                            ],
+                                                        },
+                                                        100,
+                                                    ],
+                                                };
+                                                return bestPerformances[
+                                                    boss.name
+                                                ]
+                                                    ? calculation
+                                                    : 0;
+                                            }),
                                         },
+                                        bosses.length * 100,
                                     ],
                                 },
-                            },
-                            {
-                                $addFields: {
-                                    itemCount: {
-                                        $first: "$$CURRENT.itemCount.n",
+                                environment.maxCharacterScore,
+                            ],
+                        },
+                    };
+                    const sort = { score: -1 };
+                    const skip = pageSize * page;
+                    const limit = pageSize;
+                    const result = (
+                        await collection
+                            .aggregate([
+                                {
+                                    $facet: {
+                                        characters: [
+                                            { $match: matchQuery },
+                                            { $addFields: scoreField },
+                                            { $sort: sort },
+                                            { $skip: skip },
+                                            { $limit: limit },
+                                        ],
+                                        itemCount: [
+                                            { $match: matchQuery },
+                                            {
+                                                $group: {
+                                                    _id: null,
+                                                    n: { $sum: 1 },
+                                                },
+                                            },
+                                        ],
                                     },
                                 },
-                            },
-                        ])
-                        .toArray()
-                )[0] as {
-                    characters: LeaderboardCharacterDocument[];
-                    itemCount: number;
-                };
+                                {
+                                    $addFields: {
+                                        itemCount: {
+                                            $first: "$$CURRENT.itemCount.n",
+                                        },
+                                    },
+                                },
+                            ])
+                            .toArray()
+                    )[0] as {
+                        characters: LeaderboardCharacterScoredDocument[];
+                        itemCount: number;
+                    };
 
-                resolve(result);
+                    if (page === 0) {
+                        cache.characterLeaderboard.set(leaderboardId, result);
+                    }
+
+                    resolve(result);
+                }
             } catch (e) {
                 reject(e);
             }

@@ -6,6 +6,7 @@ import {
     SpecId,
     RaidId,
     CombatMetric,
+    Filters,
 } from "../types";
 
 export function getCharacterId(name: string, realm: Realm, spec: SpecId) {
@@ -64,16 +65,13 @@ export function getRaidBossCacheId(raidId: number, bossName: string) {
     return `${raidId}${bossName}`;
 }
 
-export function getLeaderboardCacheId(
-    raidId: number,
-    combatMetric: string,
-    spec?: string
+export function getCharacterLeaderboardCacheId(
+    raidName: RaidName,
+    combatMetric: CombatMetric,
+    filters: Filters,
+    page: number
 ) {
-    if (spec) {
-        return `${raidId}${spec}${combatMetric}`;
-    }
-
-    return `${raidId}${combatMetric}`;
+    return `${raidName}${combatMetric}${filters.difficulty}${filters.class}${filters.realm}${page}`;
 }
 
 export function getRaidSummaryCacheId(raidId: RaidId) {

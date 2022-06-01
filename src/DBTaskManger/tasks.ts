@@ -100,6 +100,7 @@ function updateDatabase(db: Database) {
 
             cache.clearRaidSummary();
             cache.clearCharacterPerformance();
+            cache.clearCharacterLeaderboard();
 
             db.isUpdating = false;
             db.updateStatus = "";

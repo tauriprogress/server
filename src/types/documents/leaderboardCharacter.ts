@@ -3,6 +3,11 @@ import { getLeaderboardCharacterId } from "../../helpers";
 import { ClassId, Faction, Realm } from "../global";
 import { Document } from "mongodb";
 
+export interface LeaderboardCharacterScoredDocument
+    extends LeaderboardCharacterDocument {
+    score: number;
+}
+
 export interface LeaderboardCharacterDocument extends Document {
     _id: ReturnType<typeof getLeaderboardCharacterId>;
     raidName: RaidName;

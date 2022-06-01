@@ -262,50 +262,6 @@ export function validItemids(ids: any) {
     );
 }
 
-export const possibleLeaderboardIds = (() => {
-    /*
-    let leaderboardIds = [];
-
-    const combatMetrics = ["dps", "hps"];
-    const roles = ["damage", "heal", "tank"];
-    const specs = Object.keys(environment.specs);
-
-    let raidIds = [];
-
-    for (const raid of environment.currentContent.raids) {
-        raidIds.push(raid.id);
-    }
-
-    for (const raidId of raidIds) {
-        for (const combatMetric of combatMetrics) {
-            leaderboardIds.push(getLeaderboardCacheId(raidId, combatMetric));
-            for (const role of roles) {
-                leaderboardIds.push(
-                    getLeaderboardCacheId(raidId, combatMetric, role)
-                );
-            }
-
-            for (const spec of specs) {
-                leaderboardIds.push(
-                    getLeaderboardCacheId(raidId, combatMetric, spec)
-                );
-            }
-        }
-    }
-
-    return leaderboardIds;
-    */
-})();
-
-export function validLeaderboardId() {
-    /*
-    return (
-        typeof leaderboardId === "string" &&
-        possibleLeaderboardIds.includes(leaderboardId)
-    );
-    */
-}
-
 export function isError(variable: unknown): variable is Error {
     return variable instanceof Error;
 }

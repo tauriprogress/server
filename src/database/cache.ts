@@ -7,6 +7,7 @@ import {
     RaidBossDocument,
     RaidSummary,
     GuildLeaderboard,
+    LeaderboardCharacterScoredDocument,
 } from "../types";
 
 class Cache {
@@ -84,7 +85,9 @@ class Cache {
     }
 
     getCharacterLeaderboard(leaderboardId: string) {
-        return this.characterLeaderboard.get(leaderboardId) as undefined;
+        return this.characterLeaderboard.get(leaderboardId) as
+            | LeaderboardCharacterScoredDocument[]
+            | undefined;
     }
 
     getGuildLeaderboard() {
@@ -103,6 +106,10 @@ class Cache {
 
     clearCharacterPerformance() {
         this.characterPerformance.del(this.characterPerformance.keys());
+    }
+
+    clearCharacterLeaderboard() {
+        this.characterLeaderboard.del(this.characterLeaderboard.keys());
     }
 }
 
