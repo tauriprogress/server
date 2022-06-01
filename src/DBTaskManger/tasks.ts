@@ -4,8 +4,6 @@ import {
     RaidBossDocument,
     Realm,
     CharacterDocument,
-    LeaderboardCharacterDocument,
-    LeaderboardCharacterAggregated,
 } from "../types";
 import { Database } from "../database";
 import { ReadConcern } from "mongodb";
@@ -27,11 +25,7 @@ import {
     requestGuildDocument,
     getCharacterDocumentRankBulkwriteOperations,
     getDeconstructedCharacterDocumentCollectionId,
-    getRaidInfoFromName,
-    getLeaderboardCharacterId,
-    getPropertiesFromCharacterPerformance,
 } from "../helpers";
-import { combatMetrics } from "../constants";
 
 function updateDatabase(db: Database) {
     return new Promise(async (resolve, reject) => {
