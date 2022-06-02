@@ -1142,6 +1142,7 @@ class DBInterface {
                         },
                     };
                     const sort = { score: -1 };
+                    const project = { bosses: 0 };
                     const skip = pageSize * page;
                     const limit = pageSize;
                     const result = (
@@ -1155,6 +1156,7 @@ class DBInterface {
                                             { $sort: sort },
                                             { $skip: skip },
                                             { $limit: limit },
+                                            { $project: project },
                                         ],
                                         itemCount: [
                                             { $match: matchQuery },

@@ -4,7 +4,7 @@ import { ClassId, Faction, Realm } from "../global";
 import { Document } from "mongodb";
 
 export interface LeaderboardCharacterScoredDocument
-    extends LeaderboardCharacterDocument {
+    extends Omit<LeaderboardCharacterDocument, "bosses"> {
     score: number;
 }
 
