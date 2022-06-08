@@ -128,6 +128,22 @@ export function logBugHandler(logs: RaidLogWithRealm[]): RaidLogWithRealm[] {
                         fixedLog.guildid = bug.id;
                     }
                     break;
+                case "removeCharacterFromLogs":
+                    fixedLog.members = fixedLog.members.map((member) => {
+                        if (
+                            bug.characterName === member.name &&
+                            bug.realm === fixedLog.realm &&
+                            bug.date.from < fixedLog.killtime &&
+                            bug.date.to > fixedLog.killtime
+                        ) {
+                            member.dmg_done = 1;
+                            member.absorb_done = 1;
+                            member.dmg_absorb = 1;
+                            member.heal_done = 1;
+                        }
+                        return member;
+                    });
+                    break;
             }
         }
 
