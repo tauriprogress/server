@@ -166,44 +166,6 @@ export function uniqueLogs<T extends { id: number }>(logs: T[]): T[] {
     return uniqueLogs;
 }
 
-export function updateCharacterOfLeaderboard() {
-    /*
-    const updatedDate =
-        previousCharacter.date > currentCharacter.date
-            ? previousCharacter.date
-            : currentCharacter.date;
-
-    const updatedFaction =
-        previousCharacter.date > currentCharacter.date
-            ? previousCharacter.f
-            : currentCharacter.f;
-
-    const updatedRace =
-        previousCharacter.date > currentCharacter.date
-            ? previousCharacter.race
-            : currentCharacter.race;
-
-    const updatedIlvl =
-        previousCharacter.ilvl > currentCharacter.ilvl
-            ? previousCharacter.ilvl
-            : currentCharacter.ilvl;
-
-    const updatedTopPercent =
-        previousCharacter.topPercent > currentCharacter.topPercent
-            ? previousCharacter.topPercent
-            : currentCharacter.topPercent;
-
-    return {
-        ...previousCharacter,
-        date: updatedDate,
-        f: updatedFaction,
-        ilvl: updatedIlvl,
-        topPercent: updatedTopPercent,
-        race: updatedRace,
-    };
-    */
-}
-
 export function applyCharacterFilters(
     characters: CharacterDocument[],
     filters: Filters
