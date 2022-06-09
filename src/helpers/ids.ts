@@ -71,7 +71,7 @@ export function getCharacterLeaderboardCacheId(
     filters: Filters,
     page: number
 ) {
-    return `${raidName}${combatMetric}${filters.difficulty}${filters.class}${filters.realm}${page}`;
+    return `${raidName}${combatMetric}${filters.difficulty}${filters.faction}${filters.class}${filters.realm}${page}`;
 }
 
 export function getRaidSummaryCacheId(raidId: RaidId) {
