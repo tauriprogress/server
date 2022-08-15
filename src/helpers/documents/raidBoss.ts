@@ -175,10 +175,7 @@ export function addCharacterDocumentToRaidBossDocument(
         } else if (categorizedBest.length < 10) {
             categorizedBest.push(characterDocument);
             categorizedBestUpdated = true;
-        } else if (
-            lastBestPerformance &&
-            lastBestPerformance < characterDocument[combatMetric]
-        ) {
+        } else if (lastBestPerformance < characterDocument[combatMetric]) {
             categorizedBest.push(characterDocument);
             categorizedBestUpdated = true;
         }
