@@ -14,6 +14,7 @@ export function createLeaderboardCharacterDocument(
     return {
         _id: getLeaderboardCharacterId(
             character.name,
+            character.class,
             character.realm,
             raidName,
             difficulty
