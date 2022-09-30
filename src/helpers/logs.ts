@@ -203,6 +203,7 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
         }
 
         for (let character of log.members) {
+            if (!character.spec) continue;
             const charId = getCharacterId(
                 character.name,
                 realm,

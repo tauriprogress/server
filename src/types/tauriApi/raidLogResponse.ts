@@ -68,7 +68,7 @@ interface Member {
     gender: number;
     name: string;
     link: string;
-    spec: SpecId;
+    spec: SpecId | 0;
     dmg_done: number;
     dmg_taken: number;
     dmg_absorb: number;
