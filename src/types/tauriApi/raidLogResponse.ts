@@ -84,6 +84,10 @@ interface Member {
     trinket_1?: Trinket;
 }
 
+export interface ValidMember extends Omit<Member, "spec"> {
+    spec: SpecId;
+}
+
 type Trinket = {
     entry: number;
     guid: number;

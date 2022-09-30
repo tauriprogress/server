@@ -1,9 +1,14 @@
-import { CharacterDocument, Realm, RaidLog, CombatMetric } from "../../types";
+import {
+    CharacterDocument,
+    Realm,
+    CombatMetric,
+    ValidMember,
+} from "../../types";
 import { getCharacterId } from "..";
 import { characterRaceFaction } from "tauriprogress-constants";
 
 export function createCharacterDocument(
-    character: RaidLog["members"][number],
+    character: ValidMember,
     realm: Realm,
     logId: number,
     date: number,

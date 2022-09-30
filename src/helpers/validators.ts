@@ -1,5 +1,12 @@
 import environment from "../environment";
-import { Difficulty, LastRaidLogWithRealm, Realm, ShortRealm } from "../types";
+import {
+    Difficulty,
+    LastRaidLogWithRealm,
+    RaidLog,
+    Realm,
+    ShortRealm,
+    ValidMember,
+} from "../types";
 
 export function validRaidId(raidId: any) {
     if (typeof raidId === "number") {
@@ -274,6 +281,15 @@ export function validRaidLog(log: LastRaidLogWithRealm) {
         validBossName(log.mapentry.id, log.encounter_data.encounter_name) &&
         log.fight_time > 10000
     ) {
+        return true;
+    }
+    return false;
+}
+
+export function validMember(
+    member: RaidLog["members"][number]
+): member is ValidMember {
+    if (member.spec) {
         return true;
     }
     return false;

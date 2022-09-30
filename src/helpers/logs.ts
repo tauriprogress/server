@@ -12,6 +12,7 @@ import {
     getCharacterId,
     getRaidBossId,
     getGuildId,
+    validMember,
 } from "../helpers";
 import tauriApi from "../tauriApi";
 import {
@@ -203,7 +204,7 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
         }
 
         for (let character of log.members) {
-            if (!character.spec) continue;
+            if (!validMember(character)) continue;
             const charId = getCharacterId(
                 character.name,
                 realm,
