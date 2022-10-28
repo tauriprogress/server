@@ -15,7 +15,7 @@ import {
     validCharacterName,
     validLogId,
     validLimit,
-    validItemids,
+    validItems,
     isError,
     validIngameBossId,
     validDifficulty,
@@ -330,7 +330,7 @@ export function verifyGetItems(
             req.body.realm = environment.defaultRealm;
         }
 
-        if (!validItemids(req.body.ids)) throw ERR_INVALID_ITEM_IDS;
+        if (!validItems(req.body.items)) throw ERR_INVALID_ITEM_IDS;
 
         req.body.isEntry = !!req.body.isEntry;
         next();

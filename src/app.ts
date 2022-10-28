@@ -297,24 +297,28 @@ const speedLimiter = slowDown({
     app.post("/getitems", verifyGetItems, async (req, res) => {
         try {
             let items: LooseObject = {};
-            for (let guid of req.body.ids) {
-                let item = cache.getItem(guid);
+            for (let itemMeta of req.body.items) {
+                let item = cache.getItem(itemMeta.id);
 
                 if (!item) {
                     const data = req.body.isEntry
-                        ? await tauriApi.getItem(guid, req.body.realm)
-                        : await tauriApi.getItemByGuid(guid, req.body.realm);
+                        ? await tauriApi.getItem(itemMeta.id, req.body.realm)
+                        : await tauriApi.getItemByGuid(
+                              itemMeta.id,
+                              req.body.realm,
+                              itemMeta.pcs
+                          );
 
                     if (data.success) {
-                        item = { ...data.response, guid };
-                        cache.items.set(guid, item);
+                        item = { ...data.response, guid: itemMeta };
+                        cache.items.set(itemMeta.id, item);
                     } else {
                         continue;
                     }
                 }
 
                 if (item) {
-                    items[guid] = item;
+                    items[itemMeta.id] = item;
                 }
             }
 

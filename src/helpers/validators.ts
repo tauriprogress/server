@@ -256,11 +256,11 @@ export function validLimit(limit: any) {
     return typeof limit === "number";
 }
 
-export function validItemids(ids: any) {
+export function validItems(items: any) {
     return (
-        Array.isArray(ids) &&
-        ids.reduce((acc: boolean, curr: any) => {
-            if (typeof curr !== "number") {
+        Array.isArray(items) &&
+        items.reduce((acc: boolean, curr: any) => {
+            if (typeof curr.id !== "number") {
                 return false;
             }
 

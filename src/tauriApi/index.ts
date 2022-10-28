@@ -326,7 +326,7 @@ class TauriApi {
         });
     }
 
-    getItemByGuid(guid: number, realm: Realm) {
+    getItemByGuid(guid: number, realm: Realm, pcs?: string) {
         return this.request<ItemResponse>({
             method: "POST",
             body: encodeURIComponent(
@@ -336,6 +336,7 @@ class TauriApi {
                     params: {
                         r: realm,
                         i: guid,
+                        pcs: pcs,
                     },
                 })
             ),
