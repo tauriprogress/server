@@ -1,5 +1,9 @@
 import * as NodeCache from "node-cache";
-import { getRaidSummaryCacheId } from "../helpers";
+import {
+    getCharacterApiId,
+    getExtendedLogId,
+    getRaidSummaryCacheId,
+} from "../helpers";
 import {
     GuildList,
     CharacterPerformance,
@@ -8,6 +12,9 @@ import {
     RaidSummary,
     GuildLeaderboard,
     LeaderboardCharacterScoredDocument,
+    Realm,
+    RaidLog,
+    CharacterData,
 } from "../types";
 
 class Cache {
@@ -19,6 +26,8 @@ class Cache {
     public characterPerformance: NodeCache;
 
     public items: NodeCache;
+    public logs: NodeCache;
+    public characters: NodeCache;
 
     public guildListId: string;
     public guildLeaderboardId: string;
@@ -65,7 +74,20 @@ class Cache {
             useClones: false,
             maxKeys: 1500,
         });
+        this.logs = new NodeCache({
+            stdTTL: 5 * 60,
+            checkperiod: 60,
+            useClones: false,
+            maxKeys: 400,
+        });
+        this.characters = new NodeCache({
+            stdTTL: 5 * 60,
+            checkperiod: 60,
+            useClones: false,
+            maxKeys: 400,
+        });
     }
+
     getGuildList() {
         return this.guildList.get(this.guildListId) as GuildList | undefined;
     }
@@ -96,8 +118,47 @@ class Cache {
             | undefined;
     }
 
+    setItem(itemId: number, item: ItemWithGuid) {
+        try {
+            cache.items.set(itemId, item);
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
     getItem(itemId: number) {
         return this.items.get(itemId) as ItemWithGuid | undefined;
+    }
+
+    setLog(log: RaidLog, realm: Realm) {
+        try {
+            cache.logs.set(getExtendedLogId(log.log_id, realm), log);
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    getLog(logId: number, realm: Realm) {
+        return this.logs.get(getExtendedLogId(logId, realm)) as
+            | RaidLog
+            | undefined;
+    }
+
+    setCharacter(character: CharacterData, realm: Realm) {
+        try {
+            cache.characters.set(
+                getCharacterApiId(character.name, realm),
+                character
+            );
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    getCharacter(characterName: string, realm: Realm) {
+        return this.characters.get(getCharacterApiId(characterName, realm)) as
+            | CharacterData
+            | undefined;
     }
 
     clearRaidSummary() {

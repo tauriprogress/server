@@ -106,14 +106,25 @@ const speedLimiter = slowDown({
 
     app.post("/getcharacter", verifyGetCharacter, async (req, res) => {
         try {
-            const apiResponse = await tauriApi.getCharacterData(
+            let characterData = cache.getCharacter(
                 req.body.characterName,
                 req.body.realm
             );
 
+            if (!characterData) {
+                characterData = (
+                    await tauriApi.getCharacterData(
+                        req.body.characterName,
+                        req.body.realm
+                    )
+                ).response;
+
+                cache.setCharacter(characterData, req.body.realm);
+            }
+
             res.send({
                 success: true,
-                response: { ...apiResponse.response },
+                response: { ...characterData },
             });
         } catch (err) {
             res.send({
@@ -279,9 +290,16 @@ const speedLimiter = slowDown({
 
     app.post("/getlog", verifyGetLog, async (req, res) => {
         try {
-            let log = (
-                await tauriApi.getRaidLog(req.body.logId, req.body.realm)
-            ).response;
+            let log = cache.getLog(req.body.logId, req.body.realm);
+
+            if (!log) {
+                let log = (
+                    await tauriApi.getRaidLog(req.body.logId, req.body.realm)
+                ).response;
+
+                cache.setLog(log, req.body.realm);
+            }
+
             res.send({
                 success: true,
                 response: { ...log, realm: req.body.realm },
@@ -311,7 +329,8 @@ const speedLimiter = slowDown({
 
                     if (data.success) {
                         item = { ...data.response, guid: itemMeta };
-                        cache.items.set(itemMeta.id, item);
+
+                        cache.setItem(itemMeta.id, item);
                     } else {
                         continue;
                     }

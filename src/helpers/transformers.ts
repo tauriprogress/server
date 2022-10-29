@@ -29,7 +29,7 @@ export function addNestedObjectValue<T>(
 
 export function capitalize<T extends string>(str: T): Capitalize<T> {
     const capitalized = (str.charAt(0).toUpperCase() +
-        str.slice(1)) as Capitalize<T>;
+        str.slice(1).toLowerCase()) as Capitalize<T>;
 
     return capitalized.length === str.length
         ? capitalized

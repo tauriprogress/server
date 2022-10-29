@@ -9,6 +9,7 @@ import {
     Filters,
     ClassId,
 } from "../types";
+import { capitalize } from "./transformers";
 
 export function getCharacterId(name: string, realm: Realm, spec: SpecId) {
     return `${name},${environment.shortRealms[realm]},${spec}`;
@@ -86,4 +87,12 @@ export function getCharacterPerformanceCacheId(
     raidName: RaidName
 ) {
     return `${characterName}${realm}${raidName}`;
+}
+
+export function getExtendedLogId(logId: number, realm: Realm) {
+    return `${logId}${realm}`;
+}
+
+export function getCharacterApiId(characterName: string, realm: Realm) {
+    return capitalize(`${characterName}${realm}`);
 }
