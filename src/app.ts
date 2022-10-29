@@ -293,7 +293,7 @@ const speedLimiter = slowDown({
             let log = cache.getLog(req.body.logId, req.body.realm);
 
             if (!log) {
-                let log = (
+                log = (
                     await tauriApi.getRaidLog(req.body.logId, req.body.realm)
                 ).response;
 
