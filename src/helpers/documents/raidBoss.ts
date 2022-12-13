@@ -19,7 +19,7 @@ import {
     capitalize,
 } from "..";
 import environment from "../../environment";
-import { combatMetrics, factions } from "../../constants";
+import { classIds, combatMetrics, factions } from "../../constants";
 
 export function createRaidBossDocument(
     raidId: RaidId,
@@ -366,6 +366,40 @@ export function getRaidBossSummary(boss: RaidBossDocument): RaidBossForSummary {
     delete raidBossForSummary.bestHpsNoCat;
 
     return raidBossForSummary;
+}
+
+export function getRaidBossBest(
+    raidBoss: RaidBossDocument,
+    combatMetric: CombatMetric
+) {
+    let best: CharacterDocument = {
+        [combatMetric]: 0,
+    } as unknown as CharacterDocument;
+
+    const key = `best${capitalize(combatMetric)}` as const;
+
+    const categorizedCharacters = raidBoss[key];
+
+    for (const realm of environment.realms) {
+        for (const faction of factions) {
+            for (const classId of classIds) {
+                for (const specId of environment.characterClassSpecs[classId]) {
+                    const character =
+                        categorizedCharacters?.[realm]?.[faction]?.[classId]?.[
+                            specId
+                        ]?.[0];
+                    if (
+                        character &&
+                        character[combatMetric] > best[combatMetric]
+                    ) {
+                        best = character;
+                    }
+                }
+            }
+        }
+    }
+
+    return best[combatMetric] ? best : undefined;
 }
 
 export function getRaidBossBestOfClass(
