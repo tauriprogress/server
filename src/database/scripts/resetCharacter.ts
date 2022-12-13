@@ -23,6 +23,7 @@ export async function resetCharacter(
     realm: Realm,
     classId: ClassId
 ) {
+    await db.connect();
     if (!db.connection) throw ERR_DB_CONNECTION;
 
     for (const raid of environment.currentContent.raids) {
@@ -158,4 +159,6 @@ export async function resetCharacter(
             }
         }
     }
+
+    return "done";
 }
