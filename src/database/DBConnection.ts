@@ -29,6 +29,14 @@ class DBConnection {
         throw ERR_DB_CONNECTION;
     }
 
+    public getClient() {
+        if (this.client) {
+            return this.client;
+        }
+
+        throw ERR_DB_CONNECTION;
+    }
+
     public async disconnect() {
         await this.client?.close();
         this.connection = undefined;
