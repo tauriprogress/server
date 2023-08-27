@@ -21,6 +21,12 @@ import dbConnection from "./DBConnection";
 import dbInterface from "./index";
 
 class DBRaidboss {
+    private firstRaidbossCacheLoad: boolean;
+
+    constructor() {
+        this.firstRaidbossCacheLoad = false;
+    }
+
     async getRaidBoss(
         ingameBossId: number,
         difficulty: Difficulty
@@ -98,6 +104,22 @@ class DBRaidboss {
                     fastestKills
                         .sort((a, b) => a.fightLength - b.fightLength)
                         .slice(0, 50)
+                );
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+
+    async getRaidBossLatestKills(
+        ingameBossId: number,
+        difficulty: Difficulty
+    ): Promise<TrimmedLog[]> {
+        return new Promise(async (resolve, reject) => {
+            try {
+                resolve(
+                    (await this.getRaidBoss(ingameBossId, difficulty))
+                        .latestKills
                 );
             } catch (err) {
                 reject(err);
@@ -205,6 +227,61 @@ class DBRaidboss {
 
                 dbInterface.update.addToUpdatedRaidbosses(boss._id);
 
+                resolve(true);
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+
+    async updateRaidBossCache() {
+        const fullLoad = async (): Promise<true> => {
+            return new Promise(async (resolve, reject) => {
+                try {
+                    const db = dbConnection.getConnection();
+
+                    for (const boss of await db
+                        .collection<RaidBossDocument>(
+                            dbInterface.collections.raidBosses
+                        )
+                        .find()
+                        .toArray()) {
+                        cache.raidBoss.set(boss._id, boss);
+                    }
+
+                    resolve(true);
+                } catch (err) {
+                    reject(err);
+                }
+            });
+        };
+
+        return new Promise(async (resolve, reject) => {
+            try {
+                console.log("Updating raidboss cache.");
+
+                const db = dbConnection.getConnection();
+
+                if (!this.firstRaidbossCacheLoad) {
+                    this.firstRaidbossCacheLoad = await fullLoad();
+                } else {
+                    const bossesToUpdate =
+                        dbInterface.update.getUpdatedBossIds();
+
+                    for (const bossId of bossesToUpdate) {
+                        const boss = await db
+                            .collection<RaidBossDocument>(
+                                dbInterface.collections.raidBosses
+                            )
+                            .findOne({ _id: bossId });
+                        if (boss) {
+                            cache.raidBoss.set(bossId, boss);
+                        }
+                    }
+
+                    dbInterface.update.resetUpdatedBossIds();
+                }
+                console.log("Raidboss cache updated.");
                 resolve(true);
             } catch (err) {
                 reject(err);
