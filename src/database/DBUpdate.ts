@@ -425,6 +425,11 @@ class DBUpdate {
                 const db = dbConnection.getConnection();
                 if (this.isUpdating) throw ERR_DB_ALREADY_UPDATING;
 
+                if (this.lastGuildsUpdate === 0) {
+                    this.lastGuildsUpdate =
+                        await dbInterface.guild.getLastGuildsUpdate();
+                }
+
                 if (minutesAgo(this.lastGuildsUpdate) > 60 * 36) {
                     const updateStarted = new Date().getTime() / 1000;
                     const maintenanceCollection =
