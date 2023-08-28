@@ -21,7 +21,7 @@ import dbConnection from "./DBConnection";
 import dbInterface from "./index";
 
 class DBRaidboss {
-    private firstRaidbossCacheLoad: boolean;
+    public firstRaidbossCacheLoad: boolean | Promise<true>;
 
     constructor() {
         this.firstRaidbossCacheLoad = false;
@@ -263,7 +263,7 @@ class DBRaidboss {
                 const db = dbConnection.getConnection();
 
                 if (!this.firstRaidbossCacheLoad) {
-                    this.firstRaidbossCacheLoad = await fullLoad();
+                    this.firstRaidbossCacheLoad = fullLoad();
                 } else {
                     const bossesToUpdate =
                         dbInterface.update.getUpdatedBossIds();
