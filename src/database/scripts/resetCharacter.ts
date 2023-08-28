@@ -6,7 +6,6 @@ import {
     RaidBossDocument,
     CombatMetric,
 } from "../../types";
-import db from "../";
 
 import {
     capitalize,
@@ -15,16 +14,17 @@ import {
     getRaidBossBest,
 } from "../../helpers";
 import environment from "../../environment";
-import { ERR_DB_CONNECTION } from "../../helpers/errors";
 import { factions } from "../../constants";
+import dbConnection from "../DBConnection";
+import dbInterface from "../index";
 
 export async function resetCharacter(
     characterName: string,
     realm: Realm,
     classId: ClassId
 ) {
-    await db.connect();
-    if (!db.connection) throw ERR_DB_CONNECTION;
+    await dbConnection.connect();
+    const db = dbConnection.getConnection();
 
     for (const raid of environment.currentContent.raids) {
         for (const boss of raid.bosses) {
@@ -41,9 +41,7 @@ export async function resetCharacter(
                     );
 
                     const collection =
-                        db.connection.collection<CharacterDocument>(
-                            collectionName
-                        );
+                        db.collection<CharacterDocument>(collectionName);
 
                     await collection.deleteMany({
                         name: characterName,
@@ -56,12 +54,11 @@ export async function resetCharacter(
     }
 
     for (const combatMetric of ["dps", "hps"]) {
-        const collection =
-            db.connection.collection<LeaderboardCharacterDocument>(
-                combatMetric === "dps"
-                    ? db.collections.characterLeaderboardDps
-                    : db.collections.characterLeaderboardHps
-            );
+        const collection = db.collection<LeaderboardCharacterDocument>(
+            combatMetric === "dps"
+                ? dbInterface.collections.characterLeaderboardDps
+                : dbInterface.collections.characterLeaderboardHps
+        );
 
         await collection.deleteMany({
             name: characterName,
@@ -70,8 +67,8 @@ export async function resetCharacter(
         });
     }
 
-    const raidCollection = db.connection.collection<RaidBossDocument>(
-        db.collections.raidBosses
+    const raidCollection = db.collection<RaidBossDocument>(
+        dbInterface.collections.raidBosses
     );
     const raidbosses = await raidCollection.find().toArray();
 
@@ -99,7 +96,7 @@ export async function resetCharacter(
                         const [ingameBossId, difficulty] =
                             getDeconstructedRaidBossId(raidBossDocument._id);
 
-                        const characters = await db.connection
+                        const characters = await db
                             .collection<CharacterDocument>(
                                 getCharacterDocumentCollectionId(
                                     ingameBossId,
