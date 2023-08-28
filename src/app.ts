@@ -73,21 +73,7 @@ const speedLimiter = slowDown({
 
     dbTaskManager.start();
 
-    app.get("/guildlist", async (_1, res) => {
-        try {
-            res.send({
-                success: true,
-                response: await dbInterface.guild.getGuildList(),
-            });
-        } catch (err) {
-            res.send({
-                success: false,
-                errorstring: isError(err) ? err.message : err,
-            });
-        }
-    });
-
-    app.post("/getguild", verifyGetGuild, async (req, res) => {
+    app.post(["/guild", "/getguild"], verifyGetGuild, async (req, res) => {
         try {
             res.send({
                 success: true,
@@ -104,27 +90,11 @@ const speedLimiter = slowDown({
         }
     });
 
-    app.post("/getcharacter", verifyGetCharacter, async (req, res) => {
+    app.get(["/guild/guildlist", "/guildlist"], async (_1, res) => {
         try {
-            let characterData = cache.getCharacter(
-                req.body.characterName,
-                req.body.realm
-            );
-
-            if (!characterData) {
-                characterData = (
-                    await tauriApi.getCharacterData(
-                        req.body.characterName,
-                        req.body.realm
-                    )
-                ).response;
-
-                cache.setCharacter(characterData, req.body.realm);
-            }
-
             res.send({
                 success: true,
-                response: { ...characterData },
+                response: await dbInterface.guild.getGuildList(),
             });
         } catch (err) {
             res.send({
@@ -135,7 +105,41 @@ const speedLimiter = slowDown({
     });
 
     app.post(
-        "/getcharacterperformance",
+        ["/character", "/getcharacter"],
+        verifyGetCharacter,
+        async (req, res) => {
+            try {
+                let characterData = cache.getCharacter(
+                    req.body.characterName,
+                    req.body.realm
+                );
+
+                if (!characterData) {
+                    characterData = (
+                        await tauriApi.getCharacterData(
+                            req.body.characterName,
+                            req.body.realm
+                        )
+                    ).response;
+
+                    cache.setCharacter(characterData, req.body.realm);
+                }
+
+                res.send({
+                    success: true,
+                    response: { ...characterData },
+                });
+            } catch (err) {
+                res.send({
+                    success: false,
+                    errorstring: isError(err) ? err.message : err,
+                });
+            }
+        }
+    );
+
+    app.post(
+        ["/character/characterperformance", "/getcharacterperformance"],
         waitDbCache,
         verifyGetCharacterPerformance,
         async (req, res) => {
@@ -160,22 +164,26 @@ const speedLimiter = slowDown({
         }
     );
 
-    app.post("/getraidsummary", verifyGetRaidSummary, async (req, res) => {
-        try {
-            res.send({
-                success: true,
-                response: await dbInterface.getRaidSummary(req.body.raidId),
-            });
-        } catch (err) {
-            res.send({
-                success: false,
-                errorstring: isError(err) ? err.message : err,
-            });
+    app.post(
+        ["/raidsummary", "/getraidsummary"],
+        verifyGetRaidSummary,
+        async (req, res) => {
+            try {
+                res.send({
+                    success: true,
+                    response: await dbInterface.getRaidSummary(req.body.raidId),
+                });
+            } catch (err) {
+                res.send({
+                    success: false,
+                    errorstring: isError(err) ? err.message : err,
+                });
+            }
         }
-    });
+    );
 
     app.post(
-        "/getboss/killCount",
+        ["/boss/killcount", "/getboss/killCount"],
         waitDbCache,
         verifyGetBossKillCount,
         async (req, res) => {
@@ -200,7 +208,7 @@ const speedLimiter = slowDown({
     );
 
     app.post(
-        "/getboss/latestKills",
+        ["/boss/latestkills", "/getboss/latestKills"],
         waitDbCache,
         verifyGetBossLatestKills,
         async (req, res) => {
@@ -225,7 +233,7 @@ const speedLimiter = slowDown({
     );
 
     app.post(
-        "/getboss/fastestKills",
+        ["/boss/fastestkills", "/getboss/fastestKills"],
         waitDbCache,
         verifyGetBossFastestKills,
         async (req, res) => {
@@ -250,7 +258,7 @@ const speedLimiter = slowDown({
     );
 
     app.post(
-        "/getboss/characters",
+        ["/boss/characters", "/getboss/characters"],
         waitDbCache,
         verifyGetBossCharacters,
         async (req, res) => {
@@ -274,7 +282,7 @@ const speedLimiter = slowDown({
         }
     );
 
-    app.post("/getlog", verifyGetLog, async (req, res) => {
+    app.post(["/log", "/getlog"], verifyGetLog, async (req, res) => {
         try {
             let log = cache.getLog(req.body.logId, req.body.realm);
 
@@ -298,7 +306,7 @@ const speedLimiter = slowDown({
         }
     });
 
-    app.post("/getitems", verifyGetItems, async (req, res) => {
+    app.post(["/items", "/getitems"], verifyGetItems, async (req, res) => {
         try {
             let items: LooseObject = {};
             for (let itemMeta of req.body.items) {
@@ -342,7 +350,7 @@ const speedLimiter = slowDown({
     });
 
     app.post(
-        "/characterrecentkills",
+        ["/character/recentkills", "/characterrecentkills"],
         verifyCharacterRecentKills,
         async (req, res) => {
             try {
