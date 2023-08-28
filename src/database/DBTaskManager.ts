@@ -6,13 +6,13 @@ const tasks = [
         name: "Update database",
         interval: 1000 * 60 * 30,
         minDelay: 1000 * 60 * 15,
-        perform: dbInterface.update.updateDatabase,
+        perform: dbInterface.update.updateDatabase.bind(dbInterface.update),
     },
     {
         name: "Update guilds",
         interval: 1000 * 60 * 60 * 36,
         minDelay: 1000 * 60 * 60 * 30,
-        perform: dbInterface.update.updateGuilds,
+        perform: dbInterface.update.updateGuilds.bind(dbInterface.update),
     },
 ];
 
