@@ -38,14 +38,15 @@ import {
 } from "../helpers/errors";
 import { raidNameId } from "tauriprogress-constants";
 import { RaidName } from "../types";
+import dbInterface from "../database";
 
 export async function waitDbCache(
-    req: Request,
+    _1: Request,
     res: Response,
     next: NextFunction
 ) {
     try {
-        await req.db.firstCacheLoad;
+        await dbInterface.raidboss.firstRaidbossCacheLoad;
         next();
     } catch (err) {
         isError;
