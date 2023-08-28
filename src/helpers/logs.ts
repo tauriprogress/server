@@ -42,12 +42,16 @@ export async function getLogData(
     lastLogIds: LastLogIds
 ): Promise<Awaited<ReturnType<typeof getLogs>>> {
     if (isInitalization) {
+        console.log("Loading logs from file");
         try {
             return {
                 logs: await loadLogsFromFile(),
                 lastLogIds: getLastLogsIdsFromFile(),
             };
         } catch (err) {
+            console.log("Loading logs from file failed");
+            console.error(err);
+            console.log("Downloading logs");
             return await getLogs(lastLogIds);
         }
     } else {
@@ -218,7 +222,7 @@ export function processLogs(logs: Array<RaidLogWithRealm>) {
                     ][
                         `is${
                             combatMetric === "dps" ? "Dps" : "Healer"
-                        }` as keyof typeof environment.specs[keyof typeof environment.specs]
+                        }` as keyof (typeof environment.specs)[keyof typeof environment.specs]
                     ]
                 ) {
                     const characterDocument = createCharacterDocument(
