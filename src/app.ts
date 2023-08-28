@@ -1,33 +1,34 @@
-import * as express from "express";
-import * as cors from "cors";
 import * as bodyParser from "body-parser";
+import * as cors from "cors";
+import * as express from "express";
 import * as slowDown from "express-slow-down";
 
-import db from "./database";
-import dbTaskManager from "./DBTaskManger";
+import dbInterface from "./database";
+import dbTaskManager from "./database/DBTaskManager";
 
 import {
-    verifyGetGuild,
-    verifyGetCharacter,
-    verifyGetRaidSummary,
+    verifyCharacterLeaderboard,
+    verifyCharacterRecentKills,
+    verifyGetBossCharacters,
+    verifyGetBossFastestKills,
     verifyGetBossKillCount,
     verifyGetBossLatestKills,
-    verifyGetBossFastestKills,
-    verifyGetBossCharacters,
-    verifyGetLog,
-    verifyCharacterRecentKills,
+    verifyGetCharacter,
     verifyGetCharacterPerformance,
+    verifyGetGuild,
     verifyGetItems,
-    verifyCharacterLeaderboard,
+    verifyGetLog,
+    verifyGetRaidSummary,
     waitDbCache,
 } from "./middlewares";
 import tauriApi from "./tauriApi";
 
-import { isError, minutesAgo } from "./helpers";
-import { LooseObject } from "./types";
+import cache from "./database/Cache";
+import dbConnection from "./database/DBConnection";
 import environment from "./environment";
-import cache from "./database/cache";
+import { isError } from "./helpers";
 import { ERR_UNKNOWN } from "./helpers/errors";
+import { LooseObject } from "./types";
 
 const app = express();
 const prompt = require("prompt-sync")();
@@ -41,16 +42,16 @@ const speedLimiter = slowDown({
 
 (async function () {
     try {
-        await db.connect();
-        if (!(await db.isInitalized())) {
-            await db.initalizeDatabase();
+        await dbConnection.connect();
+        if (!(await dbInterface.update.isInitalized())) {
+            await dbInterface.update.initalizeDatabase();
         } else if (environment.forceInit) {
             const confirmation = prompt(
                 "The database is already initalized, are you sure to reinitalize it? (Y/n)"
             );
 
             if (confirmation === "y" || confirmation === "Y") {
-                await db.initalizeDatabase();
+                await dbInterface.update.initalizeDatabase();
                 process.exit(0);
             }
         }
@@ -69,10 +70,6 @@ const speedLimiter = slowDown({
     app.use(speedLimiter);
 
     app.use(bodyParser.json());
-    app.use((req, _1, next) => {
-        req.db = db;
-        next();
-    });
 
     dbTaskManager.start();
 
@@ -80,7 +77,7 @@ const speedLimiter = slowDown({
         try {
             res.send({
                 success: true,
-                response: await db.getGuildList(),
+                response: await dbInterface.guild.getGuildList(),
             });
         } catch (err) {
             res.send({
@@ -94,7 +91,10 @@ const speedLimiter = slowDown({
         try {
             res.send({
                 success: true,
-                response: await db.getGuild(req.body.realm, req.body.guildName),
+                response: await dbInterface.guild.getGuild(
+                    req.body.realm,
+                    req.body.guildName
+                ),
             });
         } catch (err) {
             res.send({
@@ -140,12 +140,13 @@ const speedLimiter = slowDown({
         verifyGetCharacterPerformance,
         async (req, res) => {
             try {
-                let performance = await db.getCharacterPerformance(
-                    req.body.characterName,
-                    req.body.characterClass,
-                    req.body.realm,
-                    req.body.raidName
-                );
+                let performance =
+                    await dbInterface.character.getCharacterPerformance(
+                        req.body.characterName,
+                        req.body.characterClass,
+                        req.body.realm,
+                        req.body.raidName
+                    );
                 res.send({
                     success: true,
                     response: { ...performance },
@@ -163,7 +164,7 @@ const speedLimiter = slowDown({
         try {
             res.send({
                 success: true,
-                response: await db.getRaidSummary(req.body.raidId),
+                response: await dbInterface.getRaidSummary(req.body.raidId),
             });
         } catch (err) {
             res.send({
@@ -182,10 +183,11 @@ const speedLimiter = slowDown({
                 res.send({
                     success: true,
                     response: {
-                        killCount: await db.getRaidBossKillCount(
-                            req.body.ingameBossId,
-                            req.body.difficulty
-                        ),
+                        killCount:
+                            await dbInterface.raidboss.getRaidBossKillCount(
+                                req.body.ingameBossId,
+                                req.body.difficulty
+                            ),
                     },
                 });
             } catch (err) {
@@ -206,10 +208,11 @@ const speedLimiter = slowDown({
                 res.send({
                     success: true,
                     response: {
-                        recentKills: await db.getRaidBossLatestKills(
-                            req.body.ingameBossId,
-                            req.body.difficulty
-                        ),
+                        recentKills:
+                            await dbInterface.raidboss.getRaidBossLatestKills(
+                                req.body.ingameBossId,
+                                req.body.difficulty
+                            ),
                     },
                 });
             } catch (err) {
@@ -230,10 +233,11 @@ const speedLimiter = slowDown({
                 res.send({
                     success: true,
                     response: {
-                        fastestKills: await db.getRaidBossFastestKills(
-                            req.body.ingameBossId,
-                            req.body.difficulty
-                        ),
+                        fastestKills:
+                            await dbInterface.raidboss.getRaidBossFastestKills(
+                                req.body.ingameBossId,
+                                req.body.difficulty
+                            ),
                     },
                 });
             } catch (err) {
@@ -253,7 +257,7 @@ const speedLimiter = slowDown({
             try {
                 res.send({
                     success: true,
-                    response: await db.getRaidBossCharacters(
+                    response: await dbInterface.raidboss.getRaidBossCharacters(
                         req.body.ingameBossId,
                         req.body.combatMetric,
                         req.body.filters,
@@ -269,24 +273,6 @@ const speedLimiter = slowDown({
             }
         }
     );
-
-    app.get("/lastupdated", async (_1, res) => {
-        try {
-            res.send({
-                success: true,
-                response: {
-                    lastUpdated: minutesAgo(await db.getLastUpdated()),
-                    isUpdating: db.isUpdating,
-                    status: db.updateStatus,
-                },
-            });
-        } catch (err) {
-            res.send({
-                success: false,
-                errorstring: isError(err) ? err.message : err,
-            });
-        }
-    });
 
     app.post("/getlog", verifyGetLog, async (req, res) => {
         try {
@@ -388,13 +374,14 @@ const speedLimiter = slowDown({
             try {
                 res.send({
                     success: true,
-                    response: await db.getCharacterLeaderboard(
-                        req.body.raidName,
-                        req.body.combatMetric,
-                        req.body.filters,
-                        req.body.page,
-                        req.body.pageSize
-                    ),
+                    response:
+                        await dbInterface.leaderboard.getCharacterLeaderboard(
+                            req.body.raidName,
+                            req.body.combatMetric,
+                            req.body.filters,
+                            req.body.page,
+                            req.body.pageSize
+                        ),
                 });
             } catch (err) {
                 res.send({
@@ -409,7 +396,7 @@ const speedLimiter = slowDown({
         try {
             res.send({
                 success: true,
-                response: await db.getGuildLeaderboard(),
+                response: await dbInterface.leaderboard.getGuildLeaderboard(),
             });
         } catch (err) {
             res.send({
