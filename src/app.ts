@@ -62,7 +62,7 @@ const speedLimiter = slowDown({
 
     app.use(
         cors({
-            origin: "https://tauriprogress.github.io",
+            origin: environment.CORS_ORIGIN,
             optionsSuccessStatus: 200,
         })
     );

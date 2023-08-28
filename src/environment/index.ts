@@ -5,7 +5,7 @@ dotenv.config();
 
 const defaultPort = 3001;
 
-type RealmGroup = typeof realmGroups[number];
+type RealmGroup = (typeof realmGroups)[number];
 
 function isRealmGroup(str: string): str is RealmGroup {
     let index = -1;
@@ -27,6 +27,7 @@ class Environment {
     readonly MONGODB_PASSWORD: string;
     readonly MONGODB_ADDRESS: string;
     readonly PORT: number;
+    readonly CORS_ORIGIN: string;
 
     readonly apiUrl;
     readonly defaultRealm;
@@ -53,6 +54,15 @@ class Environment {
             this.forceInit = true;
         } else {
             this.forceInit = false;
+        }
+
+        if (typeof process.env.CORS_ORIGIN === "string") {
+            this.CORS_ORIGIN = process.env.CORS_ORIGIN;
+        } else {
+            console.error(
+                `Environment variable CORS_ORIGIN=${process.env.CORS_ORIGIN} is invalid. Example: https://tauriprogress.github.io`
+            );
+            process.exit(0);
         }
 
         if (process.env.REALM_GROUP && isRealmGroup(process.env.REALM_GROUP)) {
