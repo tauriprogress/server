@@ -7,3 +7,4 @@ export * from "./utils";
 export * from "./lock";
 export * from "./ids";
 export * from "./documents";
+export * from "./timeTransformer";

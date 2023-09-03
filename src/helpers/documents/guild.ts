@@ -3,10 +3,10 @@ import {
     getGuildId,
     getNestedObjectValue,
     addNestedObjectValue,
-    sameMembers,
     uniqueLogs,
     getRaidInfoFromName,
     timeTransformer,
+    logs,
 } from "..";
 import {
     GuildDocument,
@@ -169,17 +169,11 @@ export function addLogToGuildDocument(
         for (let i = 0; i < guildRankingFullClear.weeks[weekId].length; i++) {
             let raidGroup = guildRankingFullClear.weeks[weekId][i];
 
-            const currentDifficulty = environment.difficultyNames[
-                difficulty as keyof typeof environment.difficultyNames
-            ].includes("10")
-                ? 10
-                : 25;
-
             if (
-                sameMembers(
+                logs.sameMembers(
                     raidGroup.members,
                     log.members.map((member) => member.name),
-                    currentDifficulty
+                    difficulty
                 )
             ) {
                 logAddedToRanking = true;
@@ -373,11 +367,7 @@ export function updateGuildDocument(
     for (raidName in guild.ranking) {
         for (const key in guild.ranking[raidName]) {
             const difficulty = Number(key) as unknown as Difficulty;
-            const diffNum = environment.difficultyNames[
-                difficulty as keyof typeof environment.difficultyNames
-            ].includes("10")
-                ? 10
-                : 25;
+
             if (!updatedGuild.ranking[raidName]) {
                 updatedGuild.ranking[raidName] = {};
             }
@@ -421,10 +411,10 @@ export function updateGuildDocument(
                         for (let i = 0; i < oldRaidGroups.length; i++) {
                             let oldGroup = oldRaidGroups[i];
                             if (
-                                sameMembers(
+                                logs.sameMembers(
                                     oldGroup.members,
                                     newGroup.members,
-                                    diffNum
+                                    difficulty
                                 )
                             ) {
                                 oldRaidGroups[i] = {
