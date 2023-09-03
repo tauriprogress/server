@@ -172,21 +172,6 @@ export function getRaidBossNameFromIngameBossId(ingameBossId: number) {
     return false;
 }
 
-export function getTaskDueDate(
-    interval: number,
-    minDelay: number,
-    lastTaskStart: number
-): Date {
-    const now = new Date().getTime();
-    let delay = now - lastTaskStart + interval;
-
-    while (delay < minDelay) {
-        delay += interval;
-    }
-
-    return new Date(now + delay);
-}
-
 export function getCharacterDocumentRankBulkwriteOperations(
     characters: CharacterDocument[]
 ) {

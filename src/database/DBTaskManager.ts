@@ -1,4 +1,3 @@
-import { getTaskDueDate } from "../helpers";
 import dbInterface from "../database";
 
 const tasks = [
@@ -46,7 +45,7 @@ class DBTaskManager {
                         console.error(e);
                     }
 
-                    const taskDueDate = getTaskDueDate(
+                    const taskDueDate = this.getTaskDueDate(
                         task.interval,
                         task.minDelay,
                         taskStarted
@@ -75,6 +74,21 @@ class DBTaskManager {
             this.unpause();
             this.unpause = undefined;
         }
+    }
+
+    getTaskDueDate(
+        interval: number,
+        minDelay: number,
+        lastTaskStart: number
+    ): Date {
+        const now = new Date().getTime();
+        let delay = now - lastTaskStart + interval;
+
+        while (delay < minDelay) {
+            delay += interval;
+        }
+
+        return new Date(now + delay);
     }
 }
 
