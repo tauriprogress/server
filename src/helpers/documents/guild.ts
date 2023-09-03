@@ -1,13 +1,12 @@
 import environment from "../../environment";
 import {
     getGuildId,
-    unshiftDateDay,
-    getLatestWednesday,
     getNestedObjectValue,
     addNestedObjectValue,
     sameMembers,
     uniqueLogs,
     getRaidInfoFromName,
+    timeTransformer,
 } from "..";
 import {
     GuildDocument,
@@ -109,7 +108,7 @@ export function addLogToGuildDocument(
     guild.activity[difficulty] = date;
 
     const logDate = new Date(date * 1000);
-    guild.raidDays.total[unshiftDateDay(logDate.getUTCDay())][
+    guild.raidDays.total[timeTransformer.unshiftDateDay(logDate.getUTCDay())][
         logDate.getUTCHours()
     ] += 1;
 
@@ -123,7 +122,7 @@ export function addLogToGuildDocument(
 
     const guildRankingFullClearCategory = [raidName, difficulty, "fullClear"];
 
-    const weekId = getLatestWednesday(logDate).getTime();
+    const weekId = timeTransformer.getLatestWednesday(logDate).getTime();
 
     let guildRankingFullClear = getNestedObjectValue(
         guild.ranking,
@@ -468,15 +467,15 @@ export function getLatestGuildRaidDays(logs: GuildLatestKill[]) {
         JSON.stringify(createGuildRaidDays())
     );
 
-    const timeBoundary = getLatestWednesday(
-        new Date(new Date().getTime() - week * 2)
-    ).getTime();
+    const timeBoundary = timeTransformer
+        .getLatestWednesday(new Date(new Date().getTime() - week * 2))
+        .getTime();
 
     for (const log of logs) {
         if (log.date * 1000 > timeBoundary) {
             let logDate = new Date(log.date * 1000);
 
-            raidDays[unshiftDateDay(logDate.getUTCDay())][
+            raidDays[timeTransformer.unshiftDateDay(logDate.getUTCDay())][
                 logDate.getUTCHours()
             ] += 1;
         } else {

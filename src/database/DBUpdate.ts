@@ -26,13 +26,13 @@ import {
     getRaidNameFromIngamebossId,
     isError,
     logBugHandler,
-    minutesAgo,
     processLogs,
     requestGuildDocument,
     runGC,
     updateLastLogIdsOfFile,
     updateRaidBossDocument,
     writeLogsToFile,
+    timeTransformer,
 } from "../helpers";
 import {
     ERR_DB_ALREADY_UPDATING,
@@ -366,10 +366,11 @@ class DBUpdate {
 
                 try {
                     console.log("Opening new transaction session");
+                    const processedData = processLogs(logs);
                     await session.withTransaction(
                         async () => {
                             await this.saveLogs(
-                                processLogs(logs),
+                                processedData,
                                 {
                                     lastLogIds: newLastLogIds,
                                     updateStarted,
@@ -430,7 +431,10 @@ class DBUpdate {
                         await dbInterface.guild.getLastGuildsUpdate();
                 }
 
-                if (minutesAgo(this.lastGuildsUpdate) > 60 * 36) {
+                if (
+                    timeTransformer.minutesAgo(this.lastGuildsUpdate) >
+                    60 * 36
+                ) {
                     const updateStarted = new Date().getTime() / 1000;
                     const maintenanceCollection =
                         db.collection<MaintenanceDocument>(
