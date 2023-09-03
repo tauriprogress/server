@@ -6,10 +6,10 @@ export interface RaidBossRankedLogsResponse {
 }
 
 export interface RaidBossRankedLogs {
-    logs: Log[];
+    logs: RaidBossRankedLog[];
 }
 
-interface Log {
+interface RaidBossRankedLog {
     rank: number;
     log_id: number;
     map_id: number;
