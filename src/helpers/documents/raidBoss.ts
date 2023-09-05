@@ -1,7 +1,6 @@
+import { RaidBossDocument } from "./../../types/documents/raidBoss";
 import {
-    Difficulty,
-    RaidBossDocument,
-    LooseObject,
+    Difficulty, LooseObject,
     RaidId,
     Realm,
     TrimmedLog,
@@ -10,7 +9,7 @@ import {
     CombatMetric,
     RaidBossForSummary,
     ClassId,
-    SpecId,
+    SpecId
 } from "../../types";
 import {
     getNestedObjectValue,
@@ -21,26 +20,98 @@ import {
 import environment from "../../environment";
 import { classIds, combatMetrics, factions } from "../../constants";
 
-export function createRaidBossDocument(
-    raidId: RaidId,
-    bossId: ReturnType<typeof getRaidBossId>,
-    bossName: string,
-    difficulty: Difficulty
-): RaidBossDocument {
-    return {
-        _id: bossId,
-        raidId: raidId,
-        name: bossName,
-        difficulty: difficulty,
-        killCount: 0,
-        latestKills: [],
-        fastestKills: {},
-        firstKills: {},
-        bestDps: {},
-        bestHps: {},
-        bestDpsNoCat: undefined,
-        bestHpsNoCat: undefined,
+import { Document } from "mongodb";
+
+export interface RaidBossDocument extends Document {
+    _id: ReturnType<typeof getRaidBossId>;
+    raidId: RaidId;
+    name: string;
+    difficulty: Difficulty;
+    killCount: number;
+    latestKills: TrimmedLog[];
+    fastestKills: CategorizedTrimmedLogs;
+    firstKills: CategorizedTrimmedLogs;
+    bestDps: CategorizedCharacter;
+    bestHps: CategorizedCharacter;
+    bestDpsNoCat?: CharacterDocument;
+    bestHpsNoCat?: CharacterDocument;
+}
+
+type CategorizedTrimmedLogs = {
+    [key in Realm]?: {
+        [key in Faction]: TrimmedLog[];
     };
+};
+
+type CategorizedCharacter = {
+    [key in Realm]?: {
+        [key in Faction]: {
+            [key in ClassId]: {
+                [key in SpecId]?: CharacterDocument[];
+            };
+        };
+    };
+};
+
+interface RaidBossForSummary
+    extends Omit<
+        RaidBossDocument,
+        "killCount" | "recentKills" | "bestDpsNoCat" | "bestHpsNoCat"
+    > {}
+
+export class RaidBossDocumentController {
+    private _id: string;
+    private raidId: RaidId;
+    private bossName: string;
+    private difficulty: Difficulty;
+    private killCount: number;
+    private latestKills: TrimmedLog[];
+    private fastestKills: CategorizedTrimmedLogs;
+    private firstKills: CategorizedTrimmedLogs;
+    private bestDps: CategorizedCharacter;
+    private bestHps: CategorizedCharacter;
+    private bestDpsNoCat?: CharacterDocument;
+    private bestHpsNoCat?: CharacterDocument;
+
+    constructor({
+        raidId,
+        bossId,
+        bossName,
+        difficulty,
+    }: {
+        raidId: RaidId;
+        bossId: string;
+        bossName: string;
+        difficulty: Difficulty;
+    }) {
+        this._id = bossId;
+        this.raidId = raidId;
+        (this.bossName = bossName), (this.difficulty = difficulty);
+        this.killCount = 0;
+        this.latestKills = [];
+        this.fastestKills = {};
+        this.firstKills = {};
+        this.bestDps = {};
+        this.bestHps = {};
+        this.bestDpsNoCat = undefined;
+        this.bestHpsNoCat = undefined;
+    }
+
+    getDocument(): RaidBossDocument {
+        return {
+            _id: this._id,
+            raidId: this.raidId,
+            bossName: this.bossName,
+            difficulty: this.difficulty,
+            killCount: this.killCount,
+            latestKills: this.latestKills,
+            fastestKills: this.fastestKills,
+            firstKills: this.firstKills,
+            bestDps: this.bestDps,
+            bestHps: this.bestHps,
+            bestDpsNoCat: this.bestDpsNoCat,
+            bestHpsNoCat: this.bestHpsNoCat
+    }
 }
 
 export function addLogToRaidBossDocument(
@@ -266,7 +337,7 @@ export function updateRaidBossDocument(
 
                 for (const key of environment.characterClassSpecs[classId]) {
                     const specId =
-                        key as unknown as typeof environment.characterClassSpecs[typeof classId][number];
+                        key as unknown as (typeof environment.characterClassSpecs)[typeof classId][number];
 
                     for (const combatMetric of combatMetrics) {
                         const bestOfKey = `best${capitalize(
@@ -466,3 +537,5 @@ export function getRaidBossBestOfSpec(
 
     return bestOfSpec[combatMetric] ? bestOfSpec : undefined;
 }
+
+export default RaidBossDocumentController;
