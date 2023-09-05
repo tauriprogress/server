@@ -175,82 +175,83 @@ export class RaidBossDocumentController {
             ].slice(0, 3);
         }
     }
-}
 
-export function addCharacterDocumentToRaidBossDocument(
-    characterDocument: CharacterDocument,
-    raidBossDocument: RaidBossDocument,
-    combatMetric: CombatMetric,
-    realm: Realm
-): RaidBossDocument {
-    const characterCategorization = [
-        realm,
-        characterDocument.f,
-        characterDocument.class,
-        characterDocument.spec,
-    ];
+    addCharacterDocument(
+        characterDocument: CharacterDocument,
+        combatMetric: CombatMetric,
+        realm: Realm
+    ): void {
+        const characterCategorization = [
+            realm,
+            characterDocument.f,
+            characterDocument.class,
+            characterDocument.spec,
+        ];
 
-    const bestNoCatKey = `best${capitalize(combatMetric)}NoCat` as const;
-    const bestNoCat = raidBossDocument[bestNoCatKey];
-    const bestNoCatPerformance =
-        bestNoCat && (bestNoCat[combatMetric] as number);
+        const bestNoCatKey = `best${capitalize(combatMetric)}NoCat` as const;
+        const bestNoCat = this[bestNoCatKey];
+        const bestNoCatPerformance =
+            bestNoCat && (bestNoCat[combatMetric] as number);
 
-    if (!bestNoCat || !bestNoCatPerformance) {
-        raidBossDocument[bestNoCatKey] = characterDocument;
-    } else if (
-        bestNoCatPerformance &&
-        bestNoCatPerformance < characterDocument[combatMetric]
-    ) {
-        raidBossDocument[bestNoCatKey] = characterDocument;
-    }
+        if (!bestNoCat || !bestNoCatPerformance) {
+            this[bestNoCatKey] = characterDocument;
+        } else if (
+            bestNoCatPerformance &&
+            bestNoCatPerformance < characterDocument[combatMetric]
+        ) {
+            this[bestNoCatKey] = characterDocument;
+        }
 
-    const bestKey = `best${capitalize(combatMetric)}` as const;
-    let categorizedBest = getNestedObjectValue(
-        raidBossDocument[bestKey],
-        characterCategorization
-    ) as CharacterDocument[];
-    let categorizedBestUpdated = false;
+        const bestKey = `best${capitalize(combatMetric)}` as const;
+        let categorizedBest = getNestedObjectValue(
+            this[bestKey],
+            characterCategorization
+        ) as CharacterDocument[];
+        let categorizedBestUpdated = false;
 
-    if (!categorizedBest) {
-        categorizedBestUpdated = true;
-        categorizedBest = [characterDocument];
-    } else {
-        const lastBestPerformance = categorizedBest[categorizedBest.length - 1][
-            combatMetric
-        ] as number;
+        if (!categorizedBest) {
+            categorizedBestUpdated = true;
+            categorizedBest = [characterDocument];
+        } else {
+            const lastBestPerformance = categorizedBest[
+                categorizedBest.length - 1
+            ][combatMetric] as number;
 
-        const indexOfSameChar = categorizedBest.findIndex(
-            (document) => document._id === characterDocument._id
-        );
+            const indexOfSameChar = categorizedBest.findIndex(
+                (document) => document._id === characterDocument._id
+            );
 
-        if (indexOfSameChar >= 0) {
-            const sameCharPerformance = categorizedBest[indexOfSameChar][
-                combatMetric
-            ] as number;
+            if (indexOfSameChar >= 0) {
+                const sameCharPerformance = categorizedBest[indexOfSameChar][
+                    combatMetric
+                ] as number;
 
-            if (sameCharPerformance < characterDocument[combatMetric]) {
-                categorizedBest[indexOfSameChar] = characterDocument;
+                if (sameCharPerformance < characterDocument[combatMetric]) {
+                    categorizedBest[indexOfSameChar] = characterDocument;
+                    categorizedBestUpdated = true;
+                }
+            } else if (categorizedBest.length < 10) {
+                categorizedBest.push(characterDocument);
+                categorizedBestUpdated = true;
+            } else if (lastBestPerformance < characterDocument[combatMetric]) {
+                categorizedBest.push(characterDocument);
                 categorizedBestUpdated = true;
             }
-        } else if (categorizedBest.length < 10) {
-            categorizedBest.push(characterDocument);
-            categorizedBestUpdated = true;
-        } else if (lastBestPerformance < characterDocument[combatMetric]) {
-            categorizedBest.push(characterDocument);
-            categorizedBestUpdated = true;
+        }
+
+        if (categorizedBestUpdated) {
+            this[bestKey] = addNestedObjectValue(
+                this[bestKey],
+                characterCategorization,
+                categorizedBest
+                    .sort(
+                        (a, b) =>
+                            (b[combatMetric] || 0) - (a[combatMetric] || 0)
+                    )
+                    .slice(0, 10)
+            );
         }
     }
-
-    if (categorizedBestUpdated) {
-        raidBossDocument[bestKey] = addNestedObjectValue(
-            raidBossDocument[bestKey],
-            characterCategorization,
-            categorizedBest
-                .sort((a, b) => (b[combatMetric] || 0) - (a[combatMetric] || 0))
-                .slice(0, 10)
-        );
-    }
-    return raidBossDocument;
 }
 
 export function updateRaidBossDocument(
