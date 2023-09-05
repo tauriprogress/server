@@ -1,6 +1,7 @@
 import { RaidBossDocument } from "./../../types/documents/raidBoss";
 import {
-    Difficulty, LooseObject,
+    Difficulty,
+    LooseObject,
     RaidId,
     Realm,
     TrimmedLog,
@@ -9,7 +10,7 @@ import {
     CombatMetric,
     RaidBossForSummary,
     ClassId,
-    SpecId
+    SpecId,
 } from "../../types";
 import {
     getNestedObjectValue,
@@ -110,82 +111,70 @@ export class RaidBossDocumentController {
             bestDps: this.bestDps,
             bestHps: this.bestHps,
             bestDpsNoCat: this.bestDpsNoCat,
-            bestHpsNoCat: this.bestHpsNoCat
+            bestHpsNoCat: this.bestHpsNoCat,
+        };
     }
-}
 
-export function addLogToRaidBossDocument(
-    raidBossDocument: RaidBossDocument,
-    trimmedLog: TrimmedLog,
-    realm: Realm,
-    faction: Faction
-) {
-    raidBossDocument.killCount += 1;
+    addLog(trimmedLog: TrimmedLog, realm: Realm, faction: Faction): void {
+        this.killCount += 1;
 
-    raidBossDocument.latestKills.unshift(trimmedLog);
-    raidBossDocument.latestKills = raidBossDocument.latestKills.slice(0, 50);
+        this.latestKills.unshift(trimmedLog);
+        this.latestKills = this.latestKills.slice(0, 50);
 
-    const logCategorization = [realm, faction];
+        const logCategorization = [realm, faction];
 
-    const fastestExists = !!getNestedObjectValue(
-        raidBossDocument.fastestKills,
-        logCategorization
-    );
-
-    if (!fastestExists) {
-        raidBossDocument.fastestKills = addNestedObjectValue(
-            raidBossDocument.fastestKills,
-            logCategorization,
-            [trimmedLog]
+        const fastestExists = !!getNestedObjectValue(
+            this.fastestKills,
+            logCategorization
         );
-    } else {
-        const arr = raidBossDocument.fastestKills[realm]![faction];
-        for (let i = 0; i < arr.length; i++) {
-            if (trimmedLog.fightLength < arr[i].fightLength) {
-                raidBossDocument.fastestKills[realm]![faction].splice(
-                    i,
-                    0,
-                    trimmedLog
-                );
-                raidBossDocument.fastestKills[realm]![faction] =
-                    raidBossDocument.fastestKills[realm]![faction].slice(0, 50);
-                break;
+
+        if (!fastestExists) {
+            this.fastestKills = addNestedObjectValue(
+                this.fastestKills,
+                logCategorization,
+                [trimmedLog]
+            );
+        } else {
+            const arr = this.fastestKills[realm]![faction];
+            for (let i = 0; i < arr.length; i++) {
+                if (trimmedLog.fightLength < arr[i].fightLength) {
+                    this.fastestKills[realm]![faction].splice(i, 0, trimmedLog);
+                    this.fastestKills[realm]![faction] = this.fastestKills[
+                        realm
+                    ]![faction].slice(0, 50);
+                    break;
+                }
             }
         }
-    }
 
-    const oldFirstKills = getNestedObjectValue(
-        raidBossDocument.firstKills,
-        logCategorization
-    );
-
-    if (!oldFirstKills) {
-        raidBossDocument.firstKills = addNestedObjectValue(
-            raidBossDocument.firstKills,
-            logCategorization,
-            [trimmedLog]
+        const oldFirstKills = getNestedObjectValue(
+            this.firstKills,
+            logCategorization
         );
-    } else if (oldFirstKills.length < 3) {
-        const arr = raidBossDocument.firstKills[realm]![faction];
-        for (let i = 0; i < arr.length; i++) {
-            if (i === arr.length - 1) {
-                raidBossDocument.firstKills[realm]![faction].push(trimmedLog);
-                break;
-            } else if (trimmedLog.date < arr[i].date) {
-                raidBossDocument.firstKills[realm]![faction].splice(
-                    i,
-                    0,
-                    trimmedLog
-                );
 
-                break;
+        if (!oldFirstKills) {
+            this.firstKills = addNestedObjectValue(
+                this.firstKills,
+                logCategorization,
+                [trimmedLog]
+            );
+        } else if (oldFirstKills.length < 3) {
+            const arr = this.firstKills[realm]![faction];
+            for (let i = 0; i < arr.length; i++) {
+                if (i === arr.length - 1) {
+                    this.firstKills[realm]![faction].push(trimmedLog);
+                    break;
+                } else if (trimmedLog.date < arr[i].date) {
+                    this.firstKills[realm]![faction].splice(i, 0, trimmedLog);
+
+                    break;
+                }
             }
+            this.firstKills[realm]![faction] = this.firstKills[realm]![
+                faction
+            ].slice(0, 3);
         }
-        raidBossDocument.firstKills[realm]![faction] =
-            raidBossDocument.firstKills[realm]![faction].slice(0, 3);
     }
-
-    return raidBossDocument;
 }
 
 export function addCharacterDocumentToRaidBossDocument(
