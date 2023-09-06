@@ -1,4 +1,3 @@
-import { RaidBossDocument } from "./../../types/documents/raidBoss";
 import {
     Difficulty,
     LooseObject,
@@ -8,23 +7,16 @@ import {
     Faction,
     CharacterDocument,
     CombatMetric,
-    RaidBossForSummary,
     ClassId,
     SpecId,
 } from "../../types";
-import {
-    getNestedObjectValue,
-    addNestedObjectValue,
-    getRaidBossId,
-    capitalize,
-} from "..";
+import { getNestedObjectValue, addNestedObjectValue, capitalize, id } from "..";
 import environment from "../../environment";
-import { classIds, combatMetrics, factions } from "../../constants";
 
 import { Document } from "mongodb";
 
 export interface RaidBossDocument extends Document {
-    _id: ReturnType<typeof getRaidBossId>;
+    _id: ReturnType<typeof id.raidBossId>;
     raidId: RaidId;
     name: string;
     difficulty: Difficulty;
@@ -40,14 +32,14 @@ export interface RaidBossDocument extends Document {
 
 type CategorizedTrimmedLogs = {
     [key in Realm]?: {
-        [key in Faction]: TrimmedLog[];
+        [key in Faction]?: TrimmedLog[];
     };
 };
 
 type CategorizedCharacter = {
     [key in Realm]?: {
-        [key in Faction]: {
-            [key in ClassId]: {
+        [key in Faction]?: {
+            [key in ClassId]?: {
                 [key in SpecId]?: CharacterDocument[];
             };
         };
@@ -60,10 +52,17 @@ interface RaidBossForSummary
         "killCount" | "recentKills" | "bestDpsNoCat" | "bestHpsNoCat"
     > {}
 
+type ContructorObject = {
+    raidId: RaidId;
+    bossId: string;
+    bossName: string;
+    difficulty: Difficulty;
+};
+
 export class RaidBossDocumentController {
     private _id: string;
     private raidId: RaidId;
-    private bossName: string;
+    private name: string;
     private difficulty: Difficulty;
     private killCount: number;
     private latestKills: TrimmedLog[];
@@ -74,35 +73,41 @@ export class RaidBossDocumentController {
     private bestDpsNoCat?: CharacterDocument;
     private bestHpsNoCat?: CharacterDocument;
 
-    constructor({
-        raidId,
-        bossId,
-        bossName,
-        difficulty,
-    }: {
-        raidId: RaidId;
-        bossId: string;
-        bossName: string;
-        difficulty: Difficulty;
-    }) {
-        this._id = bossId;
-        this.raidId = raidId;
-        (this.bossName = bossName), (this.difficulty = difficulty);
-        this.killCount = 0;
-        this.latestKills = [];
-        this.fastestKills = {};
-        this.firstKills = {};
-        this.bestDps = {};
-        this.bestHps = {};
-        this.bestDpsNoCat = undefined;
-        this.bestHpsNoCat = undefined;
+    constructor(obj: ContructorObject | RaidBossDocument) {
+        if (this.isRaidBossDocument(obj)) {
+            this._id = obj._id;
+            this.raidId = obj.raidId;
+            this.name = obj.name;
+            this.difficulty = obj.difficulty;
+            this.killCount = obj.killCount;
+            this.latestKills = obj.latestKills;
+            this.fastestKills = obj.fastestKills;
+            this.firstKills = obj.firstKills;
+            this.bestDps = obj.bestDps;
+            this.bestHps = obj.bestHps;
+            this.bestDpsNoCat = obj.bestDpsNoCat;
+            this.bestHpsNoCat = obj.bestHpsNoCat;
+        } else {
+            this._id = obj.bossId;
+            this.raidId = obj.raidId;
+            this.name = obj.bossName;
+            this.difficulty = obj.difficulty;
+            this.killCount = 0;
+            this.latestKills = [];
+            this.fastestKills = {};
+            this.firstKills = {};
+            this.bestDps = {};
+            this.bestHps = {};
+            this.bestDpsNoCat = undefined;
+            this.bestHpsNoCat = undefined;
+        }
     }
 
     getDocument(): RaidBossDocument {
         return {
             _id: this._id,
             raidId: this.raidId,
-            bossName: this.bossName,
+            name: this.name,
             difficulty: this.difficulty,
             killCount: this.killCount,
             latestKills: this.latestKills,
@@ -123,56 +128,56 @@ export class RaidBossDocumentController {
 
         const logCategorization = [realm, faction];
 
-        const fastestExists = !!getNestedObjectValue(
-            this.fastestKills,
-            logCategorization
-        );
+        const fastestKills = this.fastestKills[realm]?.[faction];
 
-        if (!fastestExists) {
+        if (!fastestKills) {
             this.fastestKills = addNestedObjectValue(
                 this.fastestKills,
                 logCategorization,
                 [trimmedLog]
             );
         } else {
-            const arr = this.fastestKills[realm]![faction];
-            for (let i = 0; i < arr.length; i++) {
-                if (trimmedLog.fightLength < arr[i].fightLength) {
-                    this.fastestKills[realm]![faction].splice(i, 0, trimmedLog);
-                    this.fastestKills[realm]![faction] = this.fastestKills[
-                        realm
-                    ]![faction].slice(0, 50);
+            for (let i = 0; i < fastestKills.length; i++) {
+                if (trimmedLog.fightLength < fastestKills[i].fightLength) {
+                    fastestKills.splice(i, 0, trimmedLog);
+                    this.fastestKills = addNestedObjectValue(
+                        this.fastestKills,
+                        logCategorization,
+                        fastestKills.slice(0, 50)
+                    );
                     break;
                 }
             }
         }
 
-        const oldFirstKills = getNestedObjectValue(
-            this.firstKills,
-            logCategorization
-        );
+        const firstKills = this.firstKills[realm]?.[faction];
 
-        if (!oldFirstKills) {
+        if (!firstKills) {
             this.firstKills = addNestedObjectValue(
                 this.firstKills,
                 logCategorization,
                 [trimmedLog]
             );
-        } else if (oldFirstKills.length < 3) {
-            const arr = this.firstKills[realm]![faction];
-            for (let i = 0; i < arr.length; i++) {
-                if (i === arr.length - 1) {
-                    this.firstKills[realm]![faction].push(trimmedLog);
+        } else if (firstKills.length < 3) {
+            for (let i = 0; i < firstKills.length; i++) {
+                if (i === firstKills.length - 1) {
+                    firstKills.push(trimmedLog);
+                    this.firstKills = addNestedObjectValue(
+                        this.firstKills,
+                        logCategorization,
+                        firstKills.slice(0, 3)
+                    );
                     break;
-                } else if (trimmedLog.date < arr[i].date) {
-                    this.firstKills[realm]![faction].splice(i, 0, trimmedLog);
-
+                } else if (trimmedLog.date < firstKills[i].date) {
+                    firstKills.splice(i, 0, trimmedLog);
+                    this.firstKills = addNestedObjectValue(
+                        this.firstKills,
+                        logCategorization,
+                        firstKills.slice(0, 3)
+                    );
                     break;
                 }
             }
-            this.firstKills[realm]![faction] = this.firstKills[realm]![
-                faction
-            ].slice(0, 3);
         }
     }
 
@@ -252,159 +257,184 @@ export class RaidBossDocumentController {
             );
         }
     }
-}
 
-export function updateRaidBossDocument(
-    oldBoss: RaidBossDocument,
-    boss: RaidBossDocument
-) {
-    let updatedRaidBoss: RaidBossDocument = {
-        ...JSON.parse(JSON.stringify(oldBoss)),
-        latestKills: boss.latestKills.concat(oldBoss.latestKills).slice(0, 50),
-        killCount: oldBoss.killCount + boss.killCount,
-    };
+    mergeRaidBossDocument(raidBossDocument: RaidBossDocument): void {
+        const mergeKillCount = () => {
+            this.killCount = this.killCount + raidBossDocument.killCount;
+        };
 
-    for (const combatMetric of combatMetrics) {
-        const bestOfNoCatKey = `best${capitalize(combatMetric)}NoCat` as const;
+        const mergeLatestKills = () => {
+            this.latestKills = raidBossDocument.latestKills
+                .concat(this.latestKills)
+                .slice(0, 50);
+        };
 
-        const oldBestChar = oldBoss[bestOfNoCatKey];
-        const newBestChar = boss[bestOfNoCatKey];
+        const mergeBestCombatMetricNoCat = () => {
+            for (const combatMetric of environment.combatMetrics) {
+                const bestOfNoCatKey = `best${capitalize(
+                    combatMetric
+                )}NoCat` as const;
 
-        if (!oldBestChar) {
-            updatedRaidBoss[bestOfNoCatKey] = newBestChar;
-        } else if (newBestChar) {
-            const oldBest = oldBestChar[combatMetric];
-            const newBest = newBestChar[combatMetric];
+                const oldBestChar = this[bestOfNoCatKey];
+                const newBestChar = raidBossDocument[bestOfNoCatKey];
 
-            if (oldBest && newBest && newBest > oldBest) {
-                updatedRaidBoss[bestOfNoCatKey] = newBestChar;
-            }
-        }
-    }
+                if (!oldBestChar) {
+                    this[bestOfNoCatKey] = newBestChar;
+                } else if (newBestChar) {
+                    const oldBestPerformance = oldBestChar[combatMetric];
+                    const newBestPerformance = newBestChar[combatMetric];
 
-    for (const realm of environment.realms) {
-        for (const faction of factions) {
-            const fastestKills = boss.fastestKills?.[realm]?.[faction];
-            if (fastestKills) {
-                let updatedFastestKills = fastestKills;
-                const oldFastestKills =
-                    oldBoss.fastestKills?.[realm]?.[faction];
-
-                if (oldFastestKills) {
-                    updatedFastestKills = fastestKills.concat(oldFastestKills);
-                }
-
-                updatedRaidBoss.fastestKills = addNestedObjectValue(
-                    updatedRaidBoss.fastestKills,
-                    [realm, faction],
-                    updatedFastestKills
-                        .sort((a, b) => a.fightLength - b.fightLength)
-                        .slice(0, 50)
-                );
-            }
-
-            const firstKills = boss.firstKills?.[realm]?.[faction];
-            if (firstKills) {
-                let updatedFirstKills = firstKills;
-                const oldFirstKills = oldBoss.firstKills?.[realm]?.[faction];
-
-                if (oldFirstKills) {
-                    updatedFirstKills = firstKills.concat(oldFirstKills);
-                }
-
-                updatedRaidBoss.firstKills = addNestedObjectValue(
-                    updatedRaidBoss.firstKills,
-                    [realm, faction],
-                    updatedFirstKills
-                        .sort((a, b) => a.date - b.date)
-                        .slice(0, 3)
-                );
-            }
-
-            for (const key in environment.characterClassSpecs) {
-                const classId =
-                    key as unknown as keyof typeof environment.characterClassNames;
-
-                for (const key of environment.characterClassSpecs[classId]) {
-                    const specId =
-                        key as unknown as (typeof environment.characterClassSpecs)[typeof classId][number];
-
-                    for (const combatMetric of combatMetrics) {
-                        const bestOfKey = `best${capitalize(
-                            combatMetric
-                        )}` as const;
-
-                        const categorization = [
-                            bestOfKey,
-                            realm,
-                            faction,
-                            classId,
-                            specId,
-                        ];
-
-                        let oldChars =
-                            oldBoss[bestOfKey]?.[realm]?.[faction]?.[classId]?.[
-                                specId
-                            ] || [];
-
-                        let newChars =
-                            boss[bestOfKey]?.[realm]?.[faction]?.[classId]?.[
-                                specId
-                            ] || [];
-
-                        const bestCharacters: LooseObject = {};
-
-                        for (const bestCharacter of [
-                            ...oldChars,
-                            ...newChars,
-                        ]) {
-                            const currentPerformance =
-                                bestCharacter[combatMetric];
-                            if (
-                                !bestCharacters[bestCharacter._id] ||
-                                (bestCharacters[bestCharacter._id] &&
-                                    currentPerformance &&
-                                    currentPerformance >
-                                        bestCharacters[bestCharacter._id][
-                                            combatMetric
-                                        ])
-                            ) {
-                                bestCharacters[bestCharacter._id] =
-                                    bestCharacter;
-                            }
-                        }
-
-                        const updatedBestsOfCombatMetric: CharacterDocument[] =
-                            [];
-
-                        for (const charId in bestCharacters) {
-                            updatedBestsOfCombatMetric.push(
-                                bestCharacters[charId]
-                            );
-                        }
-
-                        updatedRaidBoss = addNestedObjectValue(
-                            updatedRaidBoss,
-                            categorization,
-                            updatedBestsOfCombatMetric
-                                .sort((a, b) => {
-                                    const bPerf = b[combatMetric];
-                                    const aPerf = a[combatMetric];
-                                    if (bPerf && aPerf) {
-                                        return bPerf - aPerf;
-                                    } else {
-                                        return 0;
-                                    }
-                                })
-                                .slice(0, 10)
-                        ) as RaidBossDocument;
+                    if (
+                        oldBestPerformance &&
+                        newBestPerformance &&
+                        newBestPerformance > oldBestPerformance
+                    ) {
+                        this[bestOfNoCatKey] = newBestChar;
                     }
                 }
             }
-        }
+        };
+
+        const mergeFastestKills = () => {
+            for (const realm of environment.realms) {
+                for (const faction of environment.factions) {
+                    const oldFastestKills =
+                        this.fastestKills?.[realm]?.[faction] || [];
+                    const newFastestKills =
+                        raidBossDocument.fastestKills?.[realm]?.[faction];
+
+                    if (!!newFastestKills) {
+                        this.fastestKills = addNestedObjectValue(
+                            this.fastestKills,
+                            [realm, faction],
+                            newFastestKills
+                                .concat(oldFastestKills)
+                                .sort((a, b) => a.fightLength - b.fightLength)
+                                .slice(0, 50)
+                        );
+                    }
+                }
+            }
+        };
+
+        const mergeFirstKills = () => {
+            for (const realm of environment.realms) {
+                for (const faction of environment.factions) {
+                    const oldFirstKills =
+                        this.firstKills?.[realm]?.[faction] || [];
+                    const newFirstKills =
+                        raidBossDocument.firstKills?.[realm]?.[faction];
+
+                    if (!!newFirstKills) {
+                        this.firstKills = addNestedObjectValue(
+                            this.firstKills,
+                            [realm, faction],
+                            oldFirstKills
+                                .concat(newFirstKills)
+                                .sort((a, b) => a.date - b.date)
+                                .slice(0, 3)
+                        );
+                    }
+                }
+            }
+        };
+
+        const mergeBestCombatMetric = () => {
+            for (const realm of environment.realms) {
+                for (const faction of environment.factions) {
+                    for (const classId of environment.classIds) {
+                        for (const specId of environment.specIdsOfClass[
+                            classId
+                        ]) {
+                            for (const combatMetric of environment.combatMetrics) {
+                                const bestOfKey = `best${capitalize(
+                                    combatMetric
+                                )}` as const;
+
+                                const categorization = [
+                                    realm,
+                                    faction,
+                                    classId,
+                                    specId,
+                                ];
+
+                                let oldChars =
+                                    this[bestOfKey]?.[realm]?.[faction]?.[
+                                        classId
+                                    ]?.[specId] || [];
+
+                                let newChars =
+                                    raidBossDocument[bestOfKey]?.[realm]?.[
+                                        faction
+                                    ]?.[classId]?.[specId] || [];
+
+                                const bestCharacters: LooseObject = {};
+
+                                for (const bestCharacter of [
+                                    ...oldChars,
+                                    ...newChars,
+                                ]) {
+                                    const currentPerformance =
+                                        bestCharacter[combatMetric];
+                                    if (
+                                        !bestCharacters[bestCharacter._id] ||
+                                        (bestCharacters[bestCharacter._id] &&
+                                            currentPerformance &&
+                                            currentPerformance >
+                                                bestCharacters[
+                                                    bestCharacter._id
+                                                ][combatMetric])
+                                    ) {
+                                        bestCharacters[bestCharacter._id] =
+                                            bestCharacter;
+                                    }
+                                }
+
+                                const updatedBestsOfCombatMetric: CharacterDocument[] =
+                                    [];
+
+                                for (const charId in bestCharacters) {
+                                    updatedBestsOfCombatMetric.push(
+                                        bestCharacters[charId]
+                                    );
+                                }
+
+                                this[bestOfKey] = addNestedObjectValue(
+                                    this[bestOfKey],
+                                    categorization,
+                                    updatedBestsOfCombatMetric
+                                        .sort((a, b) => {
+                                            const bPerf = b[combatMetric];
+                                            const aPerf = a[combatMetric];
+                                            if (bPerf && aPerf) {
+                                                return bPerf - aPerf;
+                                            } else {
+                                                return 0;
+                                            }
+                                        })
+                                        .slice(0, 10)
+                                ) as CategorizedCharacter;
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        mergeKillCount();
+        mergeLatestKills();
+        mergeBestCombatMetricNoCat();
+        mergeFastestKills();
+        mergeFirstKills();
+        mergeBestCombatMetric();
     }
 
-    return updatedRaidBoss;
+    private isRaidBossDocument(obj: any): obj is RaidBossDocument {
+        if (obj && obj._id) {
+            return true;
+        }
+        return false;
+    }
 }
 
 export function getRaidBossSummary(boss: RaidBossDocument): RaidBossForSummary {
@@ -444,7 +474,7 @@ export function getRaidBossBest(
     for (const realm of environment.realms) {
         for (const faction of factions) {
             for (const classId of classIds) {
-                for (const specId of environment.characterClassSpecs[classId]) {
+                for (const specId of environment.specIdsOfClass[classId]) {
                     const character =
                         categorizedCharacters?.[realm]?.[faction]?.[classId]?.[
                             specId
@@ -478,7 +508,7 @@ export function getRaidBossBestOfClass(
 
     for (const realm of environment.realms) {
         for (const faction of factions) {
-            for (const specId of environment.characterClassSpecs[classId]) {
+            for (const specId of environment.specIdsOfClass[classId]) {
                 const character =
                     categorizedCharacters?.[realm]?.[faction]?.[classId]?.[
                         specId
