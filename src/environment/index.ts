@@ -1,6 +1,7 @@
 import constants, { realmGroups } from "tauriprogress-constants";
 
 import * as dotenv from "dotenv";
+import { ClassId, SpecId } from "../types";
 dotenv.config();
 
 const defaultPort = 3001;
@@ -42,12 +43,20 @@ class Environment {
     readonly characterSpecClass;
     readonly logBugs;
     readonly guildFactionBugs;
-    readonly characterClassSpecs;
+    readonly specIdsOfClass;
     readonly difficultyNames;
     readonly forceInit;
     readonly seasonal;
     readonly seasons;
     readonly maxCharacterScore;
+
+    readonly combatMetrics: ["dps", "hps"];
+    readonly factions: [0, 1];
+    readonly week: number;
+    readonly pathToLastLogIds: "./logs/lastLogIds.json";
+    readonly pathToLogs: "./logs/logs.txt";
+    readonly specIds: SpecId[];
+    readonly classIds: ClassId[];
 
     constructor() {
         if (process.env.FORCE_INIT && process.env.FORCE_INIT === "true") {
@@ -144,8 +153,20 @@ class Environment {
         this.shortRealms = constants.shortRealms;
         this.characterRaceFaction = constants.characterRaceFaction;
         this.characterSpecClass = constants.characterSpecClass;
-        this.characterClassSpecs = constants.characterClassSpecs;
+        this.specIdsOfClass = constants.characterClassSpecs;
         this.maxCharacterScore = constants.maxCharacterScore;
+
+        this.combatMetrics = ["dps", "hps"];
+        this.factions = [0, 1];
+        this.week = 1000 * 60 * 60 * 24 * 7;
+        this.pathToLastLogIds = "./logs/lastLogIds.json";
+        this.pathToLogs = "./logs/logs.txt";
+        this.specIds = Object.keys(environment.specs).map((specId) =>
+            Number(specId)
+        ) as SpecId[];
+        this.classIds = Object.keys(this.characterClassNames).map((key) =>
+            Number(key)
+        ) as ClassId[];
 
         if (process.env.SEASONAL && process.env.SEASONAL === "true") {
             this.seasonal = true;
