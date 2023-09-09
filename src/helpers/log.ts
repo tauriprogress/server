@@ -13,10 +13,7 @@ import documentManager, {
     GuildDocumentController,
     RaidBossDocumentController,
 } from "./documents";
-import {
-    CharacterDocument,
-    characterOfRaidBoss,
-} from "./documents/characterOfRaidBoss";
+import { CharacterDocument } from "./documents/character";
 import WeeklyFullClearDocumentController from "./documents/weeklyFullClear";
 import id, { CharacterId, GuildId, RaidBossId } from "./id";
 import raid from "./raid";
@@ -34,7 +31,7 @@ interface CharacterDocumentsOfRaidBoss {
     [characterId: CharacterId]: CharacterDocument;
 }
 
-interface RaidBossesForCharacters {
+interface CharacterCollection {
     [raidBossId: RaidBossId]: CharactersOfRaidBoss;
 }
 
@@ -130,8 +127,8 @@ class Log {
     processLogs(logs: Array<RaidLogWithRealm>) {
         let bosses: RaidBosses = {};
         let guilds: Guilds = {};
-        let raidBossesForCharacters: RaidBossesForCharacters = {};
-        let weeklyFullClearDocuments: WeeklyFullClearDocumentController[] = [];
+        let characterCollection: CharacterCollection = {};
+        let weeklyFullClearCollection: WeeklyFullClearDocumentController[] = [];
 
         for (const log of logs) {
             const logId = log.log_id;
@@ -177,8 +174,8 @@ class Log {
 
             bosses[bossId].addLog(trimmedLog, realm, faction);
 
-            if (!raidBossesForCharacters[bossId]) {
-                raidBossesForCharacters[bossId] = new CharactersOfRaidBoss();
+            if (!characterCollection[bossId]) {
+                characterCollection[bossId] = new CharactersOfRaidBoss();
             }
 
             if (isGuildKill && guildId && guildName) {
@@ -198,7 +195,7 @@ class Log {
 
                 let added = false;
 
-                for (let document of weeklyFullClearDocuments) {
+                for (let document of weeklyFullClearCollection) {
                     if (document.isSameRaidGroup(newDocument.getDocument())) {
                         document.mergeDocument(newDocument.getDocument());
                         added = true;
@@ -207,7 +204,7 @@ class Log {
                 }
 
                 if (!added) {
-                    weeklyFullClearDocuments.push(newDocument);
+                    weeklyFullClearCollection.push(newDocument);
                 }
             }
 
@@ -221,7 +218,7 @@ class Log {
                             combatMetric
                         )
                     ) {
-                        const characterDocument = characterOfRaidBoss(
+                        const characterDocument = documentManager.character(
                             character,
                             realm,
                             log.log_id,
@@ -233,17 +230,13 @@ class Log {
                             characterDocument[combatMetric] || 0;
 
                         const oldPerformance =
-                            raidBossesForCharacters[
-                                bossId
-                            ].getCharacterPerformance(
+                            characterCollection[bossId].getCharacterPerformance(
                                 characterDocument._id,
                                 combatMetric
                             ) || 0;
 
                         if (currentPerformance > oldPerformance) {
-                            raidBossesForCharacters[
-                                bossId
-                            ].addCharacterDocument(
+                            characterCollection[bossId].addCharacterDocument(
                                 characterDocument,
                                 combatMetric
                             );
@@ -262,8 +255,8 @@ class Log {
         return {
             guilds,
             bosses,
-            characterPerformanceOfBoss: raidBossesForCharacters,
-            weeklyFullClearDocuments,
+            characterCollection,
+            weeklyFullClearCollection,
         };
     }
 

@@ -1,13 +1,40 @@
+import environment from "../../environment";
 import {
-    CharacterDocument,
     Realm,
     CombatMetric,
     ValidMember,
+    ClassId,
+    Faction,
+    SpecId,
 } from "../../types";
-import { getCharacterId } from "..";
-import { characterRaceFaction } from "tauriprogress-constants";
+import id from "../id";
 
-export function createCharacterDocument(
+export interface CharacterDocument {
+    _id: ReturnType<typeof id.characterId>;
+    realm: Realm;
+    class: ClassId;
+    name: string;
+    spec: SpecId;
+    ilvl: number;
+    date: number;
+    logId: number;
+    f: Faction;
+    race: string;
+    rank: number;
+    cRank: number;
+    sRank: number;
+    dps?: number;
+    hps?: number;
+    talents?: string;
+    trinkets?: Trinket[];
+}
+
+type Trinket = {
+    id: number;
+    icon: string;
+};
+
+export function characterDocument(
     character: ValidMember,
     realm: Realm,
     logId: number,
@@ -46,12 +73,12 @@ export function createCharacterDocument(
     return {
         ...combatMetricDoc,
         ...talentsAndTrinkets,
-        _id: getCharacterId(character.name, realm, character.spec),
+        _id: id.characterId(character.name, realm, character.spec),
         name: character.name,
         realm: realm,
         class: character.class,
         spec: character.spec,
-        f: characterRaceFaction[character.race],
+        f: environment.characterRaceFaction[character.race],
         ilvl: character.ilvl,
         race: `${character.race},${character.gender}`,
         logId: logId,
