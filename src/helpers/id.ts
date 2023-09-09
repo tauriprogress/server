@@ -1,12 +1,19 @@
 import environment from "../environment";
-import { Difficulty, Realm, SpecId } from "../types";
+import { CombatMetric, Difficulty, Realm, SpecId } from "../types";
 
 export type WeekId = string;
 export type GuildId = string;
 export type RaidBossId = string;
 export type CharacterId = string;
+export type CharacterDocumentCollectionId = string;
 
 class Id {
+    deconstruct: DeconstructId;
+
+    constructor() {
+        this.deconstruct = new DeconstructId();
+    }
+
     weekId(date: Date): WeekId {
         return date.getTime().toString();
     }
@@ -21,6 +28,31 @@ class Id {
 
     characterId(name: string, realm: Realm, spec: SpecId): CharacterId {
         return `${name},${environment.shortRealms[realm]},${spec}`;
+    }
+
+    characterDocumentCollectionId(
+        ingameBossId: number,
+        difficulty: number,
+        combatMetric: string
+    ): CharacterDocumentCollectionId {
+        return `${ingameBossId} ${difficulty} ${combatMetric}`;
+    }
+}
+
+class DeconstructId {
+    characterDocumentCollectionId(
+        characterDocumentCollectionId: ReturnType<
+            typeof id.characterDocumentCollectionId
+        >
+    ) {
+        const [ingameBossId, difficulty, combatMetric] =
+            characterDocumentCollectionId.split(" ");
+
+        return [
+            Number(ingameBossId),
+            Number(difficulty) as Difficulty,
+            combatMetric as CombatMetric,
+        ] as const;
     }
 }
 
