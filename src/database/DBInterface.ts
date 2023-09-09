@@ -1,3 +1,4 @@
+import { initializer } from "./DBInitializer";
 import {
     Lock,
     getRaidBossId,
@@ -12,12 +13,14 @@ import dbGuild from "./DBGuild";
 import dbLeaderboard from "./DBLeaderboard";
 import dbRaidboss from "./DBRaidboss";
 import dbUpdate from "./DBUpdate";
+import dbWeekly from "./DBWeekly";
 const raidSummaryLock = new Lock();
 
 const collectionNames = {
     guilds: "Guilds",
     maintenance: "Maintenance",
     raidBosses: "RaidBosses",
+    weeklyFullClearData: "WeeklyFullClearData",
     characterLeaderboardDps: "CharacterLeaderboardDps",
     characterLeaderboardHps: "CharacterLeaderboardHps",
 } as const;
@@ -30,6 +33,8 @@ class DBInterface {
     public raidboss: typeof dbRaidboss;
     public leaderboard: typeof dbLeaderboard;
     public character: typeof dbCharacter;
+    public dbWeekly: typeof dbWeekly;
+    public initializer: typeof initializer;
 
     constructor() {
         this.collections = collectionNames;
@@ -39,6 +44,8 @@ class DBInterface {
         this.raidboss = dbRaidboss;
         this.leaderboard = dbLeaderboard;
         this.character = dbCharacter;
+        this.dbWeekly = dbWeekly;
+        this.initializer = initializer;
     }
 
     async getRaidSummary(raidId: RaidId): Promise<RaidSummary> {
