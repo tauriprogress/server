@@ -1,8 +1,10 @@
-import { Difficulty, Realm } from "../types";
+import environment from "../environment";
+import { Difficulty, Realm, SpecId } from "../types";
 
 export type WeekId = string;
 export type GuildId = string;
 export type RaidBossId = string;
+export type CharacterId = string;
 
 class Id {
     weekId(date: Date): WeekId {
@@ -15,6 +17,10 @@ class Id {
 
     raidBossId(ingameBossId: number, difficulty: Difficulty): RaidBossId {
         return `${ingameBossId} ${difficulty}`;
+    }
+
+    characterId(name: string, realm: Realm, spec: SpecId): CharacterId {
+        return `${name},${environment.shortRealms[realm]},${spec}`;
     }
 }
 
