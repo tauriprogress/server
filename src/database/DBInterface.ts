@@ -1,11 +1,5 @@
 import { initializer } from "./DBInitializer";
-import {
-    Lock,
-    getRaidBossId,
-    getRaidBossSummary,
-    getRaidInfoFromId,
-    getRaidSummaryCacheId,
-} from "../helpers";
+import { Lock, getRaidBossSummary, getRaidInfoFromId, id } from "../helpers";
 import { Difficulty, RaidId, RaidSummary } from "../types";
 import cache from "./Cache";
 import dbCharacter from "./DBCharacter";
@@ -53,7 +47,7 @@ class DBInterface {
             try {
                 await raidSummaryLock.acquire();
 
-                const cacheId = getRaidSummaryCacheId(raidId);
+                const cacheId = id.raidSummaryCacheId(raidId);
                 const cachedData = cache.getRaidSummary(cacheId);
 
                 if (cachedData) {
@@ -71,7 +65,7 @@ class DBInterface {
                                 key as keyof typeof bossInfo.bossIdOfDifficulty;
                             const ingameBossId =
                                 bossInfo.bossIdOfDifficulty[ref];
-                            const bossId = getRaidBossId(
+                            const bossId = id.raidBossId(
                                 ingameBossId,
                                 difficulty
                             );
@@ -98,8 +92,8 @@ class DBInterface {
     }
 }
 
-const db = new DBInterface();
+export const dbInterface = new DBInterface();
 
-export type Database = typeof db;
+export type Database = typeof dbInterface;
 
-export default db;
+export default dbInterface;

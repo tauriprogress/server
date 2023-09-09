@@ -1,5 +1,5 @@
 import environment from "../environment";
-import { CombatMetric, Difficulty, Realm, SpecId } from "../types";
+import { CombatMetric, Difficulty, RaidId, Realm, SpecId } from "../types";
 
 export type WeekId = string;
 export type GuildId = string;
@@ -36,6 +36,10 @@ class Id {
         combatMetric: string
     ): CharacterDocumentCollectionId {
         return `${ingameBossId} ${difficulty} ${combatMetric}`;
+    }
+
+    raidSummaryCacheId(raidId: RaidId) {
+        return `${raidId}`;
     }
 }
 
