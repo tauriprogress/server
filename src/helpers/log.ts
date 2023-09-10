@@ -2,6 +2,7 @@ import environment from "../environment";
 import {
     Difficulty,
     Faction,
+    LastLogIds,
     RaidLog,
     RaidLogWithRealm,
     Realm,
@@ -15,9 +16,14 @@ import documentManager, {
 } from "./documents";
 import { CharacterDocument } from "./documents/character";
 import WeeklyFullClearDocumentController from "./documents/weeklyFullClear";
+import { ERR_FILE_DOES_NOT_EXIST } from "./errors";
 import id, { CharacterId, GuildId, RaidBossId } from "./id";
 import raid from "./raid";
 import time from "./time";
+import * as fs from "fs";
+import { createInterface } from "readline";
+import { once } from "events";
+import { ensureFile } from "./utils";
 
 interface RaidBosses {
     [raidBossId: RaidBossId]: RaidBossDocumentController;
@@ -55,6 +61,7 @@ class Weekly {
 
 class Log {
     weekly = new Weekly();
+    fileManager = LogFileManager;
     sameMembers(
         members1: string[],
         members2: string[],
@@ -268,6 +275,16 @@ class Log {
         }
         return false;
     }
+
+    generateLastLogIds<T extends { log_id: number; realm: Realm }>(logs: T[]) {
+        let lastLogIds: LastLogIds = {};
+
+        for (let log of logs) {
+            lastLogIds[log.realm] = log.log_id;
+        }
+
+        return lastLogIds;
+    }
 }
 
 class CharactersOfRaidBoss {
@@ -301,6 +318,85 @@ class CharactersOfRaidBoss {
             dps: this.dps,
             hps: this.hps,
         };
+    }
+}
+
+class LogFileManager {
+    private pathToLogs: string;
+    private pathToLastLogIds: string;
+
+    constructor(
+        pathToLogs: string = environment.pathToLogs,
+        pathToLastLogIds: string = environment.pathToLastLogIds
+    ) {
+        this.pathToLogs = pathToLogs;
+        this.pathToLastLogIds = pathToLastLogIds;
+    }
+
+    areLogsPreserved(): boolean {
+        return fs.existsSync(this.pathToLogs);
+    }
+
+    async getLogs(): Promise<RaidLogWithRealm[]> {
+        return new Promise(async (resolve, reject) => {
+            try {
+                if (!this.areLogsPreserved()) {
+                    throw ERR_FILE_DOES_NOT_EXIST;
+                }
+
+                let logs: RaidLogWithRealm[] = [];
+
+                const rl = createInterface({
+                    input: fs.createReadStream(this.pathToLogs),
+                    crlfDelay: Infinity,
+                });
+
+                rl.on("line", (line) => {
+                    logs.push(JSON.parse(line));
+                });
+
+                await once(rl, "close");
+
+                resolve(logs);
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+
+    getLastLogIds(): LastLogIds {
+        ensureFile(this.pathToLastLogIds);
+
+        try {
+            return JSON.parse(fs.readFileSync(this.pathToLastLogIds, "utf-8"));
+        } catch (err) {
+            console.log(err);
+            return {};
+        }
+    }
+
+    writeLogs(logs: RaidLogWithRealm[], optionalWriter?: fs.WriteStream) {
+        ensureFile(this.pathToLogs);
+
+        const writer =
+            optionalWriter ||
+            fs.createWriteStream(this.pathToLogs, {
+                flags: "a",
+            });
+
+        for (let raidLog of logs) {
+            writer.write(JSON.stringify(raidLog) + "\r\n");
+            this.updateLastLogIdsOfFile(log.generateLastLogIds([raidLog]));
+        }
+    }
+
+    private updateLastLogIdsOfFile(newIds: LastLogIds) {
+        const oldIds = this.getLastLogIds();
+
+        fs.writeFileSync(
+            this.pathToLastLogIds,
+            JSON.stringify({ ...oldIds, ...newIds })
+        );
     }
 }
 
