@@ -333,6 +333,126 @@ class Log {
         };
     }
 
+    filterRaidLogBugs(logs: RaidLogWithRealm[]): RaidLogWithRealm[] {
+        return logs.reduce((acc, log) => {
+            let fixedLog: RaidLogWithRealm = JSON.parse(JSON.stringify(log));
+
+            for (const bug of environment.logBugs) {
+                switch (bug.type) {
+                    case "ignoreLogOfId":
+                        if (
+                            bug.id === fixedLog.log_id &&
+                            bug.realm === fixedLog.realm
+                        ) {
+                            return acc;
+                        }
+                        break;
+                    case "ignoreBossOfDate":
+                        if (
+                            bug.bossId ===
+                                fixedLog.encounter_data.encounter_id &&
+                            bug.date.from < fixedLog.killtime &&
+                            bug.date.to > fixedLog.killtime
+                        ) {
+                            return acc;
+                        }
+                        break;
+                    case "changeSpecDmgDoneOfDate":
+                        fixedLog.members = fixedLog.members.map(
+                            (member: any) => {
+                                if (
+                                    member.spec === bug.specId &&
+                                    bug.date.from < fixedLog.killtime &&
+                                    bug.date.to > fixedLog.killtime
+                                ) {
+                                    return {
+                                        ...member,
+                                        dmg_done: bug.changeTo,
+                                    };
+                                }
+                                return member;
+                            }
+                        );
+
+                        break;
+                    case "ignoreLogOfCharacter":
+                        for (const member of fixedLog.members) {
+                            if (
+                                bug.name === member.name &&
+                                bug.realm === fixedLog.realm
+                            ) {
+                                return acc;
+                            }
+                        }
+
+                        break;
+                    case "overwriteSpecOfCharacter":
+                        if (
+                            bug.logId === fixedLog.log_id &&
+                            bug.realm === fixedLog.realm
+                        ) {
+                            fixedLog.members = fixedLog.members.map(
+                                (member: any) => {
+                                    if (bug.characterName === member.name) {
+                                        return {
+                                            ...member,
+                                            spec: bug.specId,
+                                        };
+                                    }
+                                    return member;
+                                }
+                            );
+                        }
+                        break;
+
+                    case "ignoreCharacter":
+                        fixedLog.members = fixedLog.members.filter((member) => {
+                            if (
+                                bug.name === member.name &&
+                                bug.realm === fixedLog.realm
+                            ) {
+                                return false;
+                            }
+                            return true;
+                        });
+                        break;
+                    case "changeKilltimeOfLog":
+                        if (bug.id === fixedLog.log_id) {
+                            fixedLog.killtime = bug.changeTo;
+                        }
+                        break;
+
+                    case "changeGuildData":
+                        if (bug.guildIds[fixedLog.guildid]) {
+                            fixedLog.guilddata = bug.changeTo;
+                            fixedLog.guildid = bug.id;
+                        }
+                        break;
+                    case "removeCharacterFromLogs":
+                        fixedLog.members = fixedLog.members.map((member) => {
+                            if (
+                                bug.characterName === member.name &&
+                                bug.realm === fixedLog.realm &&
+                                bug.date.from < fixedLog.killtime &&
+                                bug.date.to > fixedLog.killtime
+                            ) {
+                                member.dmg_done = 1;
+                                member.absorb_done = 1;
+                                member.dmg_absorb = 1;
+                                member.heal_done = 1;
+                            }
+                            return member;
+                        });
+                        break;
+                }
+            }
+
+            acc.push(fixedLog);
+
+            return acc;
+        }, [] as RaidLogWithRealm[]);
+    }
+
     private validMember(
         member: RaidLog["members"][number]
     ): member is ValidMember {
