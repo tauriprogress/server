@@ -1,8 +1,10 @@
+import { validator } from "./validators";
 import environment from "../environment";
 import {
     Difficulty,
     Faction,
     LastLogIds,
+    LastRaidLogWithRealm,
     RaidLog,
     RaidLogWithRealm,
     Realm,
@@ -24,6 +26,7 @@ import * as fs from "fs";
 import { createInterface } from "readline";
 import { once } from "events";
 import { ensureFile } from "./utils";
+import tauriApi from "../tauriApi";
 
 interface RaidBosses {
     [raidBossId: RaidBossId]: RaidBossDocumentController;
@@ -129,6 +132,69 @@ class Log {
             realm: realm,
             date: date,
         };
+    }
+
+    async requestRaidLogs(lastLogIds: LastLogIds): Promise<{
+        logs: RaidLogWithRealm[];
+        lastLogIds: LastLogIds;
+    }> {
+        return new Promise(async (resolve, reject) => {
+            try {
+                let unfilteredLogs: Array<LastRaidLogWithRealm> = [];
+                let logs: Array<RaidLogWithRealm> = [];
+                let newLastLogIds: LastLogIds = {};
+
+                for (const realmName of environment.realms) {
+                    const lastLogId = lastLogIds[realmName];
+                    const data = await tauriApi.getRaidLastLogs(
+                        lastLogId || 0,
+                        realmName
+                    );
+
+                    unfilteredLogs = unfilteredLogs.concat(
+                        data.response.logs.map((log) => ({
+                            ...log,
+                            realm: realmName,
+                            encounter_data: {
+                                ...log.encounter_data,
+                                encounter_name:
+                                    log.encounter_data.encounter_name.trim(),
+                            },
+                        }))
+                    );
+                }
+
+                for (let log of unfilteredLogs.sort((a, b) =>
+                    a.killtime < b.killtime ? -1 : 1
+                )) {
+                    if (validator.validRaidLog(log)) {
+                        const logData = await tauriApi.getRaidLog(
+                            log.log_id,
+                            log.realm
+                        );
+
+                        logs.push({
+                            ...logData.response,
+                            realm: log.realm,
+                            encounter_data: {
+                                ...logData.response.encounter_data,
+                                encounter_name:
+                                    logData.response.encounter_data.encounter_name.trim(),
+                            },
+                        });
+                    }
+
+                    newLastLogIds[log.realm] = log.log_id;
+                }
+
+                resolve({
+                    logs,
+                    lastLogIds: { ...lastLogIds, ...newLastLogIds },
+                });
+            } catch (err) {
+                reject(err);
+            }
+        });
     }
 
     processLogs(logs: Array<RaidLogWithRealm>) {
