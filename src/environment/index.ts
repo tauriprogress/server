@@ -1,7 +1,7 @@
 import constants, { realmGroups } from "tauriprogress-constants";
 
 import * as dotenv from "dotenv";
-import { ClassId, SpecId } from "../types";
+import { ClassId, CombatMetric, SpecId } from "../types";
 dotenv.config();
 
 const defaultPort = 3001;
@@ -181,6 +181,32 @@ class Environment {
             this.seasonal = false;
             this.currentContent = realmGroupEnv.currentContent;
         }
+    }
+
+    isSpecCombatMetric(specId: SpecId, combatMetric: CombatMetric) {
+        return this.specs[specId][
+            `is${combatMetric === "dps" ? "Dps" : "Healer"}`
+        ];
+    }
+
+    getCurrentSeason() {
+        const currentDate = new Date().getTime();
+
+        if (this.seasonal) {
+            for (const season of this.seasons) {
+                const start = new Date(season.start).getTime();
+                const finish = new Date(season.finish).getTime();
+                if (currentDate > start && currentDate < finish) {
+                    return season;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    isSeasonRunning() {
+        return !!this.getCurrentSeason();
     }
 }
 
