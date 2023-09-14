@@ -2,7 +2,6 @@ import {
     WeekId,
     addNestedObjectValue,
     getNestedObjectValue,
-    getRaidInfoFromName,
     id,
     time,
     uniqueLogs,
@@ -22,7 +21,7 @@ import {
 
 import { Document } from "mongodb";
 
-import { log as logHelper } from "../log";
+import log from "../log";
 
 export interface GuildDocument extends Document {
     _id: ReturnType<typeof id.guildId>;
@@ -211,13 +210,13 @@ export class GuildDocumentController {
         };
     }
 
-    addLog(log: RaidLogWithRealm): void {
-        const logId = log.log_id;
-        const bossName = log.encounter_data.encounter_name;
-        const raidName = log.mapentry.name;
-        const difficulty = log.difficulty;
-        const fightLength = log.fight_time;
-        const date = log.killtime;
+    addLog(raidLog: RaidLogWithRealm): void {
+        const logId = raidLog.log_id;
+        const bossName = raidLog.encounter_data.encounter_name;
+        const raidName = raidLog.mapentry.name;
+        const difficulty = raidLog.difficulty;
+        const fightLength = raidLog.fight_time;
+        const date = raidLog.killtime;
 
         const logDate = new Date(date * 1000);
         const weekId: WeekId = id.weekId(time.getLatestWednesday(logDate));
@@ -264,7 +263,7 @@ export class GuildDocumentController {
             if (!guildRankingFullClear.weeks[weekId]) {
                 guildRankingFullClear.weeks[weekId] = [
                     {
-                        members: log.members.map((member) => member.name),
+                        members: raidLog.members.map((member) => member.name),
                         logs: [
                             {
                                 bossName: bossName,
@@ -280,9 +279,9 @@ export class GuildDocumentController {
 
                 for (let raidGroup of guildRankingFullClear.weeks[weekId]) {
                     if (
-                        logHelper.sameMembers(
+                        log.sameMembers(
                             raidGroup.members,
-                            log.members.map((member) => member.name),
+                            raidLog.members.map((member) => member.name),
                             difficulty
                         )
                     ) {
@@ -300,7 +299,7 @@ export class GuildDocumentController {
 
                 if (!logAddedToRanking) {
                     guildRankingFullClear.weeks[weekId].push({
-                        members: log.members.map((member) => member.name),
+                        members: raidLog.members.map((member) => member.name),
                         logs: [
                             {
                                 bossName: bossName,
@@ -390,256 +389,295 @@ export class GuildDocumentController {
         }
         return false;
     }
-}
 
-export async function requestGuildDocument(guildName: string, realm: Realm) {
-    const response = await tauriApi.getGuildData(guildName, realm);
+    async extendData(): Promise<void> {
+        const response = await tauriApi.getGuildData(this.name, this.realm);
 
-    const guildData = response.response;
+        const guildData = response.response;
 
-    let members: GuildMember[] = [];
-
-    for (const memberId in guildData.guildList) {
-        members.push({
-            name: guildData.guildList[memberId].name,
-            class: guildData.guildList[memberId].class,
-            rankName: guildData.guildList[memberId].rank_name,
-            lvl: guildData.guildList[memberId].level,
-            race: `${guildData.guildList[memberId].race},${guildData.guildList[memberId].gender}`,
-        });
-    }
-
-    let ranks = [];
-    for (const rankId in guildData.gRanks) {
-        ranks.push(guildData.gRanks[rankId].rname);
-    }
-
-    let newGuild: GuildDocument = {
-        ...createGuildDocument(guildName, realm, guildData.gFaction),
-        ranks: ranks,
-        members: members,
-    };
-
-    for (const guild of environment.guildFactionBugs) {
-        if (
-            guild.guildName === newGuild.name &&
-            guild.realm === newGuild.realm
-        ) {
-            newGuild.f = guild.faction;
+        for (const memberId in guildData.guildList) {
+            this.members.push({
+                name: guildData.guildList[memberId].name,
+                class: guildData.guildList[memberId].class,
+                rankName: guildData.guildList[memberId].rank_name,
+                lvl: guildData.guildList[memberId].level,
+                race: `${guildData.guildList[memberId].race},${guildData.guildList[memberId].gender}`,
+            });
         }
-    }
 
-    return newGuild;
-}
+        for (const rankId in guildData.gRanks) {
+            this.ranks.push(guildData.gRanks[rankId].rname);
+        }
 
-export function updateGuildDocument(
-    oldGuild: GuildDocument,
-    guild: GuildDocument
-): GuildDocument {
-    let updatedGuild: GuildDocument = {
-        ...JSON.parse(JSON.stringify(oldGuild)),
-        ...(({ progression, raidDays, activity, ranking, ...others }) => ({
-            ...JSON.parse(JSON.stringify(others)),
-            members: guild.members.length ? guild.members : oldGuild.members,
-            ranks: guild.ranks.length ? guild.ranks : oldGuild.ranks,
-        }))(guild),
-    };
+        this.f = guildData.gFaction;
 
-    updatedGuild.progression.latestKills = guild.progression.latestKills
-        .concat(oldGuild.progression.latestKills)
-        .slice(0, 50);
-
-    let raidName: keyof typeof guild.progression.raids;
-    for (raidName in guild.progression.raids) {
-        for (const key in guild.progression.raids[raidName]) {
-            const difficulty = Number(key) as unknown as Difficulty;
-
-            for (const bossName in guild.progression.raids[raidName]?.[
-                difficulty
-            ]) {
-                let newBoss =
-                    guild.progression.raids[raidName]?.[difficulty]?.[bossName];
-                let oldBoss =
-                    oldGuild.progression.raids[raidName]?.[difficulty]?.[
-                        bossName
-                    ];
-
-                let updatedBoss: GuildBoss | undefined = undefined;
-
-                if (oldBoss && newBoss) {
-                    updatedBoss = {
-                        ...oldBoss,
-                        killCount: oldBoss.killCount + newBoss.killCount,
-                        fastestKills: uniqueLogs([
-                            ...oldBoss.fastestKills,
-                            ...newBoss.fastestKills,
-                        ])
-                            .sort((a, b) => a.fightLength - b.fightLength)
-                            .slice(0, 10),
-                        firstKills: uniqueLogs([
-                            ...oldBoss.firstKills,
-                            ...newBoss.firstKills,
-                        ])
-                            .sort((a, b) => a.date - b.date)
-                            .slice(0, 10),
-                        latestKills: uniqueLogs([
-                            ...oldBoss.latestKills,
-                            ...newBoss.latestKills,
-                        ])
-                            .sort((a, b) => b.date - a.date)
-                            .slice(0, 10),
-                    };
-                } else if (oldBoss) {
-                    updatedBoss = oldBoss;
-                } else if (newBoss) {
-                    updatedBoss = newBoss;
-                }
-
-                if (updatedBoss) {
-                    updatedGuild.progression.raids = addNestedObjectValue(
-                        updatedGuild.progression.raids,
-                        [raidName, difficulty, bossName],
-                        updatedBoss
-                    );
-                }
+        for (const guild of environment.guildFactionBugs) {
+            if (this.name === guild.guildName && this.realm === guild.realm) {
+                this.f = guild.faction;
             }
         }
     }
 
-    for (let [day, hours] of guild.raidDays.total.entries()) {
-        for (let [hour, killCount] of hours.entries()) {
-            updatedGuild.raidDays.total[day][hour] += killCount;
-        }
-    }
+    mergeGuildDocument(guild: GuildDocumentController): void {
+        const updateFaction = () => {
+            this.f = guild.f;
+        };
 
-    updatedGuild.activity = {
-        ...updatedGuild.activity,
-        ...guild.activity,
-    };
+        const updateProgressionLatestKills = () => {
+            this.progression.latestKills = guild.progression.latestKills
+                .concat(this.progression.latestKills)
+                .slice(0, 50);
 
-    updatedGuild.raidDays.latest = getLatestGuildRaidDays(
-        updatedGuild.progression.latestKills
-    );
-
-    updatedGuild.progression.completion = getGuildContentCompletion(
-        updatedGuild.progression.raids
-    );
-
-    for (raidName in guild.ranking) {
-        for (const key in guild.ranking[raidName]) {
-            const difficulty = Number(key) as unknown as Difficulty;
-
-            if (!updatedGuild.ranking[raidName]) {
-                updatedGuild.ranking[raidName] = {};
-            }
-
-            if (!updatedGuild.ranking?.[raidName]?.[difficulty]) {
-                updatedGuild.ranking = addNestedObjectValue(
-                    updatedGuild.ranking,
-                    [raidName, difficulty],
-                    guild.ranking?.[raidName]?.[difficulty]
+            const updateRaidDaysLatest = () => {
+                let { latest: raidDays } = JSON.parse(
+                    JSON.stringify(this.createGuildRaidDays())
                 );
 
-                continue;
-            }
+                const timeBoundary = time
+                    .getLatestWednesday(
+                        new Date(new Date().getTime() - environment.week * 2)
+                    )
+                    .getTime();
 
-            for (const weekId in guild.ranking?.[raidName]?.[difficulty]
-                ?.fullClear.weeks) {
-                let oldRaidGroups =
-                    updatedGuild.ranking?.[raidName]?.[difficulty]?.fullClear
-                        .weeks[weekId];
+                for (const log of this.progression.latestKills) {
+                    if (log.date * 1000 > timeBoundary) {
+                        let logDate = new Date(log.date * 1000);
 
-                let newRaidGroups =
-                    guild.ranking?.[raidName]?.[difficulty]?.fullClear.weeks[
-                        weekId
-                    ];
-
-                if (!newRaidGroups) {
-                    continue;
+                        raidDays[time.unshiftDateDay(logDate.getUTCDay())][
+                            logDate.getUTCHours()
+                        ] += 1;
+                    } else {
+                        break;
+                    }
                 }
 
-                if (!oldRaidGroups) {
-                    updatedGuild.ranking = addNestedObjectValue(
-                        updatedGuild.ranking,
-                        [raidName, difficulty, "fullClear", "weeks", weekId],
-                        newRaidGroups
-                    );
+                this.raidDays.latest = raidDays;
+            };
 
-                    continue;
-                } else {
-                    for (let newGroup of newRaidGroups) {
-                        let added = false;
-                        for (let i = 0; i < oldRaidGroups.length; i++) {
-                            let oldGroup = oldRaidGroups[i];
-                            if (
-                                logs.sameMembers(
-                                    oldGroup.members,
-                                    newGroup.members,
-                                    difficulty
-                                )
-                            ) {
-                                oldRaidGroups[i] = {
-                                    ...oldGroup,
-                                    logs: [...oldGroup.logs, ...newGroup.logs],
-                                };
+            updateRaidDaysLatest();
+        };
 
-                                updatedGuild.ranking = addNestedObjectValue(
-                                    updatedGuild.ranking,
-                                    [
-                                        raidName,
-                                        difficulty,
-                                        "fullClear",
-                                        "weeks",
-                                        weekId,
-                                    ],
-                                    oldRaidGroups
-                                );
+        const updateProgressionRaidBoss = () => {
+            let raidName: keyof typeof guild.progression.raids;
+            for (raidName in guild.progression.raids) {
+                for (const key in guild.progression.raids[raidName]) {
+                    const difficulty = Number(key) as unknown as Difficulty;
 
-                                added = true;
-                                break;
-                            }
+                    for (const bossName in guild.progression.raids[raidName]?.[
+                        difficulty
+                    ]) {
+                        let newBoss =
+                            guild.progression.raids[raidName]?.[difficulty]?.[
+                                bossName
+                            ];
+                        let oldBoss =
+                            this.progression.raids[raidName]?.[difficulty]?.[
+                                bossName
+                            ];
+
+                        let updatedBoss: GuildBoss | undefined = undefined;
+
+                        if (oldBoss && newBoss) {
+                            updatedBoss = {
+                                ...oldBoss,
+                                killCount:
+                                    oldBoss.killCount + newBoss.killCount,
+                                fastestKills: uniqueLogs([
+                                    ...oldBoss.fastestKills,
+                                    ...newBoss.fastestKills,
+                                ])
+                                    .sort(
+                                        (a, b) => a.fightLength - b.fightLength
+                                    )
+                                    .slice(0, 10),
+                                firstKills: uniqueLogs([
+                                    ...oldBoss.firstKills,
+                                    ...newBoss.firstKills,
+                                ])
+                                    .sort((a, b) => a.date - b.date)
+                                    .slice(0, 10),
+                                latestKills: uniqueLogs([
+                                    ...oldBoss.latestKills,
+                                    ...newBoss.latestKills,
+                                ])
+                                    .sort((a, b) => b.date - a.date)
+                                    .slice(0, 10),
+                            };
+                        } else if (oldBoss) {
+                            updatedBoss = oldBoss;
+                        } else if (newBoss) {
+                            updatedBoss = newBoss;
                         }
 
-                        if (!added) {
-                            updatedGuild.ranking?.[raidName]?.[
-                                difficulty
-                            ]?.fullClear.weeks[weekId].push(newGroup);
+                        if (updatedBoss) {
+                            this.progression.raids = addNestedObjectValue(
+                                this.progression.raids,
+                                [raidName, difficulty, bossName],
+                                updatedBoss
+                            );
                         }
                     }
                 }
             }
-        }
+
+            const updateProgressionCompletion = () => {
+                this.progression.completion = getGuildContentCompletion(
+                    this.progression.raids
+                );
+            };
+
+            updateProgressionCompletion();
+        };
+
+        const updateRaidDaysTotal = () => {
+            for (let [day, hours] of guild.raidDays.total.entries()) {
+                for (let [hour, killCount] of hours.entries()) {
+                    this.raidDays.total[day][hour] += killCount;
+                }
+            }
+        };
+
+        const updateActivity = () => {
+            this.activity = {
+                ...this.activity,
+                ...guild.activity,
+            };
+        };
+
+        const updateRanking = () => {
+            let raidName: keyof typeof guild.progression.raids;
+            for (raidName in guild.ranking) {
+                for (const key in guild.ranking[raidName]) {
+                    const difficulty = Number(key) as unknown as Difficulty;
+
+                    if (!this.ranking[raidName]) {
+                        this.ranking[raidName] = {};
+                    }
+
+                    if (!this.ranking?.[raidName]?.[difficulty]) {
+                        this.ranking = addNestedObjectValue(
+                            this.ranking,
+                            [raidName, difficulty],
+                            guild.ranking?.[raidName]?.[difficulty]
+                        );
+
+                        continue;
+                    }
+
+                    for (const weekId in guild.ranking?.[raidName]?.[difficulty]
+                        ?.fullClear.weeks) {
+                        let oldRaidGroups =
+                            this.ranking?.[raidName]?.[difficulty]?.fullClear
+                                .weeks[weekId];
+
+                        let newRaidGroups =
+                            guild.ranking?.[raidName]?.[difficulty]?.fullClear
+                                .weeks[weekId];
+
+                        if (!newRaidGroups) {
+                            continue;
+                        }
+
+                        if (!oldRaidGroups) {
+                            this.ranking = addNestedObjectValue(
+                                this.ranking,
+                                [
+                                    raidName,
+                                    difficulty,
+                                    "fullClear",
+                                    "weeks",
+                                    weekId,
+                                ],
+                                newRaidGroups
+                            );
+
+                            continue;
+                        } else {
+                            for (let newGroup of newRaidGroups) {
+                                let added = false;
+                                for (let i = 0; i < oldRaidGroups.length; i++) {
+                                    let oldGroup = oldRaidGroups[i];
+                                    if (
+                                        log.sameMembers(
+                                            oldGroup.members,
+                                            newGroup.members,
+                                            difficulty
+                                        )
+                                    ) {
+                                        oldRaidGroups[i] = {
+                                            ...oldGroup,
+                                            logs: [
+                                                ...oldGroup.logs,
+                                                ...newGroup.logs,
+                                            ],
+                                        };
+
+                                        this.ranking = addNestedObjectValue(
+                                            this.ranking,
+                                            [
+                                                raidName,
+                                                difficulty,
+                                                "fullClear",
+                                                "weeks",
+                                                weekId,
+                                            ],
+                                            oldRaidGroups
+                                        );
+
+                                        added = true;
+                                        break;
+                                    }
+                                }
+
+                                if (!added) {
+                                    this.ranking?.[raidName]?.[
+                                        difficulty
+                                    ]?.fullClear.weeks[weekId].push(newGroup);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            const refreshRanking = () => {
+                let raidName: RaidName;
+                for (raidName in this.ranking) {
+                    for (const key in this.ranking[raidName]) {
+                        const difficulty = Number(key) as unknown as Difficulty;
+                        this.ranking = addNestedObjectValue(
+                            this.ranking,
+                            [raidName, difficulty, "fastestKills"],
+                            fastestGuildRanking(raidName, difficulty, this)
+                        );
+
+                        const fullClear =
+                            guild.ranking?.[raidName]?.[difficulty]?.fullClear;
+
+                        if (!fullClear) continue;
+
+                        this.ranking = addNestedObjectValue(
+                            this.ranking,
+                            [raidName, difficulty, "fullClear"],
+                            fullClearGuildRanking(fullClear, raidName)
+                        );
+                    }
+                }
+            };
+
+            refreshRanking();
+        };
+
+        updateFaction();
+        updateProgressionLatestKills();
+        updateProgressionRaidBoss();
+        updateRaidDaysTotal();
+        updateActivity();
+        updateRanking();
     }
-    return updateGuildRanking(updatedGuild);
 }
 
-export function getLatestGuildRaidDays(logs: GuildLatestKill[]) {
-    let { latest: raidDays } = JSON.parse(
-        JSON.stringify(createGuildRaidDays())
-    );
-
-    const timeBoundary = time
-        .getLatestWednesday(new Date(new Date().getTime() - week * 2))
-        .getTime();
-
-    for (const log of logs) {
-        if (log.date * 1000 > timeBoundary) {
-            let logDate = new Date(log.date * 1000);
-
-            raidDays[time.unshiftDateDay(logDate.getUTCDay())][
-                logDate.getUTCHours()
-            ] += 1;
-        } else {
-            break;
-        }
-    }
-
-    return raidDays;
-}
-
-export function getGuildContentCompletion(
-    guildRaids: GuildRaids
-): GuildCompletion {
+function getGuildContentCompletion(guildRaids: GuildRaids): GuildCompletion {
     let completion: GuildCompletion = {
         completed: false,
         bossesDefeated: 0,
@@ -699,38 +737,11 @@ export function getGuildContentCompletion(
     return completion;
 }
 
-export function updateGuildRanking(guild: GuildDocument) {
-    let raidName: RaidName;
-    for (raidName in guild.ranking) {
-        for (const key in guild.ranking[raidName]) {
-            const difficulty = Number(key) as unknown as Difficulty;
-            guild.ranking = addNestedObjectValue(
-                guild.ranking,
-                [raidName, difficulty, "fastestKills"],
-                fastestGuildRanking(raidName, difficulty, guild)
-            );
-
-            const fullClear =
-                guild.ranking?.[raidName]?.[difficulty]?.fullClear;
-
-            if (!fullClear) continue;
-
-            guild.ranking = addNestedObjectValue(
-                guild.ranking,
-                [raidName, difficulty, "fullClear"],
-                fullClearGuildRanking(fullClear, raidName)
-            );
-        }
-    }
-
-    return guild;
-}
-
 export function fullClearGuildRanking(
     fullClearGuildRanking: GuildRankingFull,
-    raidName: string
+    raidName: RaidName
 ): GuildRankingFull {
-    const raidInfo = getRaidInfoFromName(raidName);
+    const raidInfo = environment.getRaidInfoFromName(raidName);
     let bestTime = fullClearGuildRanking.time;
     let logs = fullClearGuildRanking.logs;
 
@@ -792,7 +803,7 @@ export function fastestGuildRanking(
     difficulty: Difficulty,
     guild: GuildDocument
 ): GuildRankingFastest {
-    const raidInfo = getRaidInfoFromName(raidName);
+    const raidInfo = environment.getRaidInfoFromName(raidName);
     let time = 0;
     let logs = [];
 
