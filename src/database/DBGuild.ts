@@ -1,15 +1,16 @@
 import { ClientSession } from "mongodb";
 import {
-    requestGuildDocument,
-    updateGuildDocument,
-    createGuildDocument,
-    getGuildId,
+    GuildDocument,
+    MaintenanceDocument,
+    id,
+    GuildDocumentController,
 } from "../helpers";
 import { ERR_GUILD_NOT_FOUND } from "../helpers/errors";
-import { GuildDocument, GuildList, MaintenanceDocument, Realm } from "../types";
-import dbInterface from "./index";
+import { GuildList, Realm } from "../types";
+import dbInterface from "./DBInterface";
 import dbConnection from "./DBConnection";
 import cache from "./Cache";
+import documentManager from "../helpers/documents";
 
 class DBGuild {
     async getLastGuildsUpdate(): Promise<number> {
@@ -85,7 +86,7 @@ class DBGuild {
         });
     }
 
-    async saveGuild(guild: GuildDocument, session?: ClientSession) {
+    async saveGuild(guild: GuildDocumentController, session?: ClientSession) {
         return new Promise(async (resolve, reject) => {
             try {
                 const db = dbConnection.getConnection();
@@ -102,39 +103,24 @@ class DBGuild {
                 );
 
                 if (!oldGuild) {
-                    try {
-                        let guildData = await requestGuildDocument(
-                            guild.name,
-                            guild.realm
-                        ).catch((err) => {
-                            if (err.message === ERR_GUILD_NOT_FOUND.message)
-                                throw ERR_GUILD_NOT_FOUND;
-                            return false as const;
-                        });
-
-                        await guildsCollection.insertOne(
-                            guildData
-                                ? updateGuildDocument(guild, guildData)
-                                : updateGuildDocument(
-                                      createGuildDocument(
-                                          guild.name,
-                                          guild.realm,
-                                          guild.f
-                                      ),
-                                      guild
-                                  ),
-                            { session }
-                        );
-                    } catch (err) {
-                        console.error(err);
-                    }
+                    await guildsCollection.insertOne(guild.getDocument(), {
+                        session,
+                    });
                 } else {
+                    const guildDocumentManager = new documentManager.guild(
+                        oldGuild
+                    );
+                    guildDocumentManager.mergeGuildDocument(
+                        guild.getDocument()
+                    );
+                    const newDocument = guildDocumentManager.getDocument();
+
                     await guildsCollection.updateOne(
                         {
-                            _id: guild._id,
+                            _id: newDocument._id,
                         },
                         {
-                            $set: updateGuildDocument(oldGuild, guild),
+                            $set: newDocument,
                         },
                         { session }
                     );
@@ -146,7 +132,7 @@ class DBGuild {
         });
     }
 
-    async removeGuild(_id: ReturnType<typeof getGuildId>) {
+    async removeGuild(_id: ReturnType<typeof id.guildId>) {
         return new Promise(async (resolve, reject) => {
             try {
                 const db = dbConnection.getConnection();

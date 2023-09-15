@@ -418,7 +418,7 @@ export class GuildDocumentController {
         }
     }
 
-    mergeGuildDocument(guild: GuildDocumentController): void {
+    mergeGuildDocument(guild: GuildDocument): void {
         const updateFaction = () => {
             this.f = guild.f;
         };
