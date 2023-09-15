@@ -390,32 +390,44 @@ export class GuildDocumentController {
         return false;
     }
 
-    async extendData(): Promise<void> {
-        const response = await tauriApi.getGuildData(this.name, this.realm);
+    extendData(): Promise<void> {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const response = await tauriApi.getGuildData(
+                    this.name,
+                    this.realm
+                );
+                const guildData = response.response;
 
-        const guildData = response.response;
+                for (const memberId in guildData.guildList) {
+                    this.members.push({
+                        name: guildData.guildList[memberId].name,
+                        class: guildData.guildList[memberId].class,
+                        rankName: guildData.guildList[memberId].rank_name,
+                        lvl: guildData.guildList[memberId].level,
+                        race: `${guildData.guildList[memberId].race},${guildData.guildList[memberId].gender}`,
+                    });
+                }
 
-        for (const memberId in guildData.guildList) {
-            this.members.push({
-                name: guildData.guildList[memberId].name,
-                class: guildData.guildList[memberId].class,
-                rankName: guildData.guildList[memberId].rank_name,
-                lvl: guildData.guildList[memberId].level,
-                race: `${guildData.guildList[memberId].race},${guildData.guildList[memberId].gender}`,
-            });
-        }
+                for (const rankId in guildData.gRanks) {
+                    this.ranks.push(guildData.gRanks[rankId].rname);
+                }
 
-        for (const rankId in guildData.gRanks) {
-            this.ranks.push(guildData.gRanks[rankId].rname);
-        }
+                this.f = guildData.gFaction;
 
-        this.f = guildData.gFaction;
-
-        for (const guild of environment.guildFactionBugs) {
-            if (this.name === guild.guildName && this.realm === guild.realm) {
-                this.f = guild.faction;
+                for (const guild of environment.guildFactionBugs) {
+                    if (
+                        this.name === guild.guildName &&
+                        this.realm === guild.realm
+                    ) {
+                        this.f = guild.faction;
+                    }
+                }
+                resolve();
+            } catch (err) {
+                reject(err);
             }
-        }
+        });
     }
 
     mergeGuildDocument(guild: GuildDocument): void {
