@@ -1,10 +1,5 @@
 import { ClientSession } from "mongodb";
-import {
-    GuildDocument,
-    MaintenanceDocument,
-    id,
-    GuildDocumentController,
-} from "../helpers";
+import { GuildDocument, id, GuildDocumentController } from "../helpers";
 import { ERR_GUILD_NOT_FOUND } from "../helpers/errors";
 import { GuildList, Realm } from "../types";
 import dbInterface from "./DBInterface";
@@ -13,24 +8,6 @@ import cache from "./Cache";
 import documentManager from "../helpers/documents";
 
 class DBGuild {
-    async getLastGuildsUpdate(): Promise<number> {
-        return new Promise(async (resolve, reject) => {
-            try {
-                const db = dbConnection.getConnection();
-
-                const maintenance = await db
-                    .collection<MaintenanceDocument>(
-                        dbInterface.collections.maintenance
-                    )
-                    .findOne();
-
-                resolve(maintenance ? maintenance.lastGuildsUpdate : 0);
-            } catch (err) {
-                reject(err);
-            }
-        });
-    }
-
     async getGuildList(): Promise<GuildList> {
         return new Promise(async (resolve, reject) => {
             try {

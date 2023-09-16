@@ -1,8 +1,10 @@
+import { validator } from "./../helpers/validators";
 import { ClientSession, ReadConcern } from "mongodb";
 import {
     CharacterDocument,
     CombatMetric,
     Difficulty,
+    Faction,
     GuildDocument,
     LastLogIds,
     LeaderboardCharacterDocument,
@@ -32,7 +34,9 @@ import {
     updateLastLogIdsOfFile,
     updateRaidBossDocument,
     writeLogsToFile,
-    timeTransformer,
+    time,
+    id,
+    log,
 } from "../helpers";
 import {
     ERR_DB_ALREADY_UPDATING,
@@ -41,16 +45,17 @@ import {
 } from "../helpers/errors";
 import cache from "./Cache";
 import dbConnection from "./DBConnection";
-import dbInterface from "./index";
+import dbInterface from "./DBInterface";
 import environment from "../environment";
+import dbMaintenance from "./DBMaintenance";
+import documentManager from "../helpers/documents";
 
 class DBUpdate {
-    private isUpdating: boolean;
-    private lastGuildsUpdate: number;
+    public isUpdating: boolean;
     private updatedRaidbosses: ReturnType<typeof getRaidBossId>[];
 
     private updatedCharacterDocumentCollections: ReturnType<
-        typeof getCharacterDocumentCollectionId
+        typeof id.characterDocumentCollectionId
     >[];
 
     constructor() {
@@ -61,12 +66,12 @@ class DBUpdate {
     }
 
     addToUpdatedCharacterDocumentCollections(
-        characterDocumentCollection: ReturnType<
-            typeof getCharacterDocumentCollectionId
+        characterDocumentCollectionId: ReturnType<
+            typeof id.characterDocumentCollectionId
         >
     ) {
         this.updatedCharacterDocumentCollections.push(
-            characterDocumentCollection
+            characterDocumentCollectionId
         );
     }
 
@@ -83,7 +88,7 @@ class DBUpdate {
         this.updatedCharacterDocumentCollections = [];
     }
 
-    addToUpdatedRaidbosses(bossId: ReturnType<typeof getRaidBossId>) {
+    addToUpdatedRaidbosses(bossId: ReturnType<typeof id.raidBossId>) {
         this.updatedRaidbosses.push(bossId);
     }
 
@@ -356,10 +361,8 @@ class DBUpdate {
                     ? {}
                     : maintenanceDocument.lastLogIds;
 
-                let { logs, lastLogIds: newLastLogIds } = await getLogData(
-                    false,
-                    lastLogIds
-                );
+                let { logs, lastLogIds: newLastLogIds } =
+                    await log.requestRaidLogs(lastLogIds);
 
                 logs = logBugHandler(logs);
                 const session = client.startSession();
@@ -408,7 +411,7 @@ class DBUpdate {
                 resolve(true);
             } catch (err) {
                 if (
-                    !isError(err) ||
+                    !validator.isError(err) ||
                     err.message !== ERR_DB_ALREADY_UPDATING.message
                 ) {
                     console.log(`Database update error`);
@@ -420,30 +423,26 @@ class DBUpdate {
         });
     }
 
-    public async updateGuilds() {
+    updateGuilds(): Promise<void> {
         return new Promise(async (resolve, reject) => {
             try {
-                const db = dbConnection.getConnection();
+                const db = dbMaintenance.getConnection();
                 if (this.isUpdating) throw ERR_DB_ALREADY_UPDATING;
 
-                if (this.lastGuildsUpdate === 0) {
-                    this.lastGuildsUpdate =
-                        await dbInterface.guild.getLastGuildsUpdate();
-                }
+                const maintenanceDocument = dbMaintenance.getDocument();
 
                 if (
-                    timeTransformer.minutesAgo(this.lastGuildsUpdate) >
+                    time.minutesAgo(maintenanceDocument.lastGuildsUpdate) >
                     60 * 36
                 ) {
                     const updateStarted = new Date().getTime() / 1000;
-                    const maintenanceCollection =
-                        db.collection<MaintenanceDocument>(
-                            dbInterface.collections.maintenance
-                        );
 
                     console.log("Updating guilds");
                     this.isUpdating = true;
-                    this.lastGuildsUpdate = updateStarted;
+
+                    await dbMaintenance.updateDocument({
+                        lastGuildsUpdate: updateStarted,
+                    });
 
                     const guilds = (await db
                         .collection<GuildDocument>(
@@ -454,11 +453,13 @@ class DBUpdate {
                             _id: 1,
                             name: 1,
                             realm: 1,
+                            f: 1,
                         })
                         .toArray()) as {
-                        _id: ReturnType<typeof getGuildId>;
+                        _id: ReturnType<typeof id.guildId>;
                         name: string;
                         realm: Realm;
+                        f: Faction;
                     }[];
 
                     let total = guilds.length;
@@ -471,18 +472,18 @@ class DBUpdate {
                                 `Updating ${guild.name} ${current}/${total}`
                             );
 
-                            const newGuild = await requestGuildDocument(
-                                guild.name,
-                                guild.realm
-                            );
-
-                            await dbInterface.guild.saveGuild({
-                                ...newGuild,
-                                _id: guild._id,
+                            const newGuildDoc = new documentManager.guild({
+                                guildName: guild.name,
+                                realm: guild.realm,
+                                faction: guild.f,
                             });
+
+                            await newGuildDoc.extendData();
+
+                            await dbInterface.guild.saveGuild(newGuildDoc);
                         } catch (err) {
                             if (
-                                isError(err) &&
+                                validator.isError(err) &&
                                 err.message &&
                                 err.message.includes(
                                     ERR_GUILD_NOT_FOUND.message
@@ -498,15 +499,6 @@ class DBUpdate {
                         }
                     }
 
-                    await maintenanceCollection.updateOne(
-                        {},
-                        {
-                            $set: {
-                                lastGuildsUpdate: this.lastGuildsUpdate,
-                            },
-                        }
-                    );
-
                     this.isUpdating = false;
 
                     console.log("Guilds updated.");
@@ -514,11 +506,16 @@ class DBUpdate {
                     console.log("Guild update is not due yet.");
                 }
 
-                resolve(true);
-            } catch (e) {
-                this.isUpdating = false;
+                resolve();
+            } catch (err) {
+                if (
+                    !validator.isError(err) ||
+                    !err.message.includes(ERR_DB_ALREADY_UPDATING.message)
+                ) {
+                    this.isUpdating = false;
+                }
 
-                reject(e);
+                reject(err);
             }
         });
     }
@@ -558,215 +555,6 @@ class DBUpdate {
                 resolve(true);
             } catch (e) {
                 reject(e);
-            }
-        });
-    }
-
-    async initalizeDatabase(): Promise<true> {
-        return new Promise(async (resolve, reject) => {
-            try {
-                const db = dbConnection.getConnection();
-                if (this.isUpdating) throw ERR_DB_ALREADY_UPDATING;
-
-                console.log("Initalizing database.");
-                await db.dropDatabase();
-
-                const maintenanceCollection = db.collection(
-                    dbInterface.collections.maintenance
-                );
-
-                maintenanceCollection.insertOne(createMaintenanceDocument());
-
-                for (const raid of environment.currentContent.raids) {
-                    for (const boss of raid.bosses) {
-                        for (const difficulty in boss.bossIdOfDifficulty) {
-                            const ingameBossId =
-                                boss.bossIdOfDifficulty[
-                                    difficulty as keyof typeof boss.bossIdOfDifficulty
-                                ];
-                            await dbInterface.raidboss.saveRaidBoss(
-                                createRaidBossDocument(
-                                    raid.id,
-                                    getRaidBossId(
-                                        ingameBossId,
-                                        Number(difficulty) as Difficulty
-                                    ),
-                                    boss.name,
-                                    Number(difficulty) as Difficulty
-                                )
-                            );
-
-                            for (const combatMetric of ["dps", "hps"]) {
-                                const collectionName =
-                                    getCharacterDocumentCollectionId(
-                                        ingameBossId,
-                                        Number(difficulty),
-                                        combatMetric
-                                    );
-                                const bossCollection =
-                                    db.collection(collectionName);
-
-                                if (await bossCollection.findOne({}))
-                                    await bossCollection.deleteMany({});
-
-                                await bossCollection.createIndex({
-                                    [combatMetric]: -1,
-                                });
-                            }
-                        }
-                    }
-                }
-
-                for (const combatMetric of ["dps", "hps"]) {
-                    const leaderboardCollection =
-                        db.collection<LeaderboardCharacterDocument>(
-                            combatMetric === "dps"
-                                ? dbInterface.collections
-                                      .characterLeaderboardDps
-                                : dbInterface.collections
-                                      .characterLeaderboardHps
-                        );
-                    if (await leaderboardCollection.findOne({}))
-                        await leaderboardCollection.deleteMany({});
-
-                    await leaderboardCollection.createIndex({
-                        [combatMetric]: -1,
-                    });
-                }
-
-                const updateStarted = new Date().getTime() / 1000;
-                this.isUpdating = true;
-                const lastLogIds = {};
-
-                let { logs, lastLogIds: newLastLogIds } = await getLogData(
-                    true,
-                    lastLogIds
-                );
-
-                logs = logBugHandler(logs);
-
-                if (!areLogsSaved()) {
-                    console.log(
-                        "Saving logs in case something goes wrong in the initalization process."
-                    );
-                    writeLogsToFile(logs);
-                    updateLastLogIdsOfFile(newLastLogIds);
-                }
-
-                console.log("Processing logs.");
-                const { bosses, guilds, characterPerformanceOfBoss } =
-                    processLogs(logs);
-
-                console.log("Saving raid bosses.");
-                for (const bossId in bosses) {
-                    await dbInterface.raidboss.saveRaidBoss(bosses[bossId]);
-                }
-
-                // initalization should keep this empty since there is no update
-                this.resetUpdatedBossIds();
-
-                console.log("Saving guilds.");
-                for (const guildId in guilds) {
-                    await dbInterface.guild.saveGuild(guilds[guildId]);
-                }
-
-                console.log("Saving characters.");
-                for (const bossId in characterPerformanceOfBoss) {
-                    console.log(`Filling collection ${bossId}`);
-
-                    let combatMetric: keyof (typeof characterPerformanceOfBoss)[number];
-                    for (combatMetric in characterPerformanceOfBoss[bossId]) {
-                        let characters: CharacterDocument[] = [];
-                        for (const charId in characterPerformanceOfBoss[bossId][
-                            combatMetric
-                        ]) {
-                            characters.push(
-                                characterPerformanceOfBoss[bossId][
-                                    combatMetric
-                                ][charId]
-                            );
-                        }
-
-                        const [ingameBossId, difficulty] =
-                            getDeconstructedRaidBossId(bossId);
-
-                        const collectionName = getCharacterDocumentCollectionId(
-                            ingameBossId,
-                            Number(difficulty),
-                            combatMetric
-                        );
-                        const bossCollection =
-                            db.collection<CharacterDocument>(collectionName);
-
-                        try {
-                            await bossCollection.insertMany(characters);
-
-                            const raidName =
-                                getRaidNameFromIngamebossId(ingameBossId);
-
-                            const bossName =
-                                getRaidBossNameFromIngameBossId(ingameBossId);
-                            if (raidName && bossName)
-                                await dbInterface.leaderboard.saveCharactersToLeaderboard(
-                                    characters,
-                                    raidName,
-                                    difficulty,
-                                    bossName,
-                                    combatMetric
-                                );
-                            this.addToUpdatedCharacterDocumentCollections(
-                                collectionName
-                            );
-                        } catch (err) {
-                            console.error(err);
-                        }
-                    }
-                }
-                console.log("Characters saved.");
-
-                console.log("Update character ranks");
-                await this.updateCharacterDocumentRanks();
-                console.log("Character ranks updated");
-
-                await maintenanceCollection.updateOne(
-                    {},
-                    {
-                        $set: {
-                            lastUpdated: updateStarted,
-                            lastLogIds: newLastLogIds,
-                            lastGuildsUpdate: updateStarted,
-                            isInitalized: true,
-                        },
-                    }
-                );
-
-                await dbInterface.raidboss.updateRaidBossCache();
-
-                this.isUpdating = false;
-
-                console.log("Initalization done.");
-                resolve(true);
-            } catch (err) {
-                this.isUpdating = false;
-                reject(err);
-            }
-        });
-    }
-
-    async isInitalized(): Promise<boolean> {
-        return new Promise(async (resolve, reject) => {
-            try {
-                const db = dbConnection.getConnection();
-
-                const maintenance = await db
-                    .collection<MaintenanceDocument>(
-                        dbInterface.collections.maintenance
-                    )
-                    .findOne({});
-
-                resolve(maintenance ? maintenance.isInitalized : false);
-            } catch (err) {
-                reject(err);
             }
         });
     }

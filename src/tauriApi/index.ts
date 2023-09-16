@@ -1,6 +1,6 @@
+import { validator } from "./../helpers/validators";
 import fetch from "node-fetch";
 import environment from "../environment";
-import { isError } from "../helpers";
 import {
     ERR_CHARACTER_NOT_FOUND,
     ERR_GUILD_NOT_FOUND,
@@ -74,7 +74,7 @@ class TauriApi {
                 } catch (err) {
                     console.log(err);
                     if (
-                        isError(err) &&
+                        validator.isError(err) &&
                         err.message !== ERR_TAURI_API_TIMEOUT.message
                     ) {
                         if (err.message === "guild not found") {
