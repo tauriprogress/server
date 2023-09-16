@@ -3,7 +3,7 @@ import * as cors from "cors";
 import * as express from "express";
 import * as slowDown from "express-slow-down";
 
-import dbInterface from "./database";
+import dbInterface from "./database/DBInterface";
 import dbTaskManager from "./database/DBTaskManager";
 
 import {
@@ -29,6 +29,7 @@ import environment from "./environment";
 import { isError } from "./helpers";
 import { ERR_UNKNOWN } from "./helpers/errors";
 import { LooseObject } from "./types";
+import dbMaintenance from "./database/DBMaintenance";
 
 const app = express();
 const prompt = require("prompt-sync")();
@@ -41,25 +42,7 @@ const speedLimiter = slowDown({
 });
 
 (async function () {
-    try {
-        await dbConnection.connect();
-        if (!(await dbInterface.update.isInitalized())) {
-            await dbInterface.update.initalizeDatabase();
-        } else if (environment.forceInit) {
-            const confirmation = prompt(
-                "The database is already initalized, are you sure to reinitalize it? (Y/n)"
-            );
-
-            if (confirmation === "y" || confirmation === "Y") {
-                await dbInterface.update.initalizeDatabase();
-                process.exit(0);
-            }
-        }
-    } catch (err) {
-        console.error(err);
-        process.exit(1);
-    }
-
+    await dbMaintenance.start();
     app.use(
         cors({
             origin: environment.CORS_ORIGIN,
@@ -70,8 +53,6 @@ const speedLimiter = slowDown({
     app.use(speedLimiter);
 
     app.use(bodyParser.json());
-
-    dbTaskManager.start();
 
     app.post(["/guild", "/getguild"], verifyGetGuild, async (req, res) => {
         try {
@@ -405,6 +386,20 @@ const speedLimiter = slowDown({
             res.send({
                 success: true,
                 response: await dbInterface.leaderboard.getGuildLeaderboard(),
+            });
+        } catch (err) {
+            res.send({
+                success: false,
+                errorstring: isError(err) ? err.message : err,
+            });
+        }
+    });
+
+    app.get("/weekly/guild", async (_1, res) => {
+        try {
+            res.send({
+                success: true,
+                response: true /* weekly guild data */,
             });
         } catch (err) {
             res.send({
