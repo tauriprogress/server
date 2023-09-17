@@ -1,24 +1,12 @@
 import { ClientSession } from "mongodb";
-import {
-    filtersToAggregationMatchQuery,
-    getCharacterDocumentCollectionId,
-    getRaidBossId,
-    updateRaidBossDocument,
-} from "../helpers";
+import { CharacterDocument, RaidBossDocument, id } from "../helpers";
 import { ERR_BOSS_NOT_FOUND } from "../helpers/errors";
-import {
-    CharacterDocument,
-    CombatMetric,
-    Difficulty,
-    Faction,
-    Filters,
-    RaidBossDocument,
-    Realm,
-    TrimmedLog,
-} from "../types";
+import { CombatMetric, Difficulty, Faction, Realm, TrimmedLog } from "../types";
 import cache from "./Cache";
-import dbConnection from "./DBConnection";
-import dbInterface from "./index";
+import dbInterface from "./DBInterface";
+import dbMaintenance from "./DBMaintenance";
+import filter, { Filters } from "../helpers/filter";
+import documentManager from "../helpers/documents";
 
 class DBRaidboss {
     public firstRaidbossCacheLoad: boolean | Promise<true>;
@@ -33,9 +21,9 @@ class DBRaidboss {
     ): Promise<RaidBossDocument> {
         return new Promise(async (resolve, reject) => {
             try {
-                const db = dbConnection.getConnection();
+                const db = dbMaintenance.getConnection();
 
-                const bossId = getRaidBossId(ingameBossId, difficulty);
+                const bossId = id.raidBossId(ingameBossId, difficulty);
 
                 const cachedData = cache.getRaidBoss(bossId);
 
@@ -136,17 +124,18 @@ class DBRaidboss {
     ): Promise<{ characters: CharacterDocument[]; itemCount: number }> {
         return new Promise(async (resolve, reject) => {
             try {
-                const db = dbConnection.getConnection();
+                const db = dbMaintenance.getConnection();
 
                 const collection = db.collection<CharacterDocument>(
-                    getCharacterDocumentCollectionId(
+                    id.characterDocumentCollectionId(
                         ingameBossId,
                         filters.difficulty,
                         combatMetric
                     )
                 );
 
-                const matchQuery = filtersToAggregationMatchQuery(filters);
+                const matchQuery =
+                    filter.filtersToAggregationMatchQuery(filters);
                 const sort = { [combatMetric]: -1 };
                 const skip = pageSize * page;
                 const limit = pageSize;
@@ -194,7 +183,7 @@ class DBRaidboss {
     async saveRaidBoss(boss: RaidBossDocument, session?: ClientSession) {
         return new Promise(async (resolve, reject) => {
             try {
-                const db = dbConnection.getConnection();
+                const db = dbMaintenance.getConnection();
 
                 const raidCollection = db.collection<RaidBossDocument>(
                     dbInterface.collections.raidBosses
@@ -212,12 +201,19 @@ class DBRaidboss {
                         session,
                     });
                 } else {
+                    const bossDocumentManager = new documentManager.raidBoss(
+                        oldBoss
+                    );
+                    bossDocumentManager.mergeRaidBossDocument(boss);
+
+                    const newDocument = bossDocumentManager.getDocument();
+
                     await raidCollection.updateOne(
                         {
                             _id: boss._id,
                         },
                         {
-                            $set: updateRaidBossDocument(oldBoss, boss),
+                            $set: newDocument,
                         },
                         {
                             session,
@@ -234,11 +230,11 @@ class DBRaidboss {
         });
     }
 
-    async updateRaidBossCache() {
+    async updateRaidBossCache(): Promise<void> {
         const fullLoad = async (): Promise<true> => {
             return new Promise(async (resolve, reject) => {
                 try {
-                    const db = dbConnection.getConnection();
+                    const db = dbMaintenance.getConnection();
 
                     for (const boss of await db
                         .collection<RaidBossDocument>(
@@ -260,7 +256,7 @@ class DBRaidboss {
             try {
                 console.log("Updating raidboss cache.");
 
-                const db = dbConnection.getConnection();
+                const db = dbMaintenance.getConnection();
 
                 if (!this.firstRaidbossCacheLoad) {
                     this.firstRaidbossCacheLoad = fullLoad();
@@ -282,7 +278,7 @@ class DBRaidboss {
                     dbInterface.update.resetUpdatedBossIds();
                 }
                 console.log("Raidboss cache updated.");
-                resolve(true);
+                resolve();
             } catch (err) {
                 reject(err);
             }
