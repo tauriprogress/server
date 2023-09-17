@@ -1,26 +1,22 @@
 import { ClientSession } from "mongodb";
 import environment from "../environment";
 import {
-    capitalize,
-    filtersToAggregationMatchQuery,
-    getCharacterLeaderboardCacheId,
-    getRaidInfoFromName,
-} from "../helpers";
-import { createLeaderboardCharacterDocument } from "../helpers/documents/leaderboardCharacter";
-import {
     CharacterDocument,
-    CombatMetric,
-    Difficulty,
-    Filters,
     GuildDocument,
     GuildLeaderboard,
+    capitalize,
+    filtersToAggregationMatchQuery,
+    id,
+} from "../helpers";
+import {
     LeaderboardCharacterDocument,
     LeaderboardCharacterScoredDocument,
-    RaidName,
-} from "../types";
+    createLeaderboardCharacterDocument,
+} from "../helpers/documents/leaderboardCharacter";
+import { CombatMetric, Difficulty, Filters, RaidName } from "../types";
 import cache from "./Cache";
-import dbConnection from "./DBConnection";
-import dbInterface from "./index";
+import dbInterface from "./DBInterface";
+import dbMaintenance from "./DBMaintenance";
 
 class DBLeaderboard {
     async getCharacterLeaderboard(
@@ -32,9 +28,9 @@ class DBLeaderboard {
     ) {
         return new Promise(async (resolve, reject) => {
             try {
-                const db = dbConnection.getConnection();
+                const db = dbMaintenance.getConnection();
 
-                const leaderboardId = getCharacterLeaderboardCacheId(
+                const leaderboardId = id.characterLeaderboardCacheId(
                     raidName,
                     combatMetric,
                     filters,
@@ -45,7 +41,8 @@ class DBLeaderboard {
                 if (cachedData) {
                     resolve(cachedData);
                 } else {
-                    const bosses = getRaidInfoFromName(raidName).bosses;
+                    const bosses =
+                        environment.getRaidInfoFromName(raidName).bosses;
 
                     let bestPerformances: { [key: string]: number } = {};
 
@@ -178,7 +175,7 @@ class DBLeaderboard {
     async getGuildLeaderboard(): Promise<GuildLeaderboard> {
         return new Promise(async (resolve, reject) => {
             try {
-                const db = dbConnection.getConnection();
+                const db = dbMaintenance.getConnection();
 
                 const cachedData = cache.getGuildLeaderboard();
 
@@ -221,7 +218,7 @@ class DBLeaderboard {
     ) {
         return new Promise(async (resolve, reject) => {
             try {
-                const db = dbConnection.getConnection();
+                const db = dbMaintenance.getConnection();
                 const collection = db.collection<LeaderboardCharacterDocument>(
                     combatMetric === "dps"
                         ? dbInterface.collections.characterLeaderboardDps
