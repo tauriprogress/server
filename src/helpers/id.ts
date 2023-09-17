@@ -1,5 +1,14 @@
 import environment from "../environment";
-import { CombatMetric, Difficulty, RaidId, Realm, SpecId } from "../types";
+import {
+    ClassId,
+    CombatMetric,
+    Difficulty,
+    Filters,
+    RaidId,
+    RaidName,
+    Realm,
+    SpecId,
+} from "../types";
 
 export type WeekId = string;
 export type GuildId = string;
@@ -32,14 +41,33 @@ class Id {
 
     characterDocumentCollectionId(
         ingameBossId: number,
-        difficulty: number,
-        combatMetric: string
+        difficulty: Difficulty,
+        combatMetric: CombatMetric
     ): CharacterDocumentCollectionId {
         return `${ingameBossId} ${difficulty} ${combatMetric}`;
     }
 
     raidSummaryCacheId(raidId: RaidId) {
         return `${raidId}`;
+    }
+
+    leaderboardCharacterId(
+        name: string,
+        classId: ClassId,
+        realm: Realm,
+        raidName: RaidName,
+        difficulty: Difficulty
+    ) {
+        return `${name},${classId},${environment.shortRealms[realm]},${raidName},${difficulty}`;
+    }
+
+    characterLeaderboardCacheId(
+        raidName: RaidName,
+        combatMetric: CombatMetric,
+        filters: Filters,
+        page: number
+    ) {
+        return `${raidName}${combatMetric}${filters.difficulty}${filters.faction}${filters.class}${filters.realm}${page}`;
     }
 }
 
@@ -56,6 +84,15 @@ class DeconstructId {
             Number(ingameBossId),
             Number(difficulty) as Difficulty,
             combatMetric as CombatMetric,
+        ] as const;
+    }
+
+    raidBossId(bossId: ReturnType<typeof id.raidBossId>) {
+        const [ingameBossId, difficulty] = bossId.split(" ");
+
+        return [
+            Number(ingameBossId),
+            Number(difficulty) as Difficulty,
         ] as const;
     }
 }
