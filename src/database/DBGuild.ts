@@ -1,17 +1,17 @@
 import { ClientSession } from "mongodb";
-import { GuildDocument, id, GuildDocumentController } from "../helpers";
+import { GuildDocument, id } from "../helpers";
 import { ERR_GUILD_NOT_FOUND } from "../helpers/errors";
 import { GuildList, Realm } from "../types";
 import dbInterface from "./DBInterface";
-import dbConnection from "./DBConnection";
 import cache from "./Cache";
 import documentManager from "../helpers/documents";
+import dbMaintenance from "./DBMaintenance";
 
 class DBGuild {
     async getGuildList(): Promise<GuildList> {
         return new Promise(async (resolve, reject) => {
             try {
-                const db = dbConnection.getConnection();
+                const db = dbMaintenance.getConnection();
 
                 const guildList = cache.getGuildList();
 
@@ -45,7 +45,7 @@ class DBGuild {
     async getGuild(realm: Realm, guildName: string) {
         return new Promise(async (resolve, reject) => {
             try {
-                const db = dbConnection.getConnection();
+                const db = dbMaintenance.getConnection();
 
                 const guild = await db
                     .collection<GuildDocument>(dbInterface.collections.guilds)
@@ -63,10 +63,10 @@ class DBGuild {
         });
     }
 
-    async saveGuild(guild: GuildDocumentController, session?: ClientSession) {
+    async saveGuild(guildDocument: GuildDocument, session?: ClientSession) {
         return new Promise(async (resolve, reject) => {
             try {
-                const db = dbConnection.getConnection();
+                const db = dbMaintenance.getConnection();
 
                 const guildsCollection = db.collection<GuildDocument>(
                     dbInterface.collections.guilds
@@ -74,22 +74,20 @@ class DBGuild {
 
                 let oldGuild = await guildsCollection.findOne(
                     {
-                        _id: guild._id,
+                        _id: guildDocument._id,
                     },
                     { session }
                 );
 
                 if (!oldGuild) {
-                    await guildsCollection.insertOne(guild.getDocument(), {
+                    await guildsCollection.insertOne(guildDocument, {
                         session,
                     });
                 } else {
                     const guildDocumentManager = new documentManager.guild(
                         oldGuild
                     );
-                    guildDocumentManager.mergeGuildDocument(
-                        guild.getDocument()
-                    );
+                    guildDocumentManager.mergeGuildDocument(guildDocument);
                     const newDocument = guildDocumentManager.getDocument();
 
                     await guildsCollection.updateOne(
@@ -112,7 +110,7 @@ class DBGuild {
     async removeGuild(_id: ReturnType<typeof id.guildId>) {
         return new Promise(async (resolve, reject) => {
             try {
-                const db = dbConnection.getConnection();
+                const db = dbMaintenance.getConnection();
 
                 await db
                     .collection<GuildDocument>(dbInterface.collections.guilds)
