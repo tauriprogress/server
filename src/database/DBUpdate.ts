@@ -1,58 +1,33 @@
 import { validator } from "./../helpers/validators";
 import { ClientSession, ReadConcern } from "mongodb";
 import {
-    CharacterDocument,
+    ClassId,
     CombatMetric,
-    Difficulty,
     Faction,
-    GuildDocument,
     LastLogIds,
-    LeaderboardCharacterDocument,
     LooseObject,
-    MaintenanceDocument,
-    RaidBossDocument,
     Realm,
+    SpecId,
 } from "../types";
-import {
-    areLogsSaved,
-    createMaintenanceDocument,
-    createRaidBossDocument,
-    getCharacterDocumentCollectionId,
-    getCharacterDocumentRankBulkwriteOperations,
-    getDeconstructedCharacterDocumentCollectionId,
-    getDeconstructedRaidBossId,
-    getGuildId,
-    getLogData,
-    getRaidBossId,
-    getRaidBossNameFromIngameBossId,
-    getRaidNameFromIngamebossId,
-    isError,
-    logBugHandler,
-    processLogs,
-    requestGuildDocument,
-    runGC,
-    updateLastLogIdsOfFile,
-    updateRaidBossDocument,
-    writeLogsToFile,
-    time,
-    id,
-    log,
-} from "../helpers";
+import { runGC, time, id, log, RaidBosses } from "../helpers";
 import {
     ERR_DB_ALREADY_UPDATING,
     ERR_DB_TANSACTION,
     ERR_GUILD_NOT_FOUND,
 } from "../helpers/errors";
 import cache from "./Cache";
-import dbConnection from "./DBConnection";
 import dbInterface from "./DBInterface";
-import environment from "../environment";
 import dbMaintenance from "./DBMaintenance";
-import documentManager from "../helpers/documents";
+import documentManager, {
+    CharacterDocument,
+    GuildDocument,
+    RaidBossDocument,
+} from "../helpers/documents";
+import environment from "../environment";
 
 class DBUpdate {
     public isUpdating: boolean;
-    private updatedRaidbosses: ReturnType<typeof getRaidBossId>[];
+    private updatedRaidbosses: ReturnType<typeof id.raidBossId>[];
 
     private updatedCharacterDocumentCollections: ReturnType<
         typeof id.characterDocumentCollectionId
@@ -60,7 +35,6 @@ class DBUpdate {
 
     constructor() {
         this.isUpdating = false;
-        this.lastGuildsUpdate = 0;
         this.updatedRaidbosses = [];
         this.updatedCharacterDocumentCollections = [];
     }
@@ -109,8 +83,9 @@ class DBUpdate {
         {
             bosses,
             guilds,
-            characterPerformanceOfBoss,
-        }: ReturnType<typeof processLogs>,
+            characterCollection,
+            weeklyFullClearCollection,
+        }: ReturnType<typeof log.processLogs>,
         {
             lastLogIds,
             updateStarted,
@@ -119,7 +94,7 @@ class DBUpdate {
     ) {
         return new Promise(async (resolve, reject) => {
             try {
-                const db = dbConnection.getConnection();
+                const db = dbMaintenance.getConnection();
 
                 await this.bulkWriteRaidBosses(bosses, session);
                 runGC();
@@ -133,27 +108,25 @@ class DBUpdate {
                 const operationsOfCharacterDocumentCollections: LooseObject =
                     {};
 
-                for (const bossId in characterPerformanceOfBoss) {
-                    for (const combatMetricKey in characterPerformanceOfBoss[
-                        bossId
-                    ]) {
+                for (const bossId in characterCollection) {
+                    for (const combatMetricKey in characterCollection[bossId]) {
                         const combatMetric = combatMetricKey as CombatMetric;
-                        for (const charId in characterPerformanceOfBoss[bossId][
+                        for (const charId in characterCollection[bossId][
                             combatMetric
                         ]) {
                             const [ingameBossId, difficulty] =
-                                getDeconstructedRaidBossId(bossId);
+                                id.deconstruct.raidBossId(bossId);
                             const characterDocumentCollectionId =
-                                getCharacterDocumentCollectionId(
+                                id.characterDocumentCollectionId(
                                     ingameBossId,
                                     difficulty,
                                     combatMetric
                                 );
 
                             const char =
-                                characterPerformanceOfBoss[bossId][
-                                    combatMetric
-                                ][charId];
+                                characterCollection[bossId][combatMetric][
+                                    charId
+                                ];
 
                             if (
                                 !operationsOfCharacterDocumentCollections[
@@ -216,26 +189,26 @@ class DBUpdate {
                 console.log("Saving chars done");
 
                 console.log("Saving characters to leaderboard.");
-                for (const bossId in characterPerformanceOfBoss) {
-                    for (const combatMetricKey in characterPerformanceOfBoss[
-                        bossId
-                    ]) {
+                for (const bossId in characterCollection) {
+                    for (const combatMetricKey in characterCollection[bossId]) {
                         const combatMetric = combatMetricKey as CombatMetric;
 
                         const [ingameBossId, difficulty] =
-                            getDeconstructedRaidBossId(bossId);
+                            id.deconstruct.raidBossId(bossId);
                         const raidName =
-                            getRaidNameFromIngamebossId(ingameBossId);
+                            environment.getRaidNameFromIngamebossId(
+                                ingameBossId
+                            );
 
                         const bossName =
-                            getRaidBossNameFromIngameBossId(ingameBossId);
+                            environment.getRaidBossNameFromIngameBossId(
+                                ingameBossId
+                            );
 
                         if (raidName && bossName)
                             await dbInterface.leaderboard.saveCharactersToLeaderboard(
                                 Object.values(
-                                    characterPerformanceOfBoss[bossId][
-                                        combatMetric
-                                    ]
+                                    characterCollection[bossId][combatMetric]
                                 ),
                                 raidName,
                                 difficulty,
@@ -248,23 +221,14 @@ class DBUpdate {
 
                 console.log("Characters saved to leaderboards.");
 
-                await db
-                    .collection<MaintenanceDocument>(
-                        dbInterface.collections.maintenance
-                    )
-                    .updateOne(
-                        {},
-                        {
-                            $set: {
-                                lastUpdated: updateStarted,
-                                lastLogIds: lastLogIds,
-                                isInitalized: true,
-                            },
-                        },
-                        {
-                            session,
-                        }
-                    );
+                await dbMaintenance.updateDocument(
+                    {
+                        lastUpdated: updateStarted,
+                        lastLogIds: lastLogIds,
+                        isInitalized: true,
+                    },
+                    session
+                );
             } catch (err) {
                 this.resetUpdatedBossIds();
                 this.resetUpdatedCharacterDocumentCollections();
@@ -275,14 +239,12 @@ class DBUpdate {
     }
 
     async bulkWriteRaidBosses(
-        bosses: {
-            [key: string]: RaidBossDocument;
-        },
+        bosses: RaidBosses,
         session?: ClientSession
     ): Promise<void> {
         return new Promise(async (resolve, reject) => {
             try {
-                const db = dbConnection.getConnection();
+                const db = dbMaintenance.getConnection();
 
                 console.log("db: Saving raid bosses");
                 const raidBossCollection = db.collection<RaidBossDocument>(
@@ -306,16 +268,19 @@ class DBUpdate {
 
                 let operations = [];
                 for (const oldBoss of oldBosses) {
+                    const raidBossDocumentManager =
+                        new documentManager.raidBoss(oldBoss);
+                    raidBossDocumentManager.mergeRaidBossDocument(oldBoss);
+
+                    const newDocument = raidBossDocumentManager.getDocument();
+
                     operations.push({
                         updateOne: {
                             filter: {
                                 _id: oldBoss._id,
                             },
                             update: {
-                                $set: updateRaidBossDocument(
-                                    oldBoss,
-                                    bosses[oldBoss._id]
-                                ),
+                                $set: newDocument,
                             },
                         },
                     });
@@ -341,35 +306,26 @@ class DBUpdate {
     public updateDatabase() {
         return new Promise(async (resolve, reject) => {
             try {
-                const db = dbConnection.getConnection();
-                const client = dbConnection.getClient();
+                const client = dbMaintenance.getClient();
                 if (this.isUpdating) throw ERR_DB_ALREADY_UPDATING;
 
                 console.log("Updating database.");
-                const updateStarted = new Date().getTime() / 1000;
+                const updateStarted = time.getCurrentDateInSeconds();
                 this.isUpdating = true;
 
-                const maintenanceCollection =
-                    db.collection<MaintenanceDocument>(
-                        dbInterface.collections.maintenance
-                    );
+                const maintenanceDocument = dbMaintenance.getDocument();
 
-                const maintenanceDocument =
-                    await maintenanceCollection.findOne();
-
-                const lastLogIds = !maintenanceDocument
-                    ? {}
-                    : maintenanceDocument.lastLogIds;
+                const lastLogIds = maintenanceDocument.lastLogIds;
 
                 let { logs, lastLogIds: newLastLogIds } =
                     await log.requestRaidLogs(lastLogIds);
 
-                logs = logBugHandler(logs);
+                logs = log.filterRaidLogBugs(logs);
                 const session = client.startSession();
 
                 try {
                     console.log("Opening new transaction session");
-                    const processedData = processLogs(logs);
+                    const processedData = log.processLogs(logs);
                     await session.withTransaction(
                         async () => {
                             await this.saveLogs(
@@ -520,11 +476,11 @@ class DBUpdate {
         });
     }
 
-    public async updateCharacterDocumentRanks() {
+    updateCharacterDocumentRanks() {
         return new Promise(async (resolve, reject) => {
             try {
                 console.log("Updating character ranks.");
-                const db = dbConnection.getConnection();
+                const db = dbMaintenance.getConnection();
 
                 const collectionsToUpdate =
                     this.getUpdatedCharacterDocumentCollectionIds();
@@ -532,7 +488,7 @@ class DBUpdate {
                     const collection =
                         db.collection<CharacterDocument>(collectionId);
                     const [_1, _2, combatMetric] =
-                        getDeconstructedCharacterDocumentCollectionId(
+                        id.deconstruct.characterDocumentCollectionId(
                             collectionId
                         );
 
@@ -558,6 +514,39 @@ class DBUpdate {
             }
         });
     }
+}
+
+export function getCharacterDocumentRankBulkwriteOperations(
+    characters: CharacterDocument[]
+) {
+    let classes = environment.classIds.reduce((acc, classId) => {
+        acc[classId] = 0;
+        return acc;
+    }, {} as { [key: number]: number }) as { [key in ClassId]: number };
+
+    let specs = environment.specIds.reduce((acc, specId) => {
+        acc[specId] = 0;
+        return acc;
+    }, {} as { [key: number]: number }) as { [key in SpecId]: number };
+
+    return characters.map((character, i) => {
+        classes[character.class] += 1;
+        specs[character.spec] += 1;
+        return {
+            updateOne: {
+                filter: {
+                    _id: character._id,
+                },
+                update: {
+                    $set: {
+                        rank: i + 1,
+                        cRank: classes[character.class],
+                        sRank: specs[character.spec],
+                    },
+                },
+            },
+        };
+    });
 }
 
 const dbUpdate = new DBUpdate();
