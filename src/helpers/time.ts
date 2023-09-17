@@ -1,3 +1,5 @@
+import { Second } from "../types";
+
 class Time {
     getLatestWednesday(currentDate: Date = new Date()) {
         const currentDay = currentDate.getUTCDay();
@@ -28,6 +30,10 @@ class Time {
 
     minutesAgo(seconds: number) {
         return Math.round((new Date().getTime() / 1000 - Number(seconds)) / 60);
+    }
+
+    getCurrentDateInSeconds(): Second {
+        return new Date().getTime() / 1000;
     }
 }
 
