@@ -9,6 +9,7 @@ import {
     Realm,
     SpecId,
 } from "../types";
+import { capitalize } from "./utils";
 
 export type WeekId = string;
 export type GuildId = string;
@@ -109,6 +110,14 @@ class CacheId {
         page: number
     ) {
         return `${raidName}${combatMetric}${filters.difficulty}${filters.faction}${filters.class}${filters.realm}${page}`;
+    }
+
+    extendedLogId(logId: number, realm: Realm) {
+        return `${logId}${realm}`;
+    }
+
+    characterApiId(characterName: string, realm: Realm) {
+        return capitalize(`${characterName}${realm}`);
     }
 }
 
