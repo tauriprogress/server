@@ -1,11 +1,5 @@
-import {
-    Difficulty,
-    RaidName,
-    DamageCharacterDocument,
-    HealCharacterDocument,
-    SpecId,
-    CombatMetric,
-} from "../";
+import { Difficulty, RaidName, SpecId, CombatMetric } from "../";
+import { CharacterDocument } from "../../helpers";
 
 export type CharacterPerformance = {
     [key in RaidName]: {
@@ -30,20 +24,6 @@ export interface CharacterPerformanceRaidBoss extends RaidbossSpecIds {
     };
 }
 
-interface DamageCharPerf extends DamageCharacterDocument {
-    performance: number;
+export interface CharacterPerformanceDocument extends CharacterDocument {
+    performance?: number;
 }
-
-interface HealCharPerf extends HealCharacterDocument {
-    performance: number;
-}
-
-export type CharacterPerformanceDoc = DamageCharPerf | HealCharPerf;
-
-export interface EmptyCharacterPerformanceDoc {
-    performance: undefined;
-}
-
-export type CharacterPerformanceDocument =
-    | CharacterPerformanceDoc
-    | EmptyCharacterPerformanceDoc;
