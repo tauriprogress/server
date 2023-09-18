@@ -1,20 +1,14 @@
 import * as NodeCache from "node-cache";
+import { GuildLeaderboard, RaidBossDocument, id } from "../helpers";
+import { LeaderboardCharacterScoredDocument } from "../helpers/documents/leaderboardCharacter";
 import {
-    getCharacterApiId,
-    getExtendedLogId,
-    getRaidSummaryCacheId,
-} from "../helpers";
-import {
-    GuildList,
-    CharacterPerformance,
-    ItemWithGuid,
-    RaidBossDocument,
-    RaidSummary,
-    GuildLeaderboard,
-    LeaderboardCharacterScoredDocument,
-    Realm,
-    RaidLog,
     CharacterData,
+    CharacterPerformance,
+    GuildList,
+    ItemWithGuid,
+    RaidLog,
+    RaidSummary,
+    Realm,
 } from "../types";
 
 class Cache {
@@ -92,7 +86,7 @@ class Cache {
         return this.guildList.get(this.guildListId) as GuildList | undefined;
     }
 
-    getRaidSummary(cacheId: ReturnType<typeof getRaidSummaryCacheId>) {
+    getRaidSummary(cacheId: ReturnType<typeof id.cache.raidSummaryCacheId>) {
         return this.raidSummary.get(cacheId) as RaidSummary | undefined;
     }
 
@@ -132,14 +126,14 @@ class Cache {
 
     setLog(log: RaidLog, realm: Realm) {
         try {
-            cache.logs.set(getExtendedLogId(log.log_id, realm), log);
+            cache.logs.set(id.cache.extendedLogId(log.log_id, realm), log);
         } catch (e) {
             console.error(e);
         }
     }
 
     getLog(logId: number, realm: Realm) {
-        return this.logs.get(getExtendedLogId(logId, realm)) as
+        return this.logs.get(id.cache.extendedLogId(logId, realm)) as
             | RaidLog
             | undefined;
     }
@@ -147,7 +141,7 @@ class Cache {
     setCharacter(character: CharacterData, realm: Realm) {
         try {
             cache.characters.set(
-                getCharacterApiId(character.name, realm),
+                id.cache.characterApiId(character.name, realm),
                 character
             );
         } catch (e) {
@@ -156,9 +150,9 @@ class Cache {
     }
 
     getCharacter(characterName: string, realm: Realm) {
-        return this.characters.get(getCharacterApiId(characterName, realm)) as
-            | CharacterData
-            | undefined;
+        return this.characters.get(
+            id.cache.characterApiId(characterName, realm)
+        ) as CharacterData | undefined;
     }
 
     clearRaidSummary() {
