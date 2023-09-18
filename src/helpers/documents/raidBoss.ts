@@ -75,6 +75,8 @@ export class RaidBossDocumentController {
 
     constructor(obj: ContructorObject | RaidBossDocument) {
         if (this.isRaidBossDocument(obj)) {
+            obj = JSON.parse(JSON.stringify(obj)) as RaidBossDocument;
+
             this._id = obj._id;
             this.raidId = obj.raidId;
             this.name = obj.name;
@@ -429,6 +431,92 @@ export class RaidBossDocumentController {
         mergeBestCombatMetric();
     }
 
+    getBestPerformanceOfClass(
+        classId: ClassId,
+        combatMetric: CombatMetric
+    ): CharacterDocument | undefined {
+        let bestOfClass: CharacterDocument;
+        let performance = 0;
+
+        const key = `best${capitalize(combatMetric)}` as const;
+
+        const categorizedCharacters = this[key];
+
+        for (const realm of environment.realms) {
+            for (const faction of environment.factions) {
+                for (const specId of environment.specIdsOfClass[classId]) {
+                    const character =
+                        categorizedCharacters?.[realm]?.[faction]?.[classId]?.[
+                            specId
+                        ]?.[0];
+                    if (character && character[combatMetric] > performance) {
+                        bestOfClass = character;
+                        performance = character[combatMetric];
+                    }
+                }
+            }
+        }
+
+        return performance ? bestOfClass : undefined;
+    }
+
+    getBestPerformanceOfSpec(specId: SpecId, combatMetric: CombatMetric) {
+        const classId = environment.getClassOfSpec(specId);
+
+        let bestOfSpec: CharacterDocument;
+        let performance = 0;
+
+        const key = `best${capitalize(combatMetric)}` as const;
+
+        const categorizedCharacters = this[key];
+
+        for (const realm of environment.realms) {
+            for (const faction of environment.factions) {
+                const character =
+                    categorizedCharacters?.[realm]?.[faction]?.[classId]?.[
+                        specId
+                    ]?.[0];
+                if (character && character[combatMetric] > performance) {
+                    bestOfSpec = character;
+                    performance = character[combatMetric];
+                }
+            }
+        }
+
+        return performance ? bestOfSpec : undefined;
+    }
+
+    getBestPerformance(combatMetric: CombatMetric) {
+        let best: CharacterDocument;
+        let performance = 0;
+
+        const key = `best${capitalize(combatMetric)}` as const;
+
+        const categorizedCharacters = this[key];
+
+        for (const realm of environment.realms) {
+            for (const faction of environment.factions) {
+                for (const classId of environment.classIds) {
+                    for (const specId of environment.specIdsOfClass[classId]) {
+                        const character =
+                            categorizedCharacters?.[realm]?.[faction]?.[
+                                classId
+                            ]?.[specId]?.[0];
+                        if (
+                            character &&
+                            character[combatMetric] > performance
+                        ) {
+                            best = character;
+                            performance = character[combatMetric];
+                        }
+                    }
+                }
+            }
+        }
+
+        return best[combatMetric] ? best : undefined;
+    }
+
     private isRaidBossDocument(obj: any): obj is RaidBossDocument {
         if (obj && obj._id) {
             return true;
@@ -457,105 +545,6 @@ export function getRaidBossSummary(boss: RaidBossDocument): RaidBossForSummary {
     delete raidBossForSummary.bestHpsNoCat;
 
     return raidBossForSummary;
-}
-
-export function getRaidBossBest(
-    raidBoss: RaidBossDocument,
-    combatMetric: CombatMetric
-) {
-    let best: CharacterDocument = {
-        [combatMetric]: 0,
-    } as unknown as CharacterDocument;
-
-    const key = `best${capitalize(combatMetric)}` as const;
-
-    const categorizedCharacters = raidBoss[key];
-
-    for (const realm of environment.realms) {
-        for (const faction of factions) {
-            for (const classId of classIds) {
-                for (const specId of environment.specIdsOfClass[classId]) {
-                    const character =
-                        categorizedCharacters?.[realm]?.[faction]?.[classId]?.[
-                            specId
-                        ]?.[0];
-                    if (
-                        character &&
-                        character[combatMetric] > best[combatMetric]
-                    ) {
-                        best = character;
-                    }
-                }
-            }
-        }
-    }
-
-    return best[combatMetric] ? best : undefined;
-}
-
-export function getRaidBossBestOfClass(
-    raidBoss: RaidBossDocument,
-    classId: ClassId,
-    combatMetric: CombatMetric
-) {
-    let bestOfClass: CharacterDocument = {
-        [combatMetric]: 0,
-    } as unknown as CharacterDocument;
-
-    const key = `best${capitalize(combatMetric)}` as const;
-
-    const categorizedCharacters = raidBoss[key];
-
-    for (const realm of environment.realms) {
-        for (const faction of factions) {
-            for (const specId of environment.specIdsOfClass[classId]) {
-                const character =
-                    categorizedCharacters?.[realm]?.[faction]?.[classId]?.[
-                        specId
-                    ]?.[0];
-                if (
-                    character &&
-                    character[combatMetric] > bestOfClass[combatMetric]
-                ) {
-                    bestOfClass = character;
-                }
-            }
-        }
-    }
-
-    return bestOfClass[combatMetric] ? bestOfClass : undefined;
-}
-
-export function getRaidBossBestOfSpec(
-    raidBoss: RaidBossDocument,
-    specId: SpecId,
-    combatMetric: CombatMetric
-) {
-    const classId = environment.characterSpecClass[specId];
-    let bestOfSpec: CharacterDocument = {
-        [combatMetric]: 0,
-    } as unknown as CharacterDocument;
-
-    const key = `best${capitalize(combatMetric)}` as const;
-
-    const categorizedCharacters = raidBoss[key];
-
-    for (const realm of environment.realms) {
-        for (const faction of factions) {
-            const character =
-                categorizedCharacters?.[realm]?.[faction]?.[classId]?.[
-                    specId
-                ]?.[0];
-            if (
-                character &&
-                character[combatMetric] > bestOfSpec[combatMetric]
-            ) {
-                bestOfSpec = character;
-            }
-        }
-    }
-
-    return bestOfSpec[combatMetric] ? bestOfSpec : undefined;
 }
 
 export default RaidBossDocumentController;
