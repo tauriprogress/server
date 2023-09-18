@@ -1,9 +1,9 @@
+import { Filters } from "./filter";
 import environment from "../environment";
 import {
     ClassId,
     CombatMetric,
     Difficulty,
-    Filters,
     RaidId,
     RaidName,
     Realm,
@@ -18,9 +18,11 @@ export type CharacterDocumentCollectionId = string;
 
 class Id {
     deconstruct: DeconstructId;
+    cache: CacheId;
 
     constructor() {
         this.deconstruct = new DeconstructId();
+        this.cache = new CacheId();
     }
 
     weekId(date: Date): WeekId {
@@ -47,10 +49,6 @@ class Id {
         return `${ingameBossId} ${difficulty} ${combatMetric}`;
     }
 
-    raidSummaryCacheId(raidId: RaidId) {
-        return `${raidId}`;
-    }
-
     leaderboardCharacterId(
         name: string,
         classId: ClassId,
@@ -59,15 +57,6 @@ class Id {
         difficulty: Difficulty
     ) {
         return `${name},${classId},${environment.shortRealms[realm]},${raidName},${difficulty}`;
-    }
-
-    characterLeaderboardCacheId(
-        raidName: RaidName,
-        combatMetric: CombatMetric,
-        filters: Filters,
-        page: number
-    ) {
-        return `${raidName}${combatMetric}${filters.difficulty}${filters.faction}${filters.class}${filters.realm}${page}`;
     }
 }
 
@@ -94,6 +83,32 @@ class DeconstructId {
             Number(ingameBossId),
             Number(difficulty) as Difficulty,
         ] as const;
+    }
+}
+
+class CacheId {
+    raidSummaryCacheId(raidId: RaidId) {
+        return `${raidId}`;
+    }
+    raidBossCacheId(raidId: number, bossName: string) {
+        return `${raidId}${bossName}`;
+    }
+
+    characterPerformanceCacheId(
+        characterName: string,
+        realm: Realm,
+        raidName: RaidName
+    ) {
+        return `${characterName}${realm}${raidName}`;
+    }
+
+    characterLeaderboardCacheId(
+        raidName: RaidName,
+        combatMetric: CombatMetric,
+        filters: Filters,
+        page: number
+    ) {
+        return `${raidName}${combatMetric}${filters.difficulty}${filters.faction}${filters.class}${filters.realm}${page}`;
     }
 }
 
