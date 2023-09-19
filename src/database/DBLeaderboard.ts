@@ -1,3 +1,4 @@
+import { Filters, filter } from "./../helpers/filter";
 import { ClientSession } from "mongodb";
 import environment from "../environment";
 import {
@@ -5,7 +6,6 @@ import {
     GuildDocument,
     GuildLeaderboard,
     capitalize,
-    filtersToAggregationMatchQuery,
     id,
 } from "../helpers";
 import {
@@ -13,7 +13,7 @@ import {
     LeaderboardCharacterScoredDocument,
     createLeaderboardCharacterDocument,
 } from "../helpers/documents/leaderboardCharacter";
-import { CombatMetric, Difficulty, Filters, RaidName } from "../types";
+import { CombatMetric, Difficulty, RaidName } from "../types";
 import cache from "./Cache";
 import dbInterface from "./DBInterface";
 import dbMaintenance from "./DBMaintenance";
@@ -30,7 +30,7 @@ class DBLeaderboard {
             try {
                 const db = dbMaintenance.getConnection();
 
-                const leaderboardId = id.characterLeaderboardCacheId(
+                const leaderboardId = id.cache.characterLeaderboardCacheId(
                     raidName,
                     combatMetric,
                     filters,
@@ -47,16 +47,17 @@ class DBLeaderboard {
                     let bestPerformances: { [key: string]: number } = {};
 
                     for (const boss of bosses) {
-                        bestPerformances[boss.name] = (
-                            await dbInterface.raidboss.getRaidBoss(
-                                boss.bossIdOfDifficulty[
-                                    filters.difficulty as keyof typeof boss.bossIdOfDifficulty
-                                ],
-                                filters.difficulty
-                            )
-                        )[`best${capitalize(combatMetric)}NoCat` as const]?.[
-                            combatMetric
-                        ];
+                        bestPerformances[boss.name] =
+                            (
+                                await dbInterface.raidboss.getRaidBoss(
+                                    boss.bossIdOfDifficulty[
+                                        filters.difficulty as keyof typeof boss.bossIdOfDifficulty
+                                    ],
+                                    filters.difficulty
+                                )
+                            )[
+                                `best${capitalize(combatMetric)}NoCat` as const
+                            ]?.[combatMetric] || 0;
                     }
 
                     const collection =
@@ -69,7 +70,7 @@ class DBLeaderboard {
                         );
 
                     const matchQuery = {
-                        ...filtersToAggregationMatchQuery(filters),
+                        ...filter.filtersToAggregationMatchQuery(filters),
                         difficulty: filters.difficulty,
                         raidName: raidName,
                     };
