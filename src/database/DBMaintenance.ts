@@ -129,6 +129,10 @@ class DBMaintenance {
         return dbConnection.getConnection();
     }
 
+    getClient() {
+        return dbConnection.getClient();
+    }
+
     getDocument(): MaintenanceDocument {
         return {
             _id: this._id,
