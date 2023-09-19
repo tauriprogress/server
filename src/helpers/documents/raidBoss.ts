@@ -64,8 +64,6 @@ type ContructorObject = {
     difficulty: Difficulty;
 };
 
-// task 2 fix everything here, 1h
-
 export class RaidBossDocumentController {
     private _id: string;
     private raidId: RaidId;
@@ -538,34 +536,36 @@ export class RaidBossDocumentController {
         return best;
     }
 
+    getSummary(): RaidBossForSummary {
+        let raidBossForSummary = JSON.parse(
+            JSON.stringify(this.getDocument())
+        ) as RaidBossForSummary;
+
+        for (const key in raidBossForSummary.fastestKills) {
+            const realmName = key as unknown as Realm;
+            for (const key in raidBossForSummary.fastestKills[realmName]) {
+                const faction = Number(key) as unknown as Faction;
+                raidBossForSummary.fastestKills[realmName][faction] =
+                    raidBossForSummary.fastestKills?.[realmName]?.[
+                        faction
+                    ].slice(0, 3);
+            }
+        }
+
+        delete raidBossForSummary.killCount;
+        delete raidBossForSummary.latestKills;
+        delete raidBossForSummary.bestDpsNoCat;
+        delete raidBossForSummary.bestHpsNoCat;
+
+        return raidBossForSummary;
+    }
+
     private isRaidBossDocument(obj: any): obj is RaidBossDocument {
         if (obj && obj._id) {
             return true;
         }
         return false;
     }
-}
-
-export function getRaidBossSummary(boss: RaidBossDocument): RaidBossForSummary {
-    let raidBossForSummary = JSON.parse(
-        JSON.stringify(boss)
-    ) as RaidBossForSummary;
-
-    for (const key in boss.fastestKills) {
-        const realmName = key as unknown as Realm;
-        for (const key in boss.fastestKills[realmName]) {
-            const faction = Number(key) as unknown as Faction;
-            raidBossForSummary.fastestKills[realmName][faction] =
-                boss.fastestKills?.[realmName]?.[faction].slice(0, 3);
-        }
-    }
-
-    delete raidBossForSummary.killCount;
-    delete raidBossForSummary.latestKills;
-    delete raidBossForSummary.bestDpsNoCat;
-    delete raidBossForSummary.bestHpsNoCat;
-
-    return raidBossForSummary;
 }
 
 export default RaidBossDocumentController;
