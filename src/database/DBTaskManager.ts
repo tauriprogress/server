@@ -1,4 +1,4 @@
-import dbInterface from "../database";
+import dbInterface from "./DBInterface";
 
 const tasks = [
     {
