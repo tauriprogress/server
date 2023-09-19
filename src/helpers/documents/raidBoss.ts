@@ -5,12 +5,17 @@ import {
     Realm,
     TrimmedLog,
     Faction,
-    CharacterDocument,
     CombatMetric,
     ClassId,
     SpecId,
 } from "../../types";
-import { getNestedObjectValue, addNestedObjectValue, capitalize, id } from "..";
+import {
+    getNestedObjectValue,
+    addNestedObjectValue,
+    capitalize,
+    id,
+    CharacterDocument,
+} from "..";
 import environment from "../../environment";
 
 import { Document } from "mongodb";
@@ -58,6 +63,8 @@ type ContructorObject = {
     bossName: string;
     difficulty: Difficulty;
 };
+
+// task 2 fix everything here, 1h
 
 export class RaidBossDocumentController {
     private _id: string;
@@ -199,12 +206,13 @@ export class RaidBossDocumentController {
         const bestNoCat = this[bestNoCatKey];
         const bestNoCatPerformance =
             bestNoCat && (bestNoCat[combatMetric] as number);
+        const characterPerformance = characterDocument[combatMetric] || 0;
 
         if (!bestNoCat || !bestNoCatPerformance) {
             this[bestNoCatKey] = characterDocument;
         } else if (
             bestNoCatPerformance &&
-            bestNoCatPerformance < characterDocument[combatMetric]
+            bestNoCatPerformance < characterPerformance
         ) {
             this[bestNoCatKey] = characterDocument;
         }
@@ -233,14 +241,14 @@ export class RaidBossDocumentController {
                     combatMetric
                 ] as number;
 
-                if (sameCharPerformance < characterDocument[combatMetric]) {
+                if (sameCharPerformance < characterPerformance) {
                     categorizedBest[indexOfSameChar] = characterDocument;
                     categorizedBestUpdated = true;
                 }
             } else if (categorizedBest.length < 10) {
                 categorizedBest.push(characterDocument);
                 categorizedBestUpdated = true;
-            } else if (lastBestPerformance < characterDocument[combatMetric]) {
+            } else if (lastBestPerformance < characterPerformance) {
                 categorizedBest.push(characterDocument);
                 categorizedBestUpdated = true;
             }
@@ -435,7 +443,7 @@ export class RaidBossDocumentController {
         classId: ClassId,
         combatMetric: CombatMetric
     ): CharacterDocument | undefined {
-        let bestOfClass: CharacterDocument;
+        let bestOfClass: CharacterDocument | undefined;
         let performance = 0;
 
         const key = `best${capitalize(combatMetric)}` as const;
@@ -449,21 +457,27 @@ export class RaidBossDocumentController {
                         categorizedCharacters?.[realm]?.[faction]?.[classId]?.[
                             specId
                         ]?.[0];
-                    if (character && character[combatMetric] > performance) {
+
+                    const characterPerformance =
+                        character && character[combatMetric]
+                            ? character[combatMetric] || 0
+                            : 0;
+
+                    if (character && characterPerformance > performance) {
                         bestOfClass = character;
-                        performance = character[combatMetric];
+                        performance = characterPerformance;
                     }
                 }
             }
         }
 
-        return performance ? bestOfClass : undefined;
+        return bestOfClass;
     }
 
     getBestPerformanceOfSpec(specId: SpecId, combatMetric: CombatMetric) {
         const classId = environment.getClassOfSpec(specId);
 
-        let bestOfSpec: CharacterDocument;
+        let bestOfSpec: CharacterDocument | undefined;
         let performance = 0;
 
         const key = `best${capitalize(combatMetric)}` as const;
@@ -476,18 +490,23 @@ export class RaidBossDocumentController {
                     categorizedCharacters?.[realm]?.[faction]?.[classId]?.[
                         specId
                     ]?.[0];
-                if (character && character[combatMetric] > performance) {
+
+                const characterPerformance =
+                    character && character[combatMetric]
+                        ? character[combatMetric] || 0
+                        : 0;
+                if (character && characterPerformance > performance) {
                     bestOfSpec = character;
-                    performance = character[combatMetric];
+                    performance = characterPerformance;
                 }
             }
         }
 
-        return performance ? bestOfSpec : undefined;
+        return bestOfSpec;
     }
 
     getBestPerformance(combatMetric: CombatMetric) {
-        let best: CharacterDocument;
+        let best: CharacterDocument | undefined;
         let performance = 0;
 
         const key = `best${capitalize(combatMetric)}` as const;
@@ -502,19 +521,21 @@ export class RaidBossDocumentController {
                             categorizedCharacters?.[realm]?.[faction]?.[
                                 classId
                             ]?.[specId]?.[0];
-                        if (
-                            character &&
-                            character[combatMetric] > performance
-                        ) {
+
+                        const characterPerformance =
+                            character && character[combatMetric]
+                                ? character[combatMetric] || 0
+                                : 0;
+                        if (character && characterPerformance > performance) {
                             best = character;
-                            performance = character[combatMetric];
+                            performance = characterPerformance;
                         }
                     }
                 }
             }
         }
 
-        return best[combatMetric] ? best : undefined;
+        return best;
     }
 
     private isRaidBossDocument(obj: any): obj is RaidBossDocument {
