@@ -1,5 +1,5 @@
 import { initializer } from "./DBInitializer";
-import { Lock, getRaidBossSummary, getRaidInfoFromId, id } from "../helpers";
+import { Lock, id } from "../helpers";
 import { Difficulty, RaidId, RaidSummary } from "../types";
 import cache from "./Cache";
 import dbCharacter from "./DBCharacter";
@@ -8,6 +8,8 @@ import dbLeaderboard from "./DBLeaderboard";
 import dbRaidboss from "./DBRaidboss";
 import dbUpdate from "./DBUpdate";
 import dbWeekly from "./DBWeekly";
+import environment from "../environment";
+import documentManager from "../helpers/documents";
 const raidSummaryLock = new Lock();
 
 const collectionNames = {
@@ -47,7 +49,7 @@ class DBInterface {
             try {
                 await raidSummaryLock.acquire();
 
-                const cacheId = id.raidSummaryCacheId(raidId);
+                const cacheId = id.cache.raidSummaryCacheId(raidId);
                 const cachedData = cache.getRaidSummary(cacheId);
 
                 if (cachedData) {
@@ -55,7 +57,7 @@ class DBInterface {
                 } else {
                     let raidSummary: RaidSummary = {};
 
-                    const bosses = getRaidInfoFromId(raidId).bosses;
+                    const bosses = environment.getRaidInfoFromId(raidId).bosses;
                     for (const bossInfo of bosses) {
                         for (const key in bossInfo.bossIdOfDifficulty) {
                             const difficulty = Number(
@@ -70,12 +72,16 @@ class DBInterface {
                                 difficulty
                             );
 
-                            raidSummary[bossId] = getRaidBossSummary(
-                                await this.raidboss.getRaidBoss(
-                                    ingameBossId,
-                                    difficulty
-                                )
-                            );
+                            const raidBossDocManager =
+                                new documentManager.raidBoss(
+                                    await this.raidboss.getRaidBoss(
+                                        ingameBossId,
+                                        difficulty
+                                    )
+                                );
+
+                            raidSummary[bossId] =
+                                raidBossDocManager.getSummary();
                         }
                     }
 
