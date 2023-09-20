@@ -1,13 +1,50 @@
 import environment from "../../environment";
 import {
-    Realm,
-    CombatMetric,
-    ValidMember,
     ClassId,
+    CombatMetric,
+    Difficulty,
     Faction,
+    RaidName,
+    Realm,
     SpecId,
+    ValidMember,
 } from "../../types";
 import id from "../id";
+
+export type CharacterPerformance = {
+    [key in RaidName]: {
+        [key in Difficulty]: {
+            [propName: string]: CharacterPerformanceRaidBoss;
+        };
+    };
+};
+
+type RaidbossSpecIds = {
+    [key in SpecId]: {
+        [key in CombatMetric]: CharacterPerformanceDocument;
+    };
+};
+
+export interface CharacterPerformanceRaidBoss extends RaidbossSpecIds {
+    class: {
+        [key in CombatMetric]: CharacterPerformanceDocument | number;
+    };
+    all: {
+        [key in CombatMetric]: CharacterPerformanceDocument | number;
+    };
+}
+
+export interface CharacterPerformanceDocument extends CharacterDocument {
+    performance?: number;
+}
+
+export type CharacterDocumentAggregationMatch = {
+    class?: number;
+    f?: number;
+    realm?: string;
+
+    spec?: number | { $in: SpecId[] };
+};
 
 export interface CharacterDocument {
     _id: ReturnType<typeof id.characterId>;
