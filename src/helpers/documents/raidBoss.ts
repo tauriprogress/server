@@ -1,22 +1,22 @@
 import {
+    CharacterDocument,
+    addNestedObjectValue,
+    capitalize,
+    getNestedObjectValue,
+    id,
+} from "..";
+import environment from "../../environment";
+import {
+    ClassId,
+    CombatMetric,
     Difficulty,
+    Faction,
     LooseObject,
     RaidId,
     Realm,
-    TrimmedLog,
-    Faction,
-    CombatMetric,
-    ClassId,
     SpecId,
+    TrimmedLog,
 } from "../../types";
-import {
-    getNestedObjectValue,
-    addNestedObjectValue,
-    capitalize,
-    id,
-    CharacterDocument,
-} from "..";
-import environment from "../../environment";
 
 import { Document } from "mongodb";
 
