@@ -1,14 +1,37 @@
-import { ObjectId } from "mongodb";
 import {
     Difficulty,
-    Realm,
-    FullClearLog,
-    WeeklyFullClearDocument,
     Faction,
+    MilliSecond,
     RaidLogWithRealm,
+    Realm,
+    Second,
 } from "../../types";
-import log from "../log";
 import id, { WeekId } from "../id";
+import log from "../log";
+
+import { Document, ObjectId } from "mongodb";
+
+export interface FullClearLog {
+    id: number;
+    date: Second;
+    fightLength: MilliSecond;
+    bossName: string;
+}
+
+export interface WeeklyFullClearDocument extends Document {
+    _id: ObjectId;
+    members: string[];
+    difficulty: Difficulty;
+    guildName: string;
+    f: Faction;
+    realm: Realm;
+    logs: FullClearLog[];
+    latestWednesday: WeekId;
+}
+
+export type WeeklyFullClear = {
+    [key in Difficulty]: WeeklyFullClearDocument[];
+};
 
 class WeeklyFullClearDocumentController {
     private _id: ObjectId;
