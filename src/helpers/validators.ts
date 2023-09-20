@@ -1,10 +1,13 @@
 import environment from "../environment";
 import { Difficulty, LastRaidLogWithRealm, Realm, ShortRealm } from "../types";
+import filter from "./filter";
 
 class Validator {
-    validLog(log: LastRaidLogWithRealm) {
+    validFilters = filter.isValidFilter;
+
+    validRaidLog(log: LastRaidLogWithRealm) {
         if (
-            this.validLogDate(new Date(log.killtime * 1000)) &&
+            this.validRaidLogDate(new Date(log.killtime * 1000)) &&
             this.validRaidName(log.mapentry.name) &&
             this.validDifficulty(log.mapentry.id, log.difficulty) &&
             this.validBossName(
@@ -18,7 +21,7 @@ class Validator {
         return false;
     }
 
-    validLogDate(date: Date) {
+    validRaidLogDate(date: Date) {
         if (!environment.seasonal) {
             return true;
         }
@@ -159,54 +162,6 @@ class Validator {
         );
     }
 
-    validFilters(raidId: number, filters: any) {
-        if (
-            typeof filters === "object" &&
-            filters !== null &&
-            !Array.isArray(filters)
-        ) {
-            if (
-                filters.difficulty === undefined ||
-                !this.validDifficulty(raidId, filters.difficulty)
-            ) {
-                return false;
-            }
-
-            if (
-                filters.realm !== undefined &&
-                !this.validRealm(filters.realm)
-            ) {
-                return false;
-            }
-
-            if (
-                filters.class !== undefined &&
-                !this.validClass(filters.class)
-            ) {
-                return false;
-            }
-
-            if (filters.spec !== undefined && !this.validSpec(filters.spec)) {
-                return false;
-            }
-
-            if (filters.role !== undefined && !this.validRole(filters.role)) {
-                return false;
-            }
-
-            if (
-                filters.faction !== undefined &&
-                !this.validFaction(filters.faction)
-            ) {
-                return false;
-            }
-
-            return true;
-        }
-
-        return false;
-    }
-
     validPage(page: any) {
         return typeof page === "number" && page >= 0;
     }
@@ -223,7 +178,7 @@ class Validator {
         return typeof characterName === "string";
     }
 
-    validLogId(logId: any) {
+    validRaidLogId(logId: any) {
         return typeof logId === "number";
     }
 
