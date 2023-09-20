@@ -269,6 +269,16 @@ class Environment {
     getClassOfSpec(specId: SpecId) {
         return this.characterSpecClass[specId];
     }
+
+    getCurrentRaidId() {
+        for (let raid of this.currentContent.raids) {
+            if (raid.name === this.currentContent.name) {
+                return raid.id;
+            }
+        }
+
+        return this.currentContent.raids[0].id;
+    }
 }
 
 const environment = new Environment();

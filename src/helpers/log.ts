@@ -1,5 +1,8 @@
-import { validator } from "./validators";
+import { once } from "events";
+import * as fs from "fs";
+import { createInterface } from "readline";
 import environment from "../environment";
+import tauriApi from "../tauriApi";
 import {
     Difficulty,
     Faction,
@@ -19,13 +22,9 @@ import { CharacterDocument } from "./documents/character";
 import WeeklyFullClearDocumentController from "./documents/weeklyFullClear";
 import { ERR_FILE_DOES_NOT_EXIST } from "./errors";
 import id, { CharacterId, GuildId, RaidBossId } from "./id";
-import raid from "./raid";
 import time from "./time";
-import * as fs from "fs";
-import { createInterface } from "readline";
-import { once } from "events";
 import { ensureFile } from "./utils";
-import tauriApi from "../tauriApi";
+import { validator } from "./validators";
 
 export interface RaidBosses {
     [raidBossId: RaidBossId]: RaidBossDocumentController;
@@ -56,7 +55,7 @@ class Weekly {
 
         if (
             logWednesday !== currentWednesday ||
-            log.map_id !== raid.getCurrentRaidId()
+            log.map_id !== environment.getCurrentRaidId()
         ) {
             return false;
         }
