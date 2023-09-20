@@ -1,3 +1,5 @@
+import { MilliSecond, Second } from "../global";
+
 export interface LastRaidLogsResponse {
     success: boolean;
     errorcode: number;
@@ -19,10 +21,10 @@ export interface LastRaidLog {
     guildid: number;
     guildrid: number;
     guilddata: Guilddata;
-    killtime: number;
+    killtime: Second;
     wipes: number;
     deahts_total: number;
-    fight_time: number;
+    fight_time: MilliSecond;
     deaths_fight: number;
     resurrects_fight: number;
     encounter_id: number;

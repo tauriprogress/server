@@ -3,7 +3,6 @@ import environment from "../environment";
 import {
     Difficulty,
     Faction,
-    LastLogIds,
     LastRaidLogWithRealm,
     RaidLog,
     RaidLogWithRealm,
@@ -28,7 +27,7 @@ import { once } from "events";
 import { ensureFile } from "./utils";
 import tauriApi from "../tauriApi";
 
-interface RaidBosses {
+export interface RaidBosses {
     [raidBossId: RaidBossId]: RaidBossDocumentController;
 }
 
@@ -43,6 +42,10 @@ interface CharacterDocumentsOfRaidBoss {
 interface CharacterCollection {
     [raidBossId: RaidBossId]: CharactersOfRaidBoss;
 }
+
+export type LastLogIds = {
+    [K in Realm]?: number;
+};
 
 class Weekly {
     isValidLog(log: RaidLogWithRealm) {

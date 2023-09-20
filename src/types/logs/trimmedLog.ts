@@ -2,7 +2,7 @@ import { Faction, Realm } from "..";
 
 export interface TrimmedLog {
     id: number;
-    guild?: GuildData;
+    guild: GuildData;
     fightLength: number;
     realm: Realm;
     date: number;
