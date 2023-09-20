@@ -139,6 +139,17 @@ export type GuildLeaderboard = {
     ranking: Ranking;
 }[];
 
+interface GuildOfGuildList {
+    _id: string;
+    f: Faction;
+    realm: Realm;
+    name: string;
+    activity: GuildActivity;
+    progression: Omit<GuildProgression, "recentKills" | "raids">;
+}
+
+export type GuildList = GuildOfGuildList[];
+
 export class GuildDocumentController {
     _id: ReturnType<typeof id.guildId>;
     f: Faction;
