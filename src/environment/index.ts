@@ -1,7 +1,8 @@
 import constants, { realmGroups } from "tauriprogress-constants";
 
 import * as dotenv from "dotenv";
-import { ClassId, CombatMetric, SpecId } from "../types";
+import { ERR_INVALID_RAID_ID, ERR_INVALID_RAID_NAME } from "../helpers/errors";
+import { ClassId, CombatMetric, RaidId, RaidName, SpecId } from "../types";
 dotenv.config();
 
 const defaultPort = 3001;
@@ -207,6 +208,66 @@ class Environment {
 
     isSeasonRunning() {
         return !!this.getCurrentSeason();
+    }
+
+    getRaidInfoFromName(raidName: RaidName) {
+        for (const raid of environment.currentContent.raids) {
+            if (raid.name === raidName) {
+                return raid;
+            }
+        }
+
+        throw ERR_INVALID_RAID_NAME;
+    }
+
+    getRaidInfoFromId(raidId: RaidId) {
+        for (const raid of environment.currentContent.raids) {
+            if (raid.id === raidId) {
+                return raid;
+            }
+        }
+
+        throw ERR_INVALID_RAID_ID;
+    }
+
+    getRaidNameFromIngamebossId(ingameBossId: number) {
+        for (const raid of environment.currentContent.raids) {
+            for (const boss of raid.bosses) {
+                for (const key in boss.bossIdOfDifficulty) {
+                    const difficulty = Number(
+                        key
+                    ) as keyof typeof boss.bossIdOfDifficulty;
+
+                    if (ingameBossId === boss.bossIdOfDifficulty[difficulty])
+                        return raid.name;
+                }
+            }
+        }
+        return false;
+    }
+
+    getRaidBossNameFromIngameBossId(ingameBossId: number) {
+        for (const raid of environment.currentContent.raids) {
+            for (const boss of raid.bosses) {
+                for (const key in boss.bossIdOfDifficulty) {
+                    const difficulty = Number(
+                        key
+                    ) as keyof typeof boss.bossIdOfDifficulty;
+
+                    if (ingameBossId === boss.bossIdOfDifficulty[difficulty])
+                        return boss.name;
+                }
+            }
+        }
+        return false;
+    }
+
+    getSpecsOfClass(classId: ClassId) {
+        return this.specIdsOfClass[classId];
+    }
+
+    getClassOfSpec(specId: SpecId) {
+        return this.characterSpecClass[specId];
     }
 }
 
