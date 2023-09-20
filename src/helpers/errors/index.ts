@@ -1,5 +1,6 @@
 export const ERR_UNKNOWN = new Error("Unkown error.");
 
+export const ERR_DB_DOC_DOES_NOT_EXIST = new Error("Document doesn't exist.");
 export const ERR_DB_CONNECTION = new Error(
     "Database connection is not established."
 );
