@@ -1,4 +1,4 @@
-import { RaidBossForSummary } from "../documents";
+import { RaidBossForSummary } from "../../helpers";
 
 export interface RaidSummary {
     [key: string]: RaidBossForSummary;
