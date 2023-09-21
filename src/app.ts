@@ -4,35 +4,19 @@ import * as express from "express";
 import * as slowDown from "express-slow-down";
 
 import dbInterface from "./database/DBInterface";
-import dbTaskManager from "./database/DBTaskManager";
 
-import {
-    verifyCharacterLeaderboard,
-    verifyCharacterRecentKills,
-    verifyGetBossCharacters,
-    verifyGetBossFastestKills,
-    verifyGetBossKillCount,
-    verifyGetBossLatestKills,
-    verifyGetCharacter,
-    verifyGetCharacterPerformance,
-    verifyGetGuild,
-    verifyGetItems,
-    verifyGetLog,
-    verifyGetRaidSummary,
-    waitDbCache,
-} from "./middlewares";
 import tauriApi from "./tauriApi";
 
 import cache from "./database/Cache";
-import dbConnection from "./database/DBConnection";
+import dbMaintenance from "./database/DBMaintenance";
 import environment from "./environment";
-import { isError } from "./helpers";
+import { validator } from "./helpers";
 import { ERR_UNKNOWN } from "./helpers/errors";
 import { LooseObject } from "./types";
-import dbMaintenance from "./database/DBMaintenance";
+
+import { middlewares } from "./middlewares";
 
 const app = express();
-const prompt = require("prompt-sync")();
 
 const speedLimiter = slowDown({
     windowMs: 40 * 1000,
@@ -43,6 +27,7 @@ const speedLimiter = slowDown({
 
 (async function () {
     await dbMaintenance.start();
+
     app.use(
         cors({
             origin: environment.CORS_ORIGIN,
@@ -54,22 +39,26 @@ const speedLimiter = slowDown({
 
     app.use(bodyParser.json());
 
-    app.post(["/guild", "/getguild"], verifyGetGuild, async (req, res) => {
-        try {
-            res.send({
-                success: true,
-                response: await dbInterface.guild.getGuild(
-                    req.body.realm,
-                    req.body.guildName
-                ),
-            });
-        } catch (err) {
-            res.send({
-                success: false,
-                errorstring: isError(err) ? err.message : err,
-            });
+    app.post(
+        ["/guild", "/getguild"],
+        middlewares.verifyGetGuild,
+        async (req, res) => {
+            try {
+                res.send({
+                    success: true,
+                    response: await dbInterface.guild.getGuild(
+                        req.body.realm,
+                        req.body.guildName
+                    ),
+                });
+            } catch (err) {
+                res.send({
+                    success: false,
+                    errorstring: validator.isError(err) ? err.message : err,
+                });
+            }
         }
-    });
+    );
 
     app.get(["/guild/guildlist", "/guildlist"], async (_1, res) => {
         try {
@@ -80,14 +69,14 @@ const speedLimiter = slowDown({
         } catch (err) {
             res.send({
                 success: false,
-                errorstring: isError(err) ? err.message : err,
+                errorstring: validator.isError(err) ? err.message : err,
             });
         }
     });
 
     app.post(
         ["/character", "/getcharacter"],
-        verifyGetCharacter,
+        middlewares.verifyGetCharacter,
         async (req, res) => {
             try {
                 let characterData = cache.getCharacter(
@@ -113,7 +102,7 @@ const speedLimiter = slowDown({
             } catch (err) {
                 res.send({
                     success: false,
-                    errorstring: isError(err) ? err.message : err,
+                    errorstring: validator.isError(err) ? err.message : err,
                 });
             }
         }
@@ -121,8 +110,8 @@ const speedLimiter = slowDown({
 
     app.post(
         ["/character/characterperformance", "/getcharacterperformance"],
-        waitDbCache,
-        verifyGetCharacterPerformance,
+        middlewares.waitDbCache,
+        middlewares.verifyGetCharacterPerformance,
         async (req, res) => {
             try {
                 let performance =
@@ -139,7 +128,7 @@ const speedLimiter = slowDown({
             } catch (err) {
                 res.send({
                     success: false,
-                    errorstring: isError(err) ? err.message : err,
+                    errorstring: validator.isError(err) ? err.message : err,
                 });
             }
         }
@@ -147,7 +136,7 @@ const speedLimiter = slowDown({
 
     app.post(
         ["/raidsummary", "/getraidsummary"],
-        verifyGetRaidSummary,
+        middlewares.verifyGetRaidSummary,
         async (req, res) => {
             try {
                 res.send({
@@ -157,7 +146,7 @@ const speedLimiter = slowDown({
             } catch (err) {
                 res.send({
                     success: false,
-                    errorstring: isError(err) ? err.message : err,
+                    errorstring: validator.isError(err) ? err.message : err,
                 });
             }
         }
@@ -165,8 +154,8 @@ const speedLimiter = slowDown({
 
     app.post(
         ["/boss/killcount", "/getboss/killCount"],
-        waitDbCache,
-        verifyGetBossKillCount,
+        middlewares.waitDbCache,
+        middlewares.verifyGetBossKillCount,
         async (req, res) => {
             try {
                 res.send({
@@ -182,7 +171,7 @@ const speedLimiter = slowDown({
             } catch (err) {
                 res.send({
                     success: false,
-                    errorstring: isError(err) ? err.message : err,
+                    errorstring: validator.isError(err) ? err.message : err,
                 });
             }
         }
@@ -190,8 +179,8 @@ const speedLimiter = slowDown({
 
     app.post(
         ["/boss/latestkills", "/getboss/latestKills"],
-        waitDbCache,
-        verifyGetBossLatestKills,
+        middlewares.waitDbCache,
+        middlewares.verifyGetBossLatestKills,
         async (req, res) => {
             try {
                 res.send({
@@ -207,7 +196,7 @@ const speedLimiter = slowDown({
             } catch (err) {
                 res.send({
                     success: false,
-                    errorstring: isError(err) ? err.message : err,
+                    errorstring: validator.isError(err) ? err.message : err,
                 });
             }
         }
@@ -215,8 +204,8 @@ const speedLimiter = slowDown({
 
     app.post(
         ["/boss/fastestkills", "/getboss/fastestKills"],
-        waitDbCache,
-        verifyGetBossFastestKills,
+        middlewares.waitDbCache,
+        middlewares.verifyGetBossFastestKills,
         async (req, res) => {
             try {
                 res.send({
@@ -232,7 +221,7 @@ const speedLimiter = slowDown({
             } catch (err) {
                 res.send({
                     success: false,
-                    errorstring: isError(err) ? err.message : err,
+                    errorstring: validator.isError(err) ? err.message : err,
                 });
             }
         }
@@ -240,8 +229,8 @@ const speedLimiter = slowDown({
 
     app.post(
         ["/boss/characters", "/getboss/characters"],
-        waitDbCache,
-        verifyGetBossCharacters,
+        middlewares.waitDbCache,
+        middlewares.verifyGetBossCharacters,
         async (req, res) => {
             try {
                 res.send({
@@ -257,82 +246,96 @@ const speedLimiter = slowDown({
             } catch (err) {
                 res.send({
                     success: false,
-                    errorstring: isError(err) ? err.message : err,
+                    errorstring: validator.isError(err) ? err.message : err,
                 });
             }
         }
     );
 
-    app.post(["/log", "/getlog"], verifyGetLog, async (req, res) => {
-        try {
-            let log = cache.getLog(req.body.logId, req.body.realm);
+    app.post(
+        ["/log", "/getlog"],
+        middlewares.verifyGetLog,
+        async (req, res) => {
+            try {
+                let log = cache.getLog(req.body.logId, req.body.realm);
 
-            if (!log) {
-                log = (
-                    await tauriApi.getRaidLog(req.body.logId, req.body.realm)
-                ).response;
+                if (!log) {
+                    log = (
+                        await tauriApi.getRaidLog(
+                            req.body.logId,
+                            req.body.realm
+                        )
+                    ).response;
 
-                cache.setLog(log, req.body.realm);
+                    cache.setLog(log, req.body.realm);
+                }
+
+                res.send({
+                    success: true,
+                    response: { ...log, realm: req.body.realm },
+                });
+            } catch (err) {
+                res.send({
+                    success: false,
+                    errorstring: validator.isError(err) ? err.message : err,
+                });
             }
-
-            res.send({
-                success: true,
-                response: { ...log, realm: req.body.realm },
-            });
-        } catch (err) {
-            res.send({
-                success: false,
-                errorstring: isError(err) ? err.message : err,
-            });
         }
-    });
+    );
 
-    app.post(["/items", "/getitems"], verifyGetItems, async (req, res) => {
-        try {
-            let items: LooseObject = {};
-            for (let itemMeta of req.body.items) {
-                let item = cache.getItem(itemMeta.id);
+    app.post(
+        ["/items", "/getitems"],
+        middlewares.verifyGetItems,
+        async (req, res) => {
+            try {
+                let items: LooseObject = {};
+                for (let itemMeta of req.body.items) {
+                    let item = cache.getItem(itemMeta.id);
 
-                if (!item) {
-                    const data = req.body.isEntry
-                        ? await tauriApi.getItem(itemMeta.id, req.body.realm)
-                        : await tauriApi.getItemByGuid(
-                              itemMeta.id,
-                              req.body.realm,
-                              itemMeta.pcs
-                          );
+                    if (!item) {
+                        const data = req.body.isEntry
+                            ? await tauriApi.getItem(
+                                  itemMeta.id,
+                                  req.body.realm
+                              )
+                            : await tauriApi.getItemByGuid(
+                                  itemMeta.id,
+                                  req.body.realm,
+                                  itemMeta.pcs
+                              );
 
-                    if (data.success) {
-                        item = { ...data.response, guid: itemMeta };
+                        if (data.success) {
+                            item = { ...data.response, guid: itemMeta };
 
-                        cache.setItem(itemMeta.id, item);
-                    } else {
-                        continue;
+                            cache.setItem(itemMeta.id, item);
+                        } else {
+                            continue;
+                        }
+                    }
+
+                    if (item) {
+                        items[itemMeta.id] = item;
                     }
                 }
 
-                if (item) {
-                    items[itemMeta.id] = item;
-                }
+                if (!Object.keys(items).length) throw ERR_UNKNOWN;
+
+                res.send({
+                    success: true,
+                    response: items,
+                });
+            } catch (err) {
+                res.send({
+                    success: false,
+                    errorstring: validator.isError(err) ? err.message : err,
+                });
             }
-
-            if (!Object.keys(items).length) throw ERR_UNKNOWN;
-
-            res.send({
-                success: true,
-                response: items,
-            });
-        } catch (err) {
-            res.send({
-                success: false,
-                errorstring: isError(err) ? err.message : err,
-            });
         }
-    });
+    );
 
     app.post(
         ["/character/recentkills", "/characterrecentkills"],
-        verifyCharacterRecentKills,
+        middlewares.verifyCharacterRecentKills,
         async (req, res) => {
             try {
                 res.send({
@@ -349,7 +352,7 @@ const speedLimiter = slowDown({
             } catch (err) {
                 res.send({
                     success: false,
-                    errorstring: isError(err) ? err.message : err,
+                    errorstring: validator.isError(err) ? err.message : err,
                 });
             }
         }
@@ -357,8 +360,8 @@ const speedLimiter = slowDown({
 
     app.post(
         "/leaderboard/character",
-        waitDbCache,
-        verifyCharacterLeaderboard,
+        middlewares.waitDbCache,
+        middlewares.verifyCharacterLeaderboard,
         async (req, res) => {
             try {
                 res.send({
@@ -375,7 +378,7 @@ const speedLimiter = slowDown({
             } catch (err) {
                 res.send({
                     success: false,
-                    errorstring: isError(err) ? err.message : err,
+                    errorstring: validator.isError(err) ? err.message : err,
                 });
             }
         }
@@ -390,21 +393,7 @@ const speedLimiter = slowDown({
         } catch (err) {
             res.send({
                 success: false,
-                errorstring: isError(err) ? err.message : err,
-            });
-        }
-    });
-
-    app.get("/weekly/guild", async (_1, res) => {
-        try {
-            res.send({
-                success: true,
-                response: true /* weekly guild data */,
-            });
-        } catch (err) {
-            res.send({
-                success: false,
-                errorstring: isError(err) ? err.message : err,
+                errorstring: validator.isError(err) ? err.message : err,
             });
         }
     });
