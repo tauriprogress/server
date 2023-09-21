@@ -2,25 +2,6 @@ import environment from "../environment";
 import { Request, Response, NextFunction } from "express";
 
 import {
-    capitalize,
-    validRaidId,
-    validClass,
-    validRealm,
-    validRaidName,
-    validCombatMetric,
-    validFilters,
-    validPage,
-    validPageSize,
-    validGuildName,
-    validCharacterName,
-    validLogId,
-    validLimit,
-    validItems,
-    isError,
-    validIngameBossId,
-    validDifficulty,
-} from "../helpers";
-import {
     ERR_INVALID_BOSS_ID,
     ERR_INVALID_CHARACTER_CLASS,
     ERR_INVALID_CHARACTER_NAME,
@@ -38,307 +19,303 @@ import {
 } from "../helpers/errors";
 import { raidNameId } from "tauriprogress-constants";
 import { RaidName } from "../types";
-import dbInterface from "../database";
+import dbInterface from "../database/DBInterface";
+import { validator, capitalize } from "../helpers";
 
-export async function waitDbCache(
-    _1: Request,
-    res: Response,
-    next: NextFunction
-) {
-    try {
-        await dbInterface.raidboss.firstRaidbossCacheLoad;
-        next();
-    } catch (err) {
-        isError;
-        res.send({
-            success: false,
-            errorstring: isError(err) ? err.message : err,
-        });
-    }
-}
-
-export function verifyGetGuild(
-    req: Request,
-    res: Response,
-    next: NextFunction
-) {
-    try {
-        if (!validGuildName(req.body.guildName)) throw ERR_INVALID_GUILD_NAME;
-
-        if (!validRealm(req.body.realm)) {
-            req.body.realm = environment.defaultRealm;
+class Middlewares {
+    async waitDbCache(_1: Request, res: Response, next: NextFunction) {
+        try {
+            await dbInterface.raidboss.firstRaidbossCacheLoad;
+            next();
+        } catch (err) {
+            validator.isError;
+            res.send({
+                success: false,
+                errorstring: validator.isError(err) ? err.message : err,
+            });
         }
-
-        next();
-    } catch (err) {
-        res.send({
-            success: false,
-            errorstring: isError(err) ? err.message : err,
-        });
     }
-}
 
-export function verifyGetCharacter(
-    req: Request,
-    res: Response,
-    next: NextFunction
-) {
-    try {
-        if (!validCharacterName(req.body.characterName))
-            throw ERR_INVALID_CHARACTER_NAME;
+    verifyGetGuild(req: Request, res: Response, next: NextFunction) {
+        try {
+            if (!validator.validGuildName(req.body.guildName))
+                throw ERR_INVALID_GUILD_NAME;
 
-        req.body.characterName = capitalize(req.body.characterName);
+            if (!validator.validRealm(req.body.realm)) {
+                req.body.realm = environment.defaultRealm;
+            }
 
-        if (!validRealm(req.body.realm)) {
-            req.body.realm = environment.defaultRealm;
+            next();
+        } catch (err) {
+            res.send({
+                success: false,
+                errorstring: validator.isError(err) ? err.message : err,
+            });
         }
-
-        next();
-    } catch (err) {
-        res.send({
-            success: false,
-            errorstring: isError(err) ? err.message : err,
-        });
     }
-}
 
-export function verifyGetCharacterPerformance(
-    req: Request,
-    res: Response,
-    next: NextFunction
-) {
-    try {
-        if (!validCharacterName(req.body.characterName))
-            throw ERR_INVALID_CHARACTER_NAME;
+    verifyGetCharacter(req: Request, res: Response, next: NextFunction) {
+        try {
+            if (!validator.validCharacterName(req.body.characterName))
+                throw ERR_INVALID_CHARACTER_NAME;
 
-        req.body.characterName = capitalize(req.body.characterName);
+            req.body.characterName = capitalize(req.body.characterName);
 
-        if (!validClass(req.body.characterClass))
-            throw ERR_INVALID_CHARACTER_CLASS;
+            if (!validator.validRealm(req.body.realm)) {
+                req.body.realm = environment.defaultRealm;
+            }
 
-        if (!validRaidName(req.body.raidName)) throw ERR_INVALID_RAID_NAME;
-
-        if (!validRealm(req.body.realm)) {
-            req.body.realm = environment.defaultRealm;
+            next();
+        } catch (err) {
+            res.send({
+                success: false,
+                errorstring: validator.isError(err) ? err.message : err,
+            });
         }
-
-        next();
-    } catch (err) {
-        res.send({
-            success: false,
-            errorstring: isError(err) ? err.message : err,
-        });
     }
-}
 
-export function verifyGetRaidSummary(
-    req: Request,
-    res: Response,
-    next: NextFunction
-) {
-    try {
-        if (!validRaidId(req.body.raidId)) throw ERR_INVALID_RAID_ID;
-        next();
-    } catch (err) {
-        res.send({
-            success: false,
-            errorstring: isError(err) ? err.message : err,
-        });
+    verifyGetCharacterPerformance(
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) {
+        try {
+            if (!validator.validCharacterName(req.body.characterName))
+                throw ERR_INVALID_CHARACTER_NAME;
+
+            req.body.characterName = capitalize(req.body.characterName);
+
+            if (!validator.validClass(req.body.characterClass))
+                throw ERR_INVALID_CHARACTER_CLASS;
+
+            if (!validator.validRaidName(req.body.raidName))
+                throw ERR_INVALID_RAID_NAME;
+
+            if (!validator.validRealm(req.body.realm)) {
+                req.body.realm = environment.defaultRealm;
+            }
+
+            next();
+        } catch (err) {
+            res.send({
+                success: false,
+                errorstring: validator.isError(err) ? err.message : err,
+            });
+        }
     }
-}
 
-export function verifyGetBossKillCount(
-    req: Request,
-    res: Response,
-    next: NextFunction
-) {
-    try {
-        if (!validIngameBossId(req.body.ingameBossId, req.body.difficulty))
-            throw ERR_INVALID_BOSS_ID;
-
-        next();
-    } catch (err) {
-        res.send({
-            success: false,
-            errorstring: isError(err) ? err.message : err,
-        });
+    verifyGetRaidSummary(req: Request, res: Response, next: NextFunction) {
+        try {
+            if (!validator.validRaidId(req.body.raidId))
+                throw ERR_INVALID_RAID_ID;
+            next();
+        } catch (err) {
+            res.send({
+                success: false,
+                errorstring: validator.isError(err) ? err.message : err,
+            });
+        }
     }
-}
 
-export function verifyGetBossLatestKills(
-    req: Request,
-    res: Response,
-    next: NextFunction
-) {
-    try {
-        if (!validIngameBossId(req.body.ingameBossId, req.body.difficulty))
-            throw ERR_INVALID_BOSS_ID;
-
-        next();
-    } catch (err) {
-        res.send({
-            success: false,
-            errorstring: isError(err) ? err.message : err,
-        });
-    }
-}
-
-export function verifyGetBossFastestKills(
-    req: Request,
-    res: Response,
-    next: NextFunction
-) {
-    try {
-        if (!validIngameBossId(req.body.ingameBossId, req.body.difficulty))
-            throw ERR_INVALID_BOSS_ID;
-
-        next();
-    } catch (err) {
-        res.send({
-            success: false,
-            errorstring: isError(err) ? err.message : err,
-        });
-    }
-}
-
-export function verifyGetBossCharacters(
-    req: Request,
-    res: Response,
-    next: NextFunction
-) {
-    try {
-        if (!validRaidId(req.body.raidId)) throw ERR_INVALID_RAID_ID;
-
-        if (!validFilters(req.body.raidId, req.body.filters))
-            throw ERR_INVALID_FILTERS;
-
-        if (
-            !validIngameBossId(
-                req.body.ingameBossId,
-                req.body.filters.difficulty
+    verifyGetBossKillCount(req: Request, res: Response, next: NextFunction) {
+        try {
+            if (
+                !validator.validIngameBossId(
+                    req.body.ingameBossId,
+                    req.body.difficulty
+                )
             )
-        )
-            throw ERR_INVALID_BOSS_ID;
+                throw ERR_INVALID_BOSS_ID;
 
-        if (!validCombatMetric(req.body.combatMetric))
-            throw ERR_INVALID_COMBAT_METRIC;
-
-        if (!validPage(req.body.page)) throw ERR_INVALID_PAGE;
-
-        if (!validPageSize(req.body.pageSize)) throw ERR_INVALID_PAGESIZE;
-
-        next();
-    } catch (err) {
-        res.send({
-            success: false,
-            errorstring: isError(err) ? err.message : err,
-        });
-    }
-}
-
-export function verifyGetLog(req: Request, res: Response, next: NextFunction) {
-    try {
-        if (!validLogId(req.body.logId)) throw ERR_INVALID_LOG_ID;
-
-        if (!validRealm(req.body.realm)) {
-            req.body.realm = environment.defaultRealm;
+            next();
+        } catch (err) {
+            res.send({
+                success: false,
+                errorstring: validator.isError(err) ? err.message : err,
+            });
         }
-
-        next();
-    } catch (err) {
-        res.send({
-            success: false,
-            errorstring: isError(err) ? err.message : err,
-        });
     }
-}
 
-export function verifyCharacterRecentKills(
-    req: Request,
-    res: Response,
-    next: NextFunction
-) {
-    try {
-        if (!validRealm(req.body.realm)) {
-            req.body.realm = environment.defaultRealm;
+    verifyGetBossLatestKills(req: Request, res: Response, next: NextFunction) {
+        try {
+            if (
+                !validator.validIngameBossId(
+                    req.body.ingameBossId,
+                    req.body.difficulty
+                )
+            )
+                throw ERR_INVALID_BOSS_ID;
+
+            next();
+        } catch (err) {
+            res.send({
+                success: false,
+                errorstring: validator.isError(err) ? err.message : err,
+            });
         }
-
-        if (!validCharacterName(req.body.characterName))
-            throw ERR_INVALID_CHARACTER_NAME;
-
-        req.body.characterName = capitalize(req.body.characterName);
-
-        if (
-            typeof req.body.logId !== "undefined" &&
-            !validLogId(req.body.logId)
-        )
-            throw ERR_INVALID_LOG_ID;
-
-        if (
-            typeof req.body.limit !== "undefined" &&
-            !validLimit(req.body.limit)
-        )
-            throw ERR_INVALID_LIMIT;
-
-        next();
-    } catch (err) {
-        res.send({
-            success: false,
-            errorstring: isError(err) ? err.message : err,
-        });
     }
-}
 
-export function verifyCharacterLeaderboard(
-    req: Request,
-    res: Response,
-    next: NextFunction
-) {
-    try {
-        if (!validRaidName(req.body.raidName)) throw ERR_INVALID_RAID_NAME;
-        const raidId = raidNameId[req.body.raidName as RaidName];
+    verifyGetBossFastestKills(req: Request, res: Response, next: NextFunction) {
+        try {
+            if (
+                !validator.validIngameBossId(
+                    req.body.ingameBossId,
+                    req.body.difficulty
+                )
+            )
+                throw ERR_INVALID_BOSS_ID;
 
-        if (!validFilters(raidId, req.body.filters)) throw ERR_INVALID_FILTERS;
-        if (!validDifficulty(raidId, req.body.filters.difficulty))
-            throw ERR_INVALID_DIFFICULTY;
-
-        if (!validCombatMetric(req.body.combatMetric))
-            throw ERR_INVALID_COMBAT_METRIC;
-
-        if (!validPage(req.body.page)) throw ERR_INVALID_PAGE;
-
-        if (!validPageSize(req.body.pageSize)) throw ERR_INVALID_PAGESIZE;
-
-        if (!validRealm(req.body.realm)) {
-            req.body.realm = environment.defaultRealm;
+            next();
+        } catch (err) {
+            res.send({
+                success: false,
+                errorstring: validator.isError(err) ? err.message : err,
+            });
         }
-        next();
-    } catch (err) {
-        res.send({
-            success: false,
-            errorstring: isError(err) ? err.message : err,
-        });
     }
-}
 
-export function verifyGetItems(
-    req: Request,
-    res: Response,
-    next: NextFunction
-) {
-    try {
-        if (!validRealm(req.body.realm)) {
-            req.body.realm = environment.defaultRealm;
+    verifyGetBossCharacters(req: Request, res: Response, next: NextFunction) {
+        try {
+            if (!validator.validRaidId(req.body.raidId))
+                throw ERR_INVALID_RAID_ID;
+
+            if (!validator.validFilters(req.body.raidId, req.body.filters))
+                throw ERR_INVALID_FILTERS;
+
+            if (
+                !validator.validIngameBossId(
+                    req.body.ingameBossId,
+                    req.body.filters.difficulty
+                )
+            )
+                throw ERR_INVALID_BOSS_ID;
+
+            if (!validator.validCombatMetric(req.body.combatMetric))
+                throw ERR_INVALID_COMBAT_METRIC;
+
+            if (!validator.validPage(req.body.page)) throw ERR_INVALID_PAGE;
+
+            if (!validator.validPageSize(req.body.pageSize))
+                throw ERR_INVALID_PAGESIZE;
+
+            next();
+        } catch (err) {
+            res.send({
+                success: false,
+                errorstring: validator.isError(err) ? err.message : err,
+            });
         }
+    }
 
-        if (!validItems(req.body.items)) throw ERR_INVALID_ITEM_IDS;
+    verifyGetLog(req: Request, res: Response, next: NextFunction) {
+        try {
+            if (!validator.validRaidLogId(req.body.logId))
+                throw ERR_INVALID_LOG_ID;
 
-        req.body.isEntry = !!req.body.isEntry;
-        next();
-    } catch (err) {
-        res.send({
-            success: false,
-            errorstring: isError(err) ? err.message : err,
-        });
+            if (!validator.validRealm(req.body.realm)) {
+                req.body.realm = environment.defaultRealm;
+            }
+
+            next();
+        } catch (err) {
+            res.send({
+                success: false,
+                errorstring: validator.isError(err) ? err.message : err,
+            });
+        }
+    }
+
+    verifyCharacterRecentKills(
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) {
+        try {
+            if (!validator.validRealm(req.body.realm)) {
+                req.body.realm = environment.defaultRealm;
+            }
+
+            if (!validator.validCharacterName(req.body.characterName))
+                throw ERR_INVALID_CHARACTER_NAME;
+
+            req.body.characterName = capitalize(req.body.characterName);
+
+            if (
+                typeof req.body.logId !== "undefined" &&
+                !validator.validRaidLogId(req.body.logId)
+            )
+                throw ERR_INVALID_LOG_ID;
+
+            if (
+                typeof req.body.limit !== "undefined" &&
+                !validator.validLimit(req.body.limit)
+            )
+                throw ERR_INVALID_LIMIT;
+
+            next();
+        } catch (err) {
+            res.send({
+                success: false,
+                errorstring: validator.isError(err) ? err.message : err,
+            });
+        }
+    }
+
+    verifyCharacterLeaderboard(
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) {
+        try {
+            if (!validator.validRaidName(req.body.raidName))
+                throw ERR_INVALID_RAID_NAME;
+            const raidId = raidNameId[req.body.raidName as RaidName];
+
+            if (!validator.validFilters(raidId, req.body.filters))
+                throw ERR_INVALID_FILTERS;
+            if (!validator.validDifficulty(raidId, req.body.filters.difficulty))
+                throw ERR_INVALID_DIFFICULTY;
+
+            if (!validator.validCombatMetric(req.body.combatMetric))
+                throw ERR_INVALID_COMBAT_METRIC;
+
+            if (!validator.validPage(req.body.page)) throw ERR_INVALID_PAGE;
+
+            if (!validator.validPageSize(req.body.pageSize))
+                throw ERR_INVALID_PAGESIZE;
+
+            if (!validator.validRealm(req.body.realm)) {
+                req.body.realm = environment.defaultRealm;
+            }
+            next();
+        } catch (err) {
+            res.send({
+                success: false,
+                errorstring: validator.isError(err) ? err.message : err,
+            });
+        }
+    }
+
+    verifyGetItems(req: Request, res: Response, next: NextFunction) {
+        try {
+            if (!validator.validRealm(req.body.realm)) {
+                req.body.realm = environment.defaultRealm;
+            }
+
+            if (!validator.validItems(req.body.items))
+                throw ERR_INVALID_ITEM_IDS;
+
+            req.body.isEntry = !!req.body.isEntry;
+            next();
+        } catch (err) {
+            res.send({
+                success: false,
+                errorstring: validator.isError(err) ? err.message : err,
+            });
+        }
     }
 }
+
+export const middlewares = new Middlewares();
+
+export default middlewares;
