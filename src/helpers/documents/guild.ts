@@ -4,7 +4,6 @@ import {
     getNestedObjectValue,
     id,
     time,
-    uniqueLogs,
 } from "..";
 import environment from "../../environment";
 import tauriApi from "../../tauriApi";
@@ -505,24 +504,27 @@ export class GuildDocumentController {
                                 ...oldBoss,
                                 killCount:
                                     oldBoss.killCount + newBoss.killCount,
-                                fastestKills: uniqueLogs([
-                                    ...oldBoss.fastestKills,
-                                    ...newBoss.fastestKills,
-                                ])
+                                fastestKills: log
+                                    .uniqueLogs([
+                                        ...oldBoss.fastestKills,
+                                        ...newBoss.fastestKills,
+                                    ])
                                     .sort(
                                         (a, b) => a.fightLength - b.fightLength
                                     )
                                     .slice(0, 10),
-                                firstKills: uniqueLogs([
-                                    ...oldBoss.firstKills,
-                                    ...newBoss.firstKills,
-                                ])
+                                firstKills: log
+                                    .uniqueLogs([
+                                        ...oldBoss.firstKills,
+                                        ...newBoss.firstKills,
+                                    ])
                                     .sort((a, b) => a.date - b.date)
                                     .slice(0, 10),
-                                latestKills: uniqueLogs([
-                                    ...oldBoss.latestKills,
-                                    ...newBoss.latestKills,
-                                ])
+                                latestKills: log
+                                    .uniqueLogs([
+                                        ...oldBoss.latestKills,
+                                        ...newBoss.latestKills,
+                                    ])
                                     .sort((a, b) => b.date - a.date)
                                     .slice(0, 10),
                             };
