@@ -1,12 +1,12 @@
 import { ClientSession } from "mongodb";
 import { CharacterDocument, RaidBossDocument, id } from "../helpers";
+import documentManager from "../helpers/documents";
 import { ERR_BOSS_NOT_FOUND } from "../helpers/errors";
+import filter, { Filters } from "../helpers/filter";
 import { CombatMetric, Difficulty, Faction, Realm, TrimmedLog } from "../types";
 import cache from "./Cache";
 import dbInterface from "./DBInterface";
 import dbMaintenance from "./DBMaintenance";
-import filter, { Filters } from "../helpers/filter";
-import documentManager from "../helpers/documents";
 
 class DBRaidboss {
     public firstRaidbossCacheLoad: boolean | Promise<true>;

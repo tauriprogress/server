@@ -1,15 +1,15 @@
-import { initializer } from "./DBInitializer";
+import environment from "../environment";
 import { Lock, id } from "../helpers";
+import documentManager from "../helpers/documents";
 import { Difficulty, RaidId, RaidSummary } from "../types";
 import cache from "./Cache";
 import dbCharacter from "./DBCharacter";
 import dbGuild from "./DBGuild";
+import { initializer } from "./DBInitializer";
 import dbLeaderboard from "./DBLeaderboard";
 import dbRaidboss from "./DBRaidboss";
 import dbUpdate from "./DBUpdate";
 import dbWeekly from "./DBWeekly";
-import environment from "../environment";
-import documentManager from "../helpers/documents";
 const raidSummaryLock = new Lock();
 
 const collectionNames = {

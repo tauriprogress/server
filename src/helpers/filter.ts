@@ -1,8 +1,8 @@
 import { Role } from "tauriprogress-constants/build/globalTypes";
-import { Difficulty, ClassId, SpecId, Realm, Faction } from "../types";
-import validator from "./validators";
 import environment from "../environment";
+import { ClassId, Difficulty, Faction, Realm, SpecId } from "../types";
 import { CharacterDocumentAggregationMatch } from "./documents";
+import validator from "./validators";
 
 export type Filters = {
     difficulty: Difficulty;

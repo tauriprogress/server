@@ -1,6 +1,6 @@
-import { CharacterDocument, id } from "..";
 import { Document } from "mongodb";
-import { RaidName, Difficulty, ClassId, Realm, Faction } from "../../types";
+import { CharacterDocument, id } from "..";
+import { ClassId, Difficulty, Faction, RaidName, Realm } from "../../types";
 
 export interface LeaderboardCharacterScoredDocument
     extends Omit<LeaderboardCharacterDocument, "bosses"> {

@@ -1,10 +1,10 @@
 import { ClientSession } from "mongodb";
 import { GuildDocument, id } from "../helpers";
+import documentManager, { GuildList } from "../helpers/documents";
 import { ERR_GUILD_NOT_FOUND } from "../helpers/errors";
-import { GuildList, Realm } from "../types";
-import dbInterface from "./DBInterface";
+import { Realm } from "../types";
 import cache from "./Cache";
-import documentManager from "../helpers/documents";
+import dbInterface from "./DBInterface";
 import dbMaintenance from "./DBMaintenance";
 
 class DBGuild {

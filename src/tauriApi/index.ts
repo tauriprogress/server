@@ -1,4 +1,3 @@
-import { validator } from "./../helpers/validators";
 import fetch from "node-fetch";
 import environment from "../environment";
 import {
@@ -9,20 +8,21 @@ import {
     ERR_UNKNOWN,
 } from "../helpers/errors";
 import {
-    CharacterDataResponse,
-    GuildDataResponse,
     CharacterAchievementsResponse,
-    RaidMapsResponse,
-    RaidLogResponse,
-    LastRaidLogsResponse,
+    CharacterDataResponse,
     CharacterLastRaidLogsResponse,
-    GuildLastRaidLogsResponse,
-    RaidBossRankedLogsResponse,
-    ItemResponse,
     CharacterTalentsResponse,
-    Realm,
     Difficulty,
+    GuildDataResponse,
+    GuildLastRaidLogsResponse,
+    ItemResponse,
+    LastRaidLogsResponse,
+    RaidBossRankedLogsResponse,
+    RaidLogResponse,
+    RaidMapsResponse,
+    Realm,
 } from "../types";
+import { validator } from "./../helpers/validators";
 
 class TauriApi {
     private apikey: string;

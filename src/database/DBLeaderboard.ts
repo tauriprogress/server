@@ -1,4 +1,3 @@
-import { Filters, filter } from "./../helpers/filter";
 import { ClientSession } from "mongodb";
 import environment from "../environment";
 import {
@@ -14,6 +13,7 @@ import {
     createLeaderboardCharacterDocument,
 } from "../helpers/documents/leaderboardCharacter";
 import { CombatMetric, Difficulty, RaidName } from "../types";
+import { Filters, filter } from "./../helpers/filter";
 import cache from "./Cache";
 import dbInterface from "./DBInterface";
 import dbMaintenance from "./DBMaintenance";

@@ -1,4 +1,3 @@
-import { Filters } from "./filter";
 import environment from "../environment";
 import {
     ClassId,
@@ -9,6 +8,7 @@ import {
     Realm,
     SpecId,
 } from "../types";
+import { Filters } from "./filter";
 import { capitalize } from "./utils";
 
 export type WeekId = string;

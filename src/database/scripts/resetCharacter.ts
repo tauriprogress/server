@@ -1,3 +1,4 @@
+import { Difficulty } from "..";
 import {
     Realm,
     ClassId,
@@ -9,14 +10,14 @@ import {
 
 import {
     capitalize,
-    getCharacterDocumentCollectionId,
     getDeconstructedRaidBossId,
     getRaidBossBest,
+    id,
 } from "../../helpers";
 import environment from "../../environment";
 import { factions } from "../../constants";
 import dbConnection from "../DBConnection";
-import dbInterface from "../index";
+import dbInterface from "../DBInterface";
 
 export async function resetCharacter(
     characterName: string,
@@ -28,15 +29,16 @@ export async function resetCharacter(
 
     for (const raid of environment.currentContent.raids) {
         for (const boss of raid.bosses) {
-            for (const difficulty in boss.bossIdOfDifficulty) {
-                for (const combatMetric of ["dps", "hps"]) {
+            for (const diff in boss.bossIdOfDifficulty) {
+                const difficulty = Number(diff) as Difficulty;
+                for (const combatMetric of environment.combatMetrics) {
                     const ingameBossId =
                         boss.bossIdOfDifficulty[
                             difficulty as keyof typeof boss.bossIdOfDifficulty
                         ];
-                    const collectionName = getCharacterDocumentCollectionId(
+                    const collectionName = id.characterDocumentCollectionId(
                         ingameBossId,
-                        Number(difficulty),
+                        difficulty,
                         combatMetric
                     );
 
@@ -53,7 +55,7 @@ export async function resetCharacter(
         }
     }
 
-    for (const combatMetric of ["dps", "hps"]) {
+    for (const combatMetric of environment.combatMetrics) {
         const collection = db.collection<LeaderboardCharacterDocument>(
             combatMetric === "dps"
                 ? dbInterface.collections.characterLeaderboardDps
@@ -73,7 +75,7 @@ export async function resetCharacter(
     const raidbosses = await raidCollection.find().toArray();
 
     for (let raidBossDocument of raidbosses) {
-        for (const combatMetric of ["dps", "hps"]) {
+        for (const combatMetric of environment.combatMetrics) {
             let changed = false;
 
             const key = `best${capitalize(combatMetric)}` as const;
@@ -81,7 +83,7 @@ export async function resetCharacter(
             const categorizedCharacters = raidBossDocument[key];
 
             for (const faction of factions) {
-                for (const specId of environment.characterClassSpecs[classId]) {
+                for (const specId of environment.specIdsOfClass[classId]) {
                     let updateCharacters = false;
 
                     for (let char of categorizedCharacters?.[realm]?.[
@@ -98,9 +100,9 @@ export async function resetCharacter(
 
                         const characters = await db
                             .collection<CharacterDocument>(
-                                getCharacterDocumentCollectionId(
+                                id.characterDocumentCollectionId(
                                     ingameBossId,
-                                    Number(difficulty),
+                                    difficulty,
                                     combatMetric
                                 )
                             )

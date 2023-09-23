@@ -1,9 +1,9 @@
 import environment from "../environment";
-import { CharacterDocument, id, log } from "../helpers";
+import { CharacterDocument, LastLogIds, id, log } from "../helpers";
 import documentManager from "../helpers/documents";
 import { LeaderboardCharacterDocument } from "../helpers/documents/leaderboardCharacter";
 import { ERR_DB_ALREADY_UPDATING } from "../helpers/errors";
-import { CombatMetric, Difficulty, LastLogIds } from "../types";
+import { CombatMetric, Difficulty } from "../types";
 import dbInterface from "./DBInterface";
 import dbMaintenance, { MaintenanceDocument } from "./DBMaintenance";
 

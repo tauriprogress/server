@@ -1,4 +1,4 @@
-import { Faction, ClassId, SpecId, Race } from "../";
+import { ClassId, Faction, Race, SpecId } from "../";
 import { Difficulty, MilliSecond, RaidId, RaidName, Second } from "../global";
 
 export interface RaidLogResponse {

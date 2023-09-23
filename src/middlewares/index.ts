@@ -1,6 +1,9 @@
+import { NextFunction, Request, Response } from "express";
 import environment from "../environment";
-import { Request, Response, NextFunction } from "express";
 
+import { raidNameId } from "tauriprogress-constants";
+import dbInterface from "../database/DBInterface";
+import { capitalize, validator } from "../helpers";
 import {
     ERR_INVALID_BOSS_ID,
     ERR_INVALID_CHARACTER_CLASS,
@@ -17,10 +20,7 @@ import {
     ERR_INVALID_RAID_ID,
     ERR_INVALID_RAID_NAME,
 } from "../helpers/errors";
-import { raidNameId } from "tauriprogress-constants";
 import { RaidName } from "../types";
-import dbInterface from "../database/DBInterface";
-import { validator, capitalize } from "../helpers";
 
 class Middlewares {
     async waitDbCache(_1: Request, res: Response, next: NextFunction) {

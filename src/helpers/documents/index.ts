@@ -1,7 +1,7 @@
 export * from "./character";
-export * from "./raidBoss";
 export * from "./guild";
 export * from "./leaderboardCharacter";
+export * from "./raidBoss";
 import { characterDocument } from "./character";
 import { GuildDocumentController } from "./guild";
 import RaidBossDocumentController from "./raidBoss";

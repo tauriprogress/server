@@ -1,29 +1,28 @@
-import { validator } from "./../helpers/validators";
 import { ClientSession, ReadConcern } from "mongodb";
-import {
-    ClassId,
-    CombatMetric,
-    Faction,
-    LastLogIds,
-    LooseObject,
-    Realm,
-    SpecId,
-} from "../types";
-import { runGC, time, id, log, RaidBosses } from "../helpers";
-import {
-    ERR_DB_ALREADY_UPDATING,
-    ERR_DB_TANSACTION,
-    ERR_GUILD_NOT_FOUND,
-} from "../helpers/errors";
-import cache from "./Cache";
-import dbInterface from "./DBInterface";
-import dbMaintenance from "./DBMaintenance";
+import environment from "../environment";
+import { LastLogIds, RaidBosses, id, log, runGC, time } from "../helpers";
 import documentManager, {
     CharacterDocument,
     GuildDocument,
     RaidBossDocument,
 } from "../helpers/documents";
-import environment from "../environment";
+import {
+    ERR_DB_ALREADY_UPDATING,
+    ERR_DB_TANSACTION,
+    ERR_GUILD_NOT_FOUND,
+} from "../helpers/errors";
+import {
+    ClassId,
+    CombatMetric,
+    Faction,
+    LooseObject,
+    Realm,
+    SpecId,
+} from "../types";
+import { validator } from "./../helpers/validators";
+import cache from "./Cache";
+import dbInterface from "./DBInterface";
+import dbMaintenance from "./DBMaintenance";
 
 class DBUpdate {
     public isUpdating: boolean;

@@ -8,15 +8,8 @@ import {
     getRelativePerformance,
     id,
 } from "../helpers";
-import documentManager from "../helpers/documents";
-import {
-    CharacterPerformance,
-    ClassId,
-    CombatMetric,
-    RaidName,
-    Realm,
-    SpecId,
-} from "../types";
+import documentManager, { CharacterPerformance } from "../helpers/documents";
+import { ClassId, CombatMetric, RaidName, Realm, SpecId } from "../types";
 import cache from "./Cache";
 import dbInterface from "./DBInterface";
 import dbMaintenance from "./DBMaintenance";
