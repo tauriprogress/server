@@ -13,7 +13,7 @@ import {
     TrimmedLog,
     ValidMember,
 } from "../types";
-import { CombatMetric } from "./../types/global/index";
+import { CombatMetric, LooseObject } from "./../types/global/index";
 import documentManager, {
     GuildDocumentController,
     RaidBossDocumentController,
@@ -92,6 +92,19 @@ class Log {
         }
 
         return diffNum * 0.8 <= sameMemberCount;
+    }
+
+    uniqueLogs<T extends { id: number }>(logs: T[]): T[] {
+        let logIds: LooseObject = {};
+        const uniqueLogs: T[] = [];
+
+        for (const log of logs) {
+            if (!logIds[log.id]) {
+                logIds[log.id] = true;
+                uniqueLogs.push(log);
+            }
+        }
+        return uniqueLogs;
     }
 
     logFaction(log: RaidLogWithRealm): Faction {
