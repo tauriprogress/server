@@ -2,17 +2,12 @@ const tauriApi = require("./build/tauriApi").default;
 const environment = require("./build/environment").default;
 const fs = require("fs");
 
-const {
-    getLastLogsIdsFromFile,
-    validRaidLog,
-    ensureFile,
-    writeLogToFile,
-    updateLastLogIdsOfFile,
-} = require("./build/helpers");
+const { ensureFile, documentManager, validator } = require("./build/helpers");
 
 const realmNames = environment.realms;
 
 const pathToLogs = "./logs/logs.txt";
+const pathToLastLogIds = "./logs/lastLogIds.json";
 
 const constantLogIds = {
     "[HU] Tauri WoW Server": 340181,
@@ -26,13 +21,19 @@ for (const realm of realmNames) {
 }
 
 (async function () {
-    let lastLogIds = { ...constantLogIds, ...getLastLogsIdsFromFile() };
+    const logFileManager = new documentManager.logFileManager(
+        pathToLogs,
+        pathToLastLogIds
+    );
+
+    let lastLogIds = { ...constantLogIds, ...logFileManager.getLastLogIds() };
 
     const startLogIds = JSON.parse(JSON.stringify(lastLogIds));
 
     let freshLogIds = await getFreshLogIds();
 
     ensureFile(pathToLogs);
+
     const writer = fs.createWriteStream(pathToLogs, {
         flags: "a",
     });
@@ -81,29 +82,34 @@ for (const realm of realmNames) {
 
             const logData = logsOfRealms[oldestKillTimeRealmName].pop();
 
-            if (validRaidLog(logData)) {
+            if (validator.validRaidLog(logData)) {
                 const response = await tauriApi.getRaidLog(
                     logData.log_id,
                     logData.realm
                 );
                 if (response.success) {
                     const log = response.response;
-                    writeLogToFile(writer, {
-                        ...log,
-                        realm: logData.realm,
-                        encounter_data: {
-                            ...log.encounter_data,
-                            encounter_name:
-                                log.encounter_data.encounter_name.trim(),
-                        },
-                    });
+
+                    await logFileManager.writeLogs(
+                        [
+                            {
+                                ...log,
+                                realm: logData.realm,
+                                encounter_data: {
+                                    ...log.encounter_data,
+                                    encounter_name:
+                                        log.encounter_data.encounter_name.trim(),
+                                },
+                            },
+                        ],
+                        writer
+                    );
                 } else {
                     throw new Error(response.errorstring);
                 }
             }
 
             lastLogIds[logData.realm] = logData.log_id;
-            updateLastLogIdsOfFile(lastLogIds);
 
             let progressMessage = "";
 
