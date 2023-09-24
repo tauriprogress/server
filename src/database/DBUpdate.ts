@@ -83,7 +83,6 @@ class DBUpdate {
             bosses,
             guilds,
             characterCollection,
-            weeklyFullClearCollection,
         }: ReturnType<typeof log.processLogs>,
         {
             lastLogIds,

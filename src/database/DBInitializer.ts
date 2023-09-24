@@ -102,12 +102,8 @@ class DBInitializer {
                 }
 
                 console.log("Processing logs.");
-                const {
-                    bosses,
-                    guilds,
-                    characterCollection,
-                    weeklyFullClearCollection,
-                } = log.processLogs(logs);
+                const { bosses, guilds, characterCollection } =
+                    log.processLogs(logs);
 
                 console.log("Saving raid bosses.");
                 for (const bossId in bosses) {
