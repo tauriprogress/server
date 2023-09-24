@@ -1,31 +1,26 @@
-import { Difficulty } from "..";
+import { ClassId, Difficulty, Realm } from "../../types";
+
+import { WithId } from "mongodb";
+import environment from "../../environment";
 import {
-    Realm,
-    ClassId,
     CharacterDocument,
     LeaderboardCharacterDocument,
     RaidBossDocument,
-    CombatMetric,
-} from "../../types";
-
-import {
+    addNestedObjectValue,
     capitalize,
-    getDeconstructedRaidBossId,
-    getRaidBossBest,
     id,
 } from "../../helpers";
-import environment from "../../environment";
-import { factions } from "../../constants";
-import dbConnection from "../DBConnection";
+import documentManager from "../../helpers/documents";
 import dbInterface from "../DBInterface";
+import dbMaintenance from "../DBMaintenance";
 
 export async function resetCharacter(
     characterName: string,
     realm: Realm,
     classId: ClassId
 ) {
-    await dbConnection.connect();
-    const db = dbConnection.getConnection();
+    await dbMaintenance.start();
+    const db = dbMaintenance.getConnection();
 
     for (const raid of environment.currentContent.raids) {
         for (const boss of raid.bosses) {
@@ -82,13 +77,16 @@ export async function resetCharacter(
 
             const categorizedCharacters = raidBossDocument[key];
 
-            for (const faction of factions) {
+            for (const faction of environment.factions) {
                 for (const specId of environment.specIdsOfClass[classId]) {
                     let updateCharacters = false;
 
-                    for (let char of categorizedCharacters?.[realm]?.[
-                        faction
-                    ]?.[classId]?.[specId]) {
+                    const characterDocuments =
+                        categorizedCharacters?.[realm]?.[faction]?.[classId]?.[
+                            specId
+                        ] || [];
+
+                    for (let char of characterDocuments) {
                         if (char.name === characterName) {
                             updateCharacters = true;
                         }
@@ -96,7 +94,7 @@ export async function resetCharacter(
 
                     if (updateCharacters) {
                         const [ingameBossId, difficulty] =
-                            getDeconstructedRaidBossId(raidBossDocument._id);
+                            id.deconstruct.raidBossId(raidBossDocument._id);
 
                         const characters = await db
                             .collection<CharacterDocument>(
@@ -121,9 +119,11 @@ export async function resetCharacter(
                             .toArray();
 
                         if (characters) {
-                            raidBossDocument[key][realm][faction][classId][
-                                specId
-                            ] = characters;
+                            raidBossDocument = addNestedObjectValue(
+                                raidBossDocument,
+                                [key, realm, faction, classId, specId],
+                                characters
+                            ) as WithId<RaidBossDocument>;
                             changed = true;
                         }
                     }
@@ -134,14 +134,17 @@ export async function resetCharacter(
             const bestNoCat = raidBossDocument[bestKey];
 
             if (
+                bestNoCat &&
                 bestNoCat.name === characterName &&
                 bestNoCat.realm === realm &&
                 bestNoCat.class === classId
             ) {
-                const best = getRaidBossBest(
-                    raidBossDocument,
-                    combatMetric as CombatMetric
+                const raidBossDocumentManager = new documentManager.raidBoss(
+                    raidBossDocument
                 );
+
+                const best =
+                    raidBossDocumentManager.getBestPerformance(combatMetric);
                 raidBossDocument[bestKey] = best;
                 changed = true;
             }
