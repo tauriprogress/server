@@ -576,7 +576,7 @@ class LogFileManager {
         }
     }
 
-    writeLogs(logs: RaidLogWithRealm[], optionalWriter?: fs.WriteStream) {
+    async writeLogs(logs: RaidLogWithRealm[], optionalWriter?: fs.WriteStream) {
         ensureFile(this.pathToLogs);
 
         const writer =
@@ -586,7 +586,15 @@ class LogFileManager {
             });
 
         for (let raidLog of logs) {
-            writer.write(JSON.stringify(raidLog) + "\r\n");
+            await new Promise((resolve, reject) => {
+                writer.write(JSON.stringify(raidLog) + "\r\n", (err) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve(true);
+                    }
+                });
+            });
             this.updateLastLogIdsOfFile(log.generateLastLogIds([raidLog]));
         }
     }

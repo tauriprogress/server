@@ -98,7 +98,7 @@ class DBInitializer {
                     console.log(
                         "Saving logs in case something goes wrong in the initalization process."
                     );
-                    logFileManager.writeLogs(logs);
+                    await logFileManager.writeLogs(logs);
                 }
 
                 console.log("Processing logs.");
