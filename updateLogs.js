@@ -2,7 +2,7 @@ const tauriApi = require("./build/tauriApi").default;
 const environment = require("./build/environment").default;
 const fs = require("fs");
 
-const { ensureFile, documentManager, validator } = require("./build/helpers");
+const { ensureFile, log, validator } = require("./build/helpers");
 
 const realmNames = environment.realms;
 
@@ -21,10 +21,7 @@ for (const realm of realmNames) {
 }
 
 (async function () {
-    const logFileManager = new documentManager.logFileManager(
-        pathToLogs,
-        pathToLastLogIds
-    );
+    const logFileManager = new log.fileManager(pathToLogs, pathToLastLogIds);
 
     let lastLogIds = { ...constantLogIds, ...logFileManager.getLastLogIds() };
 
