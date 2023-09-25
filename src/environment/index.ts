@@ -162,7 +162,7 @@ class Environment {
         this.week = 1000 * 60 * 60 * 24 * 7;
         this.pathToLastLogIds = "./logs/lastLogIds.json";
         this.pathToLogs = "./logs/logs.txt";
-        this.specIds = Object.keys(environment.specs).map((specId) =>
+        this.specIds = Object.keys(this.specs).map((specId) =>
             Number(specId)
         ) as SpecId[];
         this.classIds = Object.keys(this.characterClassNames).map((key) =>
@@ -211,7 +211,7 @@ class Environment {
     }
 
     getRaidInfoFromName(raidName: RaidName) {
-        for (const raid of environment.currentContent.raids) {
+        for (const raid of this.currentContent.raids) {
             if (raid.name === raidName) {
                 return raid;
             }
@@ -221,7 +221,7 @@ class Environment {
     }
 
     getRaidInfoFromId(raidId: RaidId) {
-        for (const raid of environment.currentContent.raids) {
+        for (const raid of this.currentContent.raids) {
             if (raid.id === raidId) {
                 return raid;
             }
@@ -231,7 +231,7 @@ class Environment {
     }
 
     getRaidNameFromIngamebossId(ingameBossId: number) {
-        for (const raid of environment.currentContent.raids) {
+        for (const raid of this.currentContent.raids) {
             for (const boss of raid.bosses) {
                 for (const key in boss.bossIdOfDifficulty) {
                     const difficulty = Number(
@@ -247,7 +247,7 @@ class Environment {
     }
 
     getRaidBossNameFromIngameBossId(ingameBossId: number) {
-        for (const raid of environment.currentContent.raids) {
+        for (const raid of this.currentContent.raids) {
             for (const boss of raid.bosses) {
                 for (const key in boss.bossIdOfDifficulty) {
                     const difficulty = Number(
