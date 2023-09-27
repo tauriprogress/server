@@ -7,7 +7,7 @@ import {
     Second,
 } from "../../types";
 import id, { WeekId } from "../id";
-import log from "../log";
+import { Log } from "../log";
 
 import { Document, ObjectId } from "mongodb";
 
@@ -33,7 +33,7 @@ export type WeeklyFullClear = {
     [key in Difficulty]: WeeklyFullClearDocument[];
 };
 
-class WeeklyFullClearDocumentController {
+export class WeeklyFullClearDocumentController {
     private _id: ObjectId;
     private difficulty: Difficulty;
     private f: Faction;
@@ -42,8 +42,10 @@ class WeeklyFullClearDocumentController {
     private members: string[];
     private guildName: string;
     private latestWednesday: WeekId;
+    private log: Log;
 
-    constructor(obj: RaidLogWithRealm | WeeklyFullClearDocument) {
+    constructor(obj: RaidLogWithRealm | WeeklyFullClearDocument, logUtil: Log) {
+        this.log = logUtil;
         if (this.isWeeklyFullClearDocument(obj)) {
             obj = JSON.parse(JSON.stringify(obj)) as WeeklyFullClearDocument;
             this._id = obj._id;
@@ -59,7 +61,7 @@ class WeeklyFullClearDocumentController {
             this.difficulty = obj.difficulty;
             this.realm = obj.realm;
             this.guildName = obj.guilddata.name || "Random";
-            this.f = obj.guilddata.faction || log.logFaction(obj);
+            this.f = obj.guilddata.faction || this.log.logFaction(obj);
             this.members = obj.members.map((member) => member.name);
             this.logs = [
                 {
@@ -93,7 +95,11 @@ class WeeklyFullClearDocumentController {
             this.realm !== document.realm ||
             this.difficulty !== document.difficulty ||
             this.latestWednesday !== document.latestWednesday ||
-            !log.sameMembers(this.members, document.members, this.difficulty)
+            !this.log.sameMembers(
+                this.members,
+                document.members,
+                this.difficulty
+            )
         ) {
             return false;
         }

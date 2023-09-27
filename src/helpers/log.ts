@@ -17,9 +17,9 @@ import { CombatMetric, LooseObject } from "./../types/global/index";
 import documentManager, {
     GuildDocumentController,
     RaidBossDocumentController,
+    WeeklyFullClearDocumentController,
 } from "./documents";
 import { CharacterDocument } from "./documents/character";
-import WeeklyFullClearDocumentController from "./documents/weeklyFullClear";
 import { ERR_FILE_DOES_NOT_EXIST } from "./errors";
 import id, { CharacterId, GuildId, RaidBossId } from "./id";
 import time from "./time";
@@ -64,7 +64,7 @@ class Weekly {
     }
 }
 
-class Log {
+export class Log {
     weekly = new Weekly();
     fileManager = LogFileManager;
     sameMembers(
@@ -268,18 +268,24 @@ class Log {
 
             if (isGuildKill && guildId && guildName) {
                 if (!guilds[guildId]) {
-                    guilds[guildId] = new documentManager.guild({
-                        guildName,
-                        realm,
-                        faction,
-                    });
+                    guilds[guildId] = new documentManager.guild(
+                        {
+                            guildName,
+                            realm,
+                            faction,
+                        },
+                        this
+                    );
                 }
 
                 guilds[guildId].addLog(log);
             }
 
             if (this.weekly.isValidLog(log)) {
-                const newDocument = new documentManager.weeklyFullClear(log);
+                const newDocument = new documentManager.weeklyFullClear(
+                    log,
+                    this
+                );
 
                 let added = false;
 

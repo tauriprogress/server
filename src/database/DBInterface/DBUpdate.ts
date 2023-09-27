@@ -1,38 +1,39 @@
 import { ClientSession, ReadConcern } from "mongodb";
-import environment from "../environment";
-import { LastLogIds, RaidBosses, id, log, runGC, time } from "../helpers";
-import documentManager, {
+import { Faction } from "tauriprogress-constants/build/globalTypes";
+import { DatabaseInterface } from ".";
+import environment from "../../environment";
+import {
     CharacterDocument,
     GuildDocument,
+    LastLogIds,
     RaidBossDocument,
-} from "../helpers/documents";
+    RaidBosses,
+    id,
+    log,
+    runGC,
+    time,
+    validator,
+} from "../../helpers";
+import documentManager from "../../helpers/documents";
 import {
     ERR_DB_ALREADY_UPDATING,
     ERR_DB_TANSACTION,
     ERR_GUILD_NOT_FOUND,
-} from "../helpers/errors";
-import {
-    ClassId,
-    CombatMetric,
-    Faction,
-    LooseObject,
-    Realm,
-    SpecId,
-} from "../types";
-import { validator } from "./../helpers/validators";
-import cache from "./Cache";
-import dbInterface from "./DBInterface";
-import dbMaintenance from "./DBMaintenance";
+} from "../../helpers/errors";
+import { ClassId, CombatMetric, LooseObject, Realm, SpecId } from "../../types";
+import cache from "../Cache";
 
-class DBUpdate {
+export class DBUpdate {
     public isUpdating: boolean;
     private updatedRaidbosses: ReturnType<typeof id.raidBossId>[];
 
     private updatedCharacterDocumentCollections: ReturnType<
         typeof id.characterDocumentCollectionId
     >[];
+    private dbInterface: DatabaseInterface;
 
-    constructor() {
+    constructor(dbInterface: DatabaseInterface) {
+        this.dbInterface = dbInterface;
         this.isUpdating = false;
         this.updatedRaidbosses = [];
         this.updatedCharacterDocumentCollections = [];
@@ -92,14 +93,17 @@ class DBUpdate {
     ) {
         return new Promise(async (resolve, reject) => {
             try {
-                const db = dbMaintenance.getConnection();
+                const db = this.dbInterface.maintenance.getConnection();
 
                 await this.bulkWriteRaidBosses(bosses, session);
                 runGC();
 
                 console.log("db: Saving guilds");
                 for (const guildId in guilds) {
-                    await dbInterface.guild.saveGuild(guilds[guildId], session);
+                    await this.dbInterface.guild.saveGuild(
+                        guilds[guildId],
+                        session
+                    );
                 }
 
                 console.log("Saving chars");
@@ -204,7 +208,7 @@ class DBUpdate {
                             );
 
                         if (raidName && bossName)
-                            await dbInterface.leaderboard.saveCharactersToLeaderboard(
+                            await this.dbInterface.leaderboard.saveCharactersToLeaderboard(
                                 Object.values(
                                     characterCollection[bossId][combatMetric]
                                 ),
@@ -219,7 +223,7 @@ class DBUpdate {
 
                 console.log("Characters saved to leaderboards.");
 
-                await dbMaintenance.updateDocument(
+                await this.dbInterface.maintenance.updateDocument(
                     {
                         lastUpdated: updateStarted,
                         lastLogIds: lastLogIds,
@@ -242,11 +246,11 @@ class DBUpdate {
     ): Promise<void> {
         return new Promise(async (resolve, reject) => {
             try {
-                const db = dbMaintenance.getConnection();
+                const db = this.dbInterface.maintenance.getConnection();
 
                 console.log("db: Saving raid bosses");
                 const raidBossCollection = db.collection<RaidBossDocument>(
-                    dbInterface.collections.raidBosses
+                    this.dbInterface.collections.raidBosses
                 );
 
                 const oldBosses = (await raidBossCollection
@@ -304,14 +308,15 @@ class DBUpdate {
     public updateDatabase() {
         return new Promise(async (resolve, reject) => {
             try {
-                const client = dbMaintenance.getClient();
+                const client = this.dbInterface.maintenance.getClient();
                 if (this.isUpdating) throw ERR_DB_ALREADY_UPDATING;
 
                 console.log("Updating database.");
                 const updateStarted = time.getCurrentDateInSeconds();
                 this.isUpdating = true;
 
-                const maintenanceDocument = dbMaintenance.getDocument();
+                const maintenanceDocument =
+                    this.dbInterface.maintenance.getDocument();
 
                 const lastLogIds = maintenanceDocument.lastLogIds;
 
@@ -352,7 +357,7 @@ class DBUpdate {
                     console.log("Transaction session closed");
                 }
 
-                await dbInterface.raidboss.updateRaidBossCache();
+                await this.dbInterface.raidboss.updateRaidBossCache();
                 await this.updateCharacterDocumentRanks();
 
                 cache.clearRaidSummary();
@@ -380,10 +385,11 @@ class DBUpdate {
     updateGuilds(): Promise<void> {
         return new Promise(async (resolve, reject) => {
             try {
-                const db = dbMaintenance.getConnection();
+                const db = this.dbInterface.maintenance.getConnection();
                 if (this.isUpdating) throw ERR_DB_ALREADY_UPDATING;
 
-                const maintenanceDocument = dbMaintenance.getDocument();
+                const maintenanceDocument =
+                    this.dbInterface.maintenance.getDocument();
 
                 if (
                     time.minutesAgo(maintenanceDocument.lastGuildsUpdate) >
@@ -394,13 +400,13 @@ class DBUpdate {
                     console.log("Updating guilds");
                     this.isUpdating = true;
 
-                    await dbMaintenance.updateDocument({
+                    await this.dbInterface.maintenance.updateDocument({
                         lastGuildsUpdate: updateStarted,
                     });
 
                     const guilds = (await db
                         .collection<GuildDocument>(
-                            dbInterface.collections.guilds
+                            this.dbInterface.collections.guilds
                         )
                         .find()
                         .project({
@@ -426,15 +432,18 @@ class DBUpdate {
                                 `Updating ${guild.name} ${current}/${total}`
                             );
 
-                            const newGuildDoc = new documentManager.guild({
-                                guildName: guild.name,
-                                realm: guild.realm,
-                                faction: guild.f,
-                            });
+                            const newGuildDoc = new documentManager.guild(
+                                {
+                                    guildName: guild.name,
+                                    realm: guild.realm,
+                                    faction: guild.f,
+                                },
+                                log
+                            );
 
                             await newGuildDoc.extendData();
 
-                            await dbInterface.guild.saveGuild(newGuildDoc);
+                            await this.dbInterface.guild.saveGuild(newGuildDoc);
                         } catch (err) {
                             if (
                                 validator.isError(err) &&
@@ -443,7 +452,7 @@ class DBUpdate {
                                     ERR_GUILD_NOT_FOUND.message
                                 )
                             ) {
-                                dbInterface.guild.removeGuild(guild._id);
+                                this.dbInterface.guild.removeGuild(guild._id);
                             } else {
                                 console.log(
                                     `Error while updating ${guild.name}:`
@@ -478,7 +487,7 @@ class DBUpdate {
         return new Promise(async (resolve, reject) => {
             try {
                 console.log("Updating character ranks.");
-                const db = dbMaintenance.getConnection();
+                const db = this.dbInterface.maintenance.getConnection();
 
                 const collectionsToUpdate =
                     this.getUpdatedCharacterDocumentCollectionIds();
@@ -547,6 +556,4 @@ export function getCharacterDocumentRankBulkwriteOperations(
     });
 }
 
-const dbUpdate = new DBUpdate();
-
-export default dbUpdate;
+export default DBUpdate;

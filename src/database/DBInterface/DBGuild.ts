@@ -1,17 +1,22 @@
 import { ClientSession } from "mongodb";
-import { GuildDocument, id } from "../helpers";
-import documentManager, { GuildList } from "../helpers/documents";
-import { ERR_GUILD_NOT_FOUND } from "../helpers/errors";
-import { Realm } from "../types";
-import cache from "./Cache";
-import dbInterface from "./DBInterface";
-import dbMaintenance from "./DBMaintenance";
+import { DatabaseInterface } from ".";
+import { GuildDocument, GuildList, id } from "../../helpers";
+import documentManager from "../../helpers/documents";
+import { ERR_GUILD_NOT_FOUND } from "../../helpers/errors";
+import { Realm } from "../../types";
+import cache from "../Cache";
+import log from "../../helpers/log";
 
-class DBGuild {
+export class DBGuild {
+    private dbInterface: DatabaseInterface;
+
+    constructor(dbInterface: DatabaseInterface) {
+        this.dbInterface = dbInterface;
+    }
     async getGuildList(): Promise<GuildList> {
         return new Promise(async (resolve, reject) => {
             try {
-                const db = dbMaintenance.getConnection();
+                const db = this.dbInterface.maintenance.getConnection();
 
                 const guildList = cache.getGuildList();
 
@@ -20,7 +25,7 @@ class DBGuild {
                 } else {
                     const guildList = (await db
                         .collection<GuildDocument>(
-                            dbInterface.collections.guilds
+                            this.dbInterface.collections.guilds
                         )
                         .find()
                         .project({
@@ -45,10 +50,12 @@ class DBGuild {
     async getGuild(realm: Realm, guildName: string) {
         return new Promise(async (resolve, reject) => {
             try {
-                const db = dbMaintenance.getConnection();
+                const db = this.dbInterface.maintenance.getConnection();
 
                 const guild = await db
-                    .collection<GuildDocument>(dbInterface.collections.guilds)
+                    .collection<GuildDocument>(
+                        this.dbInterface.collections.guilds
+                    )
                     .findOne({
                         name: guildName,
                         realm: realm,
@@ -66,10 +73,10 @@ class DBGuild {
     async saveGuild(guildDocument: GuildDocument, session?: ClientSession) {
         return new Promise(async (resolve, reject) => {
             try {
-                const db = dbMaintenance.getConnection();
+                const db = this.dbInterface.maintenance.getConnection();
 
                 const guildsCollection = db.collection<GuildDocument>(
-                    dbInterface.collections.guilds
+                    this.dbInterface.collections.guilds
                 );
 
                 let oldGuild = await guildsCollection.findOne(
@@ -85,7 +92,8 @@ class DBGuild {
                     });
                 } else {
                     const guildDocumentManager = new documentManager.guild(
-                        oldGuild
+                        oldGuild,
+                        log
                     );
                     guildDocumentManager.mergeGuildDocument(guildDocument);
                     const newDocument = guildDocumentManager.getDocument();
@@ -110,10 +118,12 @@ class DBGuild {
     async removeGuild(_id: ReturnType<typeof id.guildId>) {
         return new Promise(async (resolve, reject) => {
             try {
-                const db = dbMaintenance.getConnection();
+                const db = this.dbInterface.maintenance.getConnection();
 
                 await db
-                    .collection<GuildDocument>(dbInterface.collections.guilds)
+                    .collection<GuildDocument>(
+                        this.dbInterface.collections.guilds
+                    )
                     .deleteOne({
                         _id: _id,
                     });
@@ -125,6 +135,4 @@ class DBGuild {
     }
 }
 
-const dbGuild = new DBGuild();
-
-export default dbGuild;
+export default DBGuild;

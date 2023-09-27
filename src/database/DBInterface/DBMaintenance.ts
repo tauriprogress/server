@@ -1,11 +1,12 @@
+import { DBTaskManager } from "./../DBTaskManager";
 import { ClientSession, ObjectId } from "mongodb";
-import environment from "../environment";
-import { ERR_DB_DOC_DOES_NOT_EXIST } from "../helpers/errors";
-import { Realm } from "../types";
-import dbConnection from "./DBConnection";
-import dbInterface from "./DBInterface";
-import dbTaskManager from "./DBTaskManager";
-import { LastLogIds } from "../helpers";
+import { DatabaseInterface } from ".";
+import environment from "../../environment";
+import { LastLogIds } from "../../helpers";
+import { ERR_DB_DOC_DOES_NOT_EXIST } from "../../helpers/errors";
+import { Realm } from "../../types";
+import dbConnection from "../DBConnection";
+const prompt = require("prompt-sync")();
 
 export interface MaintenanceDocument {
     _id: ObjectId;
@@ -17,14 +18,20 @@ export interface MaintenanceDocument {
     isInitalized: boolean;
 }
 
-class DBMaintenance {
+export class DBMaintenance {
     _id: ObjectId;
     lastUpdated: number;
     lastGuildsUpdate: number;
     lastLogIds: LastLogIds;
     isInitalized: boolean;
 
-    constructor() {
+    private dbInterface: DatabaseInterface;
+    private dbTaskManager: DBTaskManager;
+
+    constructor(dbInterface: DatabaseInterface, dBTaskManager: DBTaskManager) {
+        this.dbInterface = dbInterface;
+        this.dbTaskManager = dBTaskManager;
+
         this._id = new ObjectId();
         this.lastUpdated = 0;
         this.lastGuildsUpdate = 0;
@@ -35,15 +42,15 @@ class DBMaintenance {
     async start() {
         try {
             await dbConnection.connect();
-            if (!(await dbInterface.initializer.isInitalized())) {
-                await dbInterface.initializer.initalizeDatabase();
+            if (!(await this.dbInterface.initializer.isInitalized())) {
+                await this.dbInterface.initializer.initalizeDatabase();
             } else if (environment.forceInit) {
                 const confirmation = prompt(
                     "The database is already initalized, are you sure to reinitalize it? (Y/n)"
                 );
 
                 if (confirmation === "y" || confirmation === "Y") {
-                    await dbInterface.initializer.initalizeDatabase();
+                    await this.dbInterface.initializer.initalizeDatabase();
                     process.exit(0);
                 }
             }
@@ -51,7 +58,7 @@ class DBMaintenance {
             const connection = dbConnection.getConnection();
             const maintenanceCollection =
                 connection.collection<MaintenanceDocument>(
-                    dbInterface.collections.maintenance
+                    this.dbInterface.collections.maintenance
                 );
 
             const doc = await maintenanceCollection.findOne();
@@ -67,7 +74,7 @@ class DBMaintenance {
             process.exit(1);
         }
 
-        dbTaskManager.start();
+        this.dbTaskManager.start();
     }
 
     updateDocument(
@@ -107,7 +114,7 @@ class DBMaintenance {
                 const connection = dbConnection.getConnection();
                 const maintenanceCollection =
                     connection.collection<MaintenanceDocument>(
-                        dbInterface.collections.maintenance
+                        this.dbInterface.collections.maintenance
                     );
 
                 await maintenanceCollection.updateOne(
@@ -145,6 +152,4 @@ class DBMaintenance {
     }
 }
 
-export const dbMaintenance = new DBMaintenance();
-
-export default dbMaintenance;
+export default DBMaintenance;

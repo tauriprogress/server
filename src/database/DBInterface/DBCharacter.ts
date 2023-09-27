@@ -1,20 +1,26 @@
-import environment from "../environment";
+import environment from "../../environment";
 import {
     CharacterDocument,
     CharacterDocumentCollectionId,
+    CharacterPerformance,
     addNestedObjectValue,
     capitalize,
     getNestedObjectValue,
     getRelativePerformance,
     id,
-} from "../helpers";
-import documentManager, { CharacterPerformance } from "../helpers/documents";
-import { ClassId, CombatMetric, RaidName, Realm, SpecId } from "../types";
-import cache from "./Cache";
-import dbInterface from "./DBInterface";
-import dbMaintenance from "./DBMaintenance";
+} from "../../helpers";
+import documentManager from "../../helpers/documents";
+import { ClassId, CombatMetric, RaidName, Realm, SpecId } from "../../types";
+import cache from "../Cache";
+import { DatabaseInterface } from ".";
 
-class DBCharacter {
+export class DBCharacter {
+    private dbInterface: DatabaseInterface;
+
+    constructor(dbInterface: DatabaseInterface) {
+        this.dbInterface = dbInterface;
+    }
+
     async getCharacterPerformance(
         characterName: string,
         characterClass: ClassId,
@@ -23,7 +29,7 @@ class DBCharacter {
     ): Promise<CharacterPerformance> {
         return new Promise(async (resolve, reject) => {
             try {
-                const db = dbMaintenance.getConnection();
+                const db = this.dbInterface.maintenance.getConnection();
 
                 const cacheId = id.cache.characterPerformanceCacheId(
                     characterName,
@@ -104,7 +110,9 @@ class DBCharacter {
 
                     const result = (
                         await db
-                            .collection(dbInterface.collections.maintenance)
+                            .collection(
+                                this.dbInterface.collections.maintenance
+                            )
                             .aggregate([
                                 { $limit: 1 },
                                 { $project: { _id: 1 } },
@@ -159,7 +167,7 @@ class DBCharacter {
 
                                 const raidBossManager =
                                     new documentManager.raidBoss(
-                                        await dbInterface.raidboss.getRaidBoss(
+                                        await this.dbInterface.raidboss.getRaidBoss(
                                             ingameBossId,
                                             difficulty
                                         )
@@ -387,6 +395,4 @@ class DBCharacter {
     }
 }
 
-const dbCharacter = new DBCharacter();
-
-export default dbCharacter;
+export default DBCharacter;

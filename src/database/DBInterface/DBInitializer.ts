@@ -1,18 +1,28 @@
-import environment from "../environment";
-import { CharacterDocument, LastLogIds, id, log } from "../helpers";
-import documentManager from "../helpers/documents";
-import { LeaderboardCharacterDocument } from "../helpers/documents/leaderboardCharacter";
-import { ERR_DB_ALREADY_UPDATING } from "../helpers/errors";
-import { CombatMetric, Difficulty } from "../types";
-import dbInterface from "./DBInterface";
-import dbMaintenance, { MaintenanceDocument } from "./DBMaintenance";
+import { DatabaseInterface } from ".";
+import environment from "../../environment";
+import {
+    CharacterDocument,
+    LastLogIds,
+    LeaderboardCharacterDocument,
+    id,
+    log,
+} from "../../helpers";
+import documentManager from "../../helpers/documents";
+import { ERR_DB_ALREADY_UPDATING } from "../../helpers/errors";
+import { CombatMetric, Difficulty } from "../../types";
+import { MaintenanceDocument } from "./DBMaintenance";
 
-class DBInitializer {
+export class DBInitializer {
+    private dbInterface: DatabaseInterface;
+
+    constructor(dbInterface: DatabaseInterface) {
+        this.dbInterface = dbInterface;
+    }
     async initalizeDatabase(): Promise<true> {
         return new Promise(async (resolve, reject) => {
             try {
-                const db = dbMaintenance.getConnection();
-                if (dbInterface.update.isUpdating)
+                const db = this.dbInterface.maintenance.getConnection();
+                if (this.dbInterface.update.isUpdating)
                     throw ERR_DB_ALREADY_UPDATING;
 
                 console.log("Initalizing database.");
@@ -20,10 +30,12 @@ class DBInitializer {
 
                 const maintenanceCollection =
                     db.collection<MaintenanceDocument>(
-                        dbInterface.collections.maintenance
+                        this.dbInterface.collections.maintenance
                     );
 
-                maintenanceCollection.insertOne(dbMaintenance.getDocument());
+                maintenanceCollection.insertOne(
+                    this.dbInterface.maintenance.getDocument()
+                );
 
                 for (const raid of environment.currentContent.raids) {
                     for (const boss of raid.bosses) {
@@ -41,7 +53,7 @@ class DBInitializer {
                                     bossId: id.raidBossId(ingameBossId, diff),
                                 });
 
-                            await dbInterface.raidboss.saveRaidBoss(
+                            await this.dbInterface.raidboss.saveRaidBoss(
                                 raidBossDocumentManager.getDocument()
                             );
 
@@ -70,9 +82,9 @@ class DBInitializer {
                     const leaderboardCollection =
                         db.collection<LeaderboardCharacterDocument>(
                             combatMetric === "dps"
-                                ? dbInterface.collections
+                                ? this.dbInterface.collections
                                       .characterLeaderboardDps
-                                : dbInterface.collections
+                                : this.dbInterface.collections
                                       .characterLeaderboardHps
                         );
                     if (await leaderboardCollection.findOne({}))
@@ -84,7 +96,7 @@ class DBInitializer {
                 }
 
                 const updateStarted = new Date().getTime() / 1000;
-                dbInterface.update.isUpdating = true;
+                this.dbInterface.update.isUpdating = true;
                 const lastLogIds = {};
 
                 let { logs, lastLogIds: newLastLogIds } =
@@ -107,17 +119,17 @@ class DBInitializer {
 
                 console.log("Saving raid bosses.");
                 for (const bossId in bosses) {
-                    await dbInterface.raidboss.saveRaidBoss(
+                    await this.dbInterface.raidboss.saveRaidBoss(
                         bosses[bossId].getDocument()
                     );
                 }
 
                 // initalization should keep this empty since there is no update
-                dbInterface.update.resetUpdatedBossIds();
+                this.dbInterface.update.resetUpdatedBossIds();
 
                 console.log("Saving guilds.");
                 for (const guildId in guilds) {
-                    await dbInterface.guild.saveGuild(
+                    await this.dbInterface.guild.saveGuild(
                         guilds[guildId].getDocument()
                     );
                 }
@@ -163,14 +175,14 @@ class DBInitializer {
                                     ingameBossId
                                 );
                             if (raidName && bossName)
-                                await dbInterface.leaderboard.saveCharactersToLeaderboard(
+                                await this.dbInterface.leaderboard.saveCharactersToLeaderboard(
                                     characters,
                                     raidName,
                                     difficulty,
                                     bossName,
                                     combatMetric
                                 );
-                            dbInterface.update.addToUpdatedCharacterDocumentCollections(
+                            this.dbInterface.update.addToUpdatedCharacterDocumentCollections(
                                 collectionName
                             );
                         } catch (err) {
@@ -181,24 +193,24 @@ class DBInitializer {
                 console.log("Characters saved.");
 
                 console.log("Update character ranks");
-                await dbInterface.update.updateCharacterDocumentRanks();
+                await this.dbInterface.update.updateCharacterDocumentRanks();
                 console.log("Character ranks updated");
 
-                await dbMaintenance.updateDocument({
+                await this.dbInterface.maintenance.updateDocument({
                     lastUpdated: updateStarted,
                     lastLogIds: newLastLogIds,
                     lastGuildsUpdate: updateStarted,
                     isInitalized: true,
                 });
 
-                await dbInterface.raidboss.updateRaidBossCache();
+                await this.dbInterface.raidboss.updateRaidBossCache();
 
-                dbInterface.update.isUpdating = false;
+                this.dbInterface.update.isUpdating = false;
 
                 console.log("Initalization done.");
                 resolve(true);
             } catch (err) {
-                dbInterface.update.isUpdating = false;
+                this.dbInterface.update.isUpdating = false;
                 reject(err);
             }
         });
@@ -207,11 +219,11 @@ class DBInitializer {
     async isInitalized(): Promise<boolean> {
         return new Promise(async (resolve, reject) => {
             try {
-                const db = dbMaintenance.getConnection();
+                const db = this.dbInterface.maintenance.getConnection();
 
                 const maintenance = await db
                     .collection<MaintenanceDocument>(
-                        dbInterface.collections.maintenance
+                        this.dbInterface.collections.maintenance
                     )
                     .findOne({});
 
@@ -240,6 +252,4 @@ class DBInitializer {
     }
 }
 
-export const initializer = new DBInitializer();
-
-export default initializer;
+export default DBInitializer;

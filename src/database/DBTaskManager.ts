@@ -1,30 +1,39 @@
-import dbInterface from "./DBInterface";
+import { DatabaseInterface } from "./DBInterface/index";
 
-const tasks = [
-    {
-        name: "Update database",
-        interval: 1000 * 60 * 30,
-        minDelay: 1000 * 60 * 15,
-        perform: dbInterface.update.updateDatabase.bind(dbInterface.update),
-    },
-    {
-        name: "Update guilds",
-        interval: 1000 * 60 * 60 * 36,
-        minDelay: 1000 * 60 * 60 * 30,
-        perform: dbInterface.update.updateGuilds.bind(dbInterface.update),
-    },
-];
+interface Task {
+    name: string;
+    interval: number;
+    minDelay: number;
+    perform: Function;
+}
 
-class DBTaskManager {
+export class DBTaskManager {
     private started: boolean;
-    private tasks: typeof tasks;
-    private queue: (typeof tasks)[number][];
+    private tasks: Task[];
+    private queue: Task[];
     private unpause: any;
 
-    constructor() {
+    constructor(dbInterface: DatabaseInterface) {
         this.started = false;
-        this.tasks = tasks;
         this.queue = [];
+        this.tasks = [
+            {
+                name: "Update database",
+                interval: 1000 * 60 * 30,
+                minDelay: 1000 * 60 * 15,
+                perform: dbInterface.update.updateDatabase.bind(
+                    dbInterface.update
+                ),
+            },
+            {
+                name: "Update guilds",
+                interval: 1000 * 60 * 60 * 36,
+                minDelay: 1000 * 60 * 60 * 30,
+                perform: dbInterface.update.updateGuilds.bind(
+                    dbInterface.update
+                ),
+            },
+        ];
 
         for (const task of this.tasks) {
             this.addTask(task);
@@ -67,7 +76,7 @@ class DBTaskManager {
         }
     }
 
-    addTask(task: (typeof tasks)[number]) {
+    addTask(task: Task) {
         this.queue.push(task);
 
         if (this.unpause) {
@@ -92,6 +101,4 @@ class DBTaskManager {
     }
 }
 
-const dbTaskManager = new DBTaskManager();
-
-export default dbTaskManager;
+export default DBTaskManager;

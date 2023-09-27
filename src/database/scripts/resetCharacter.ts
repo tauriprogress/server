@@ -12,15 +12,14 @@ import {
 } from "../../helpers";
 import documentManager from "../../helpers/documents";
 import dbInterface from "../DBInterface";
-import dbMaintenance from "../DBMaintenance";
 
 export async function resetCharacter(
     characterName: string,
     realm: Realm,
     classId: ClassId
 ) {
-    await dbMaintenance.start();
-    const db = dbMaintenance.getConnection();
+    await dbInterface.maintenance.start();
+    const db = dbInterface.maintenance.getConnection();
 
     for (const raid of environment.currentContent.raids) {
         for (const boss of raid.bosses) {

@@ -8,7 +8,6 @@ import dbInterface from "./database/DBInterface";
 import tauriApi from "./tauriApi";
 
 import cache from "./database/Cache";
-import dbMaintenance from "./database/DBMaintenance";
 import environment from "./environment";
 import { validator } from "./helpers";
 import { ERR_UNKNOWN } from "./helpers/errors";
@@ -26,7 +25,7 @@ const speedLimiter = slowDown({
 });
 
 (async function () {
-    await dbMaintenance.start();
+    await dbInterface.maintenance.start();
 
     app.use(
         cors({

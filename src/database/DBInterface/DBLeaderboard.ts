@@ -1,24 +1,26 @@
 import { ClientSession } from "mongodb";
-import environment from "../environment";
+import { DatabaseInterface } from ".";
+import environment from "../../environment";
 import {
     CharacterDocument,
     GuildDocument,
     GuildLeaderboard,
-    capitalize,
-    id,
-} from "../helpers";
-import {
     LeaderboardCharacterDocument,
     LeaderboardCharacterScoredDocument,
+    capitalize,
     createLeaderboardCharacterDocument,
-} from "../helpers/documents/leaderboardCharacter";
-import { CombatMetric, Difficulty, RaidName } from "../types";
-import { Filters, filter } from "./../helpers/filter";
-import cache from "./Cache";
-import dbInterface from "./DBInterface";
-import dbMaintenance from "./DBMaintenance";
+    id,
+} from "../../helpers";
+import filter, { Filters } from "../../helpers/filter";
+import { CombatMetric, Difficulty, RaidName } from "../../types";
+import cache from "../Cache";
 
-class DBLeaderboard {
+export class DBLeaderboard {
+    private dbInterface: DatabaseInterface;
+
+    constructor(dbInterface: DatabaseInterface) {
+        this.dbInterface = dbInterface;
+    }
     async getCharacterLeaderboard(
         raidName: RaidName,
         combatMetric: CombatMetric,
@@ -28,7 +30,7 @@ class DBLeaderboard {
     ) {
         return new Promise(async (resolve, reject) => {
             try {
-                const db = dbMaintenance.getConnection();
+                const db = this.dbInterface.maintenance.getConnection();
 
                 const leaderboardId = id.cache.characterLeaderboardCacheId(
                     raidName,
@@ -49,7 +51,7 @@ class DBLeaderboard {
                     for (const boss of bosses) {
                         bestPerformances[boss.name] =
                             (
-                                await dbInterface.raidboss.getRaidBoss(
+                                await this.dbInterface.raidboss.getRaidBoss(
                                     boss.bossIdOfDifficulty[
                                         filters.difficulty as keyof typeof boss.bossIdOfDifficulty
                                     ],
@@ -63,9 +65,9 @@ class DBLeaderboard {
                     const collection =
                         db.collection<LeaderboardCharacterDocument>(
                             combatMetric === "dps"
-                                ? dbInterface.collections
+                                ? this.dbInterface.collections
                                       .characterLeaderboardDps
-                                : dbInterface.collections
+                                : this.dbInterface.collections
                                       .characterLeaderboardHps
                         );
 
@@ -176,7 +178,7 @@ class DBLeaderboard {
     async getGuildLeaderboard(): Promise<GuildLeaderboard> {
         return new Promise(async (resolve, reject) => {
             try {
-                const db = dbMaintenance.getConnection();
+                const db = this.dbInterface.maintenance.getConnection();
 
                 const cachedData = cache.getGuildLeaderboard();
 
@@ -185,7 +187,7 @@ class DBLeaderboard {
                 } else {
                     const guildLeaderboard = (await db
                         .collection<GuildDocument>(
-                            dbInterface.collections.guilds
+                            this.dbInterface.collections.guilds
                         )
                         .find()
                         .project({
@@ -219,11 +221,11 @@ class DBLeaderboard {
     ) {
         return new Promise(async (resolve, reject) => {
             try {
-                const db = dbMaintenance.getConnection();
+                const db = this.dbInterface.maintenance.getConnection();
                 const collection = db.collection<LeaderboardCharacterDocument>(
                     combatMetric === "dps"
-                        ? dbInterface.collections.characterLeaderboardDps
-                        : dbInterface.collections.characterLeaderboardHps
+                        ? this.dbInterface.collections.characterLeaderboardDps
+                        : this.dbInterface.collections.characterLeaderboardHps
                 );
 
                 await collection.bulkWrite(
@@ -275,6 +277,4 @@ class DBLeaderboard {
     }
 }
 
-const dbLeaderboard = new DBLeaderboard();
-
-export default dbLeaderboard;
+export default DBLeaderboard;

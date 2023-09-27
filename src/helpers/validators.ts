@@ -1,10 +1,57 @@
 import environment from "../environment";
 import { Difficulty, LastRaidLogWithRealm, Realm, ShortRealm } from "../types";
-import filter from "./filter";
 
 class Validator {
-    validFilters = filter.isValidFilter;
+    validFilters(raidId: number, filters: any) {
+        if (
+            typeof filters === "object" &&
+            filters !== null &&
+            !Array.isArray(filters)
+        ) {
+            if (
+                filters.difficulty === undefined ||
+                !this.validDifficulty(raidId, filters.difficulty)
+            ) {
+                return false;
+            }
 
+            if (
+                filters.realm !== undefined &&
+                !this.validRealm(filters.realm)
+            ) {
+                return false;
+            }
+
+            if (
+                filters.class !== undefined &&
+                !this.validClass(filters.class)
+            ) {
+                return false;
+            }
+
+            if (filters.spec !== undefined && !this.validSpec(filters.spec)) {
+                return false;
+            }
+
+            if (
+                filters.role !== undefined &&
+                !validator.validRole(filters.role)
+            ) {
+                return false;
+            }
+
+            if (
+                filters.faction !== undefined &&
+                !this.validFaction(filters.faction)
+            ) {
+                return false;
+            }
+
+            return true;
+        }
+
+        return false;
+    }
     validRaidLog(log: LastRaidLogWithRealm) {
         if (
             this.validRaidLogDate(new Date(log.killtime * 1000)) &&

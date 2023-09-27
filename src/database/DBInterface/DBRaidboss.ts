@@ -1,17 +1,20 @@
 import { ClientSession } from "mongodb";
-import { CharacterDocument, RaidBossDocument, id } from "../helpers";
-import documentManager from "../helpers/documents";
-import { ERR_BOSS_NOT_FOUND } from "../helpers/errors";
-import filter, { Filters } from "../helpers/filter";
-import { CombatMetric, Difficulty, Faction, Realm, TrimmedLog } from "../types";
-import cache from "./Cache";
-import dbInterface from "./DBInterface";
-import dbMaintenance from "./DBMaintenance";
+import { Faction } from "tauriprogress-constants/build/globalTypes";
+import { DatabaseInterface } from ".";
+import { CharacterDocument, RaidBossDocument, id } from "../../helpers";
+import documentManager from "../../helpers/documents";
+import { ERR_BOSS_NOT_FOUND } from "../../helpers/errors";
+import filter, { Filters } from "../../helpers/filter";
+import { CombatMetric, Difficulty, Realm, TrimmedLog } from "../../types";
+import cache from "../Cache";
 
-class DBRaidboss {
+export class DBRaidboss {
     public firstRaidbossCacheLoad: boolean | Promise<true>;
 
-    constructor() {
+    private dbInterface: DatabaseInterface;
+
+    constructor(dbInterface: DatabaseInterface) {
+        this.dbInterface = dbInterface;
         this.firstRaidbossCacheLoad = false;
     }
 
@@ -21,7 +24,7 @@ class DBRaidboss {
     ): Promise<RaidBossDocument> {
         return new Promise(async (resolve, reject) => {
             try {
-                const db = dbMaintenance.getConnection();
+                const db = this.dbInterface.maintenance.getConnection();
 
                 const bossId = id.raidBossId(ingameBossId, difficulty);
 
@@ -32,7 +35,7 @@ class DBRaidboss {
                 } else {
                     const bossData = await db
                         .collection<RaidBossDocument>(
-                            dbInterface.collections.raidBosses
+                            this.dbInterface.collections.raidBosses
                         )
                         .findOne({ _id: bossId });
 
@@ -124,7 +127,7 @@ class DBRaidboss {
     ): Promise<{ characters: CharacterDocument[]; itemCount: number }> {
         return new Promise(async (resolve, reject) => {
             try {
-                const db = dbMaintenance.getConnection();
+                const db = this.dbInterface.maintenance.getConnection();
 
                 const collection = db.collection<CharacterDocument>(
                     id.characterDocumentCollectionId(
@@ -183,10 +186,10 @@ class DBRaidboss {
     async saveRaidBoss(boss: RaidBossDocument, session?: ClientSession) {
         return new Promise(async (resolve, reject) => {
             try {
-                const db = dbMaintenance.getConnection();
+                const db = this.dbInterface.maintenance.getConnection();
 
                 const raidCollection = db.collection<RaidBossDocument>(
-                    dbInterface.collections.raidBosses
+                    this.dbInterface.collections.raidBosses
                 );
 
                 const oldBoss = await raidCollection.findOne(
@@ -221,7 +224,7 @@ class DBRaidboss {
                     );
                 }
 
-                dbInterface.update.addToUpdatedRaidbosses(boss._id);
+                this.dbInterface.update.addToUpdatedRaidbosses(boss._id);
 
                 resolve(true);
             } catch (err) {
@@ -234,11 +237,11 @@ class DBRaidboss {
         const fullLoad = async (): Promise<true> => {
             return new Promise(async (resolve, reject) => {
                 try {
-                    const db = dbMaintenance.getConnection();
+                    const db = this.dbInterface.maintenance.getConnection();
 
                     for (const boss of await db
                         .collection<RaidBossDocument>(
-                            dbInterface.collections.raidBosses
+                            this.dbInterface.collections.raidBosses
                         )
                         .find()
                         .toArray()) {
@@ -256,18 +259,18 @@ class DBRaidboss {
             try {
                 console.log("Updating raidboss cache.");
 
-                const db = dbMaintenance.getConnection();
+                const db = this.dbInterface.maintenance.getConnection();
 
                 if (!this.firstRaidbossCacheLoad) {
                     this.firstRaidbossCacheLoad = fullLoad();
                 } else {
                     const bossesToUpdate =
-                        dbInterface.update.getUpdatedBossIds();
+                        this.dbInterface.update.getUpdatedBossIds();
 
                     for (const bossId of bossesToUpdate) {
                         const boss = await db
                             .collection<RaidBossDocument>(
-                                dbInterface.collections.raidBosses
+                                this.dbInterface.collections.raidBosses
                             )
                             .findOne({ _id: bossId });
                         if (boss) {
@@ -275,7 +278,7 @@ class DBRaidboss {
                         }
                     }
 
-                    dbInterface.update.resetUpdatedBossIds();
+                    this.dbInterface.update.resetUpdatedBossIds();
                 }
                 console.log("Raidboss cache updated.");
                 resolve();
@@ -286,6 +289,4 @@ class DBRaidboss {
     }
 }
 
-const dbRaidboss = new DBRaidboss();
-
-export default dbRaidboss;
+export default DBRaidboss;
