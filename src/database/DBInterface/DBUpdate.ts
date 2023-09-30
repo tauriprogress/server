@@ -269,10 +269,20 @@ export class DBUpdate {
                     .toArray()) as RaidBossDocument[];
 
                 let operations = [];
-                for (const oldBoss of oldBosses) {
+
+                for (const bossId in bosses) {
+                    const currentBoss = bosses[bossId];
+                    const oldBoss = oldBosses.find(
+                        (boss) => boss._id === bossId
+                    );
+                    if (!oldBoss) continue;
+
                     const raidBossDocumentManager =
                         new documentManager.raidBoss(oldBoss);
-                    raidBossDocumentManager.mergeRaidBossDocument(oldBoss);
+
+                    raidBossDocumentManager.mergeRaidBossDocument(
+                        currentBoss.getDocument()
+                    );
 
                     const newDocument = raidBossDocumentManager.getDocument();
 
@@ -292,10 +302,12 @@ export class DBUpdate {
                     await raidBossCollection.bulkWrite(operations, {
                         session,
                     });
-                }
 
-                for (const bossId in bosses) {
-                    this.addToUpdatedRaidbosses(bossId);
+                    for (const operation of operations) {
+                        this.addToUpdatedRaidbosses(
+                            operation.updateOne.filter._id
+                        );
+                    }
                 }
 
                 resolve();
