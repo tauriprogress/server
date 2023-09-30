@@ -178,9 +178,9 @@ export class GuildDocumentController {
             obj = JSON.parse(JSON.stringify(obj)) as GuildDocument;
 
             this._id = obj._id;
-            this.f = obj.faction;
+            this.f = obj.f;
             this.realm = obj.realm;
-            this.name = obj.guildName;
+            this.name = obj.name;
             this.members = obj.members;
             this.ranks = obj.ranks;
             this.activity = obj.activity;
