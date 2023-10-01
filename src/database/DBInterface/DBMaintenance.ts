@@ -44,6 +44,7 @@ export class DBMaintenance {
             await dbConnection.connect();
             if (!(await this.dbInterface.initializer.isInitalized())) {
                 await this.dbInterface.initializer.initalizeDatabase();
+                process.exit(0);
             } else if (environment.forceInit) {
                 const confirmation = prompt(
                     "The database is already initalized, are you sure to reinitalize it? (Y/n)"

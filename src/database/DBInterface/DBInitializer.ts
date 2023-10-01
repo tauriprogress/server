@@ -199,9 +199,10 @@ export class DBInitializer {
                 await this.dbInterface.maintenance.updateDocument({
                     lastUpdated: updateStarted,
                     lastLogIds: newLastLogIds,
-                    lastGuildsUpdate: updateStarted,
                     isInitalized: true,
                 });
+
+                await this.dbInterface.update.updateGuilds();
 
                 await this.dbInterface.raidboss.updateRaidBossCache();
 
