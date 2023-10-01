@@ -444,46 +444,24 @@ export class GuildDocumentController {
         });
     }
 
+    refreshValues() {
+        this.resfreshRaidDaysLatest();
+        this.refreshProgressionCompletion();
+        this.refreshRanking();
+    }
+
     mergeGuildDocument(guild: GuildDocument): void {
-        const updateFaction = () => {
+        const mergeFaction = () => {
             this.f = guild.f;
         };
 
-        const updateProgressionLatestKills = () => {
+        const mergeProgressionLatestKills = () => {
             this.progression.latestKills = guild.progression.latestKills
                 .concat(this.progression.latestKills)
                 .slice(0, 50);
-
-            const updateRaidDaysLatest = () => {
-                let { latest: raidDays } = JSON.parse(
-                    JSON.stringify(this.createGuildRaidDays())
-                );
-
-                const timeBoundary = time
-                    .getLatestWednesday(
-                        new Date(new Date().getTime() - environment.week * 2)
-                    )
-                    .getTime();
-
-                for (const log of this.progression.latestKills) {
-                    if (log.date * 1000 > timeBoundary) {
-                        let logDate = new Date(log.date * 1000);
-
-                        raidDays[time.unshiftDateDay(logDate.getUTCDay())][
-                            logDate.getUTCHours()
-                        ] += 1;
-                    } else {
-                        break;
-                    }
-                }
-
-                this.raidDays.latest = raidDays;
-            };
-
-            updateRaidDaysLatest();
         };
 
-        const updateProgressionRaidBoss = () => {
+        const mergeProgressionRaidBoss = () => {
             let raidName: keyof typeof guild.progression.raids;
             for (raidName in guild.progression.raids) {
                 for (const key in guild.progression.raids[raidName]) {
@@ -548,17 +526,9 @@ export class GuildDocumentController {
                     }
                 }
             }
-
-            const updateProgressionCompletion = () => {
-                this.progression.completion = getGuildContentCompletion(
-                    this.progression.raids
-                );
-            };
-
-            updateProgressionCompletion();
         };
 
-        const updateRaidDaysTotal = () => {
+        const mergeRaidDaysTotal = () => {
             for (let [day, hours] of guild.raidDays.total.entries()) {
                 for (let [hour, killCount] of hours.entries()) {
                     this.raidDays.total[day][hour] += killCount;
@@ -566,14 +536,14 @@ export class GuildDocumentController {
             }
         };
 
-        const updateActivity = () => {
+        const mergeActivity = () => {
             this.activity = {
                 ...this.activity,
                 ...guild.activity,
             };
         };
 
-        const updateRanking = () => {
+        const mergeRanking = () => {
             let raidName: keyof typeof guild.progression.raids;
             for (raidName in guild.ranking) {
                 for (const key in guild.ranking[raidName]) {
@@ -668,41 +638,73 @@ export class GuildDocumentController {
                     }
                 }
             }
-
-            const refreshRanking = () => {
-                let raidName: RaidName;
-                for (raidName in this.ranking) {
-                    for (const key in this.ranking[raidName]) {
-                        const difficulty = Number(key) as unknown as Difficulty;
-                        this.ranking = addNestedObjectValue(
-                            this.ranking,
-                            [raidName, difficulty, "fastestKills"],
-                            fastestGuildRanking(raidName, difficulty, this)
-                        );
-
-                        const fullClear =
-                            guild.ranking?.[raidName]?.[difficulty]?.fullClear;
-
-                        if (!fullClear) continue;
-
-                        this.ranking = addNestedObjectValue(
-                            this.ranking,
-                            [raidName, difficulty, "fullClear"],
-                            fullClearGuildRanking(fullClear, raidName)
-                        );
-                    }
-                }
-            };
-
-            refreshRanking();
         };
 
-        updateFaction();
-        updateProgressionLatestKills();
-        updateProgressionRaidBoss();
-        updateRaidDaysTotal();
-        updateActivity();
-        updateRanking();
+        mergeFaction();
+        mergeProgressionLatestKills();
+        mergeProgressionRaidBoss();
+        mergeRaidDaysTotal();
+        mergeActivity();
+        mergeRanking();
+
+        this.refreshValues();
+    }
+
+    private resfreshRaidDaysLatest() {
+        let { latest: raidDays } = JSON.parse(
+            JSON.stringify(this.createGuildRaidDays())
+        );
+
+        const timeBoundary = time
+            .getLatestWednesday(
+                new Date(new Date().getTime() - environment.week * 2)
+            )
+            .getTime();
+
+        for (const log of this.progression.latestKills) {
+            if (log.date * 1000 > timeBoundary) {
+                let logDate = new Date(log.date * 1000);
+
+                raidDays[time.unshiftDateDay(logDate.getUTCDay())][
+                    logDate.getUTCHours()
+                ] += 1;
+            } else {
+                break;
+            }
+        }
+
+        this.raidDays.latest = raidDays;
+    }
+
+    private refreshProgressionCompletion() {
+        this.progression.completion = getGuildContentCompletion(
+            this.progression.raids
+        );
+    }
+
+    private refreshRanking() {
+        let raidName: RaidName;
+        for (raidName in this.ranking) {
+            for (const key in this.ranking[raidName]) {
+                const difficulty = Number(key) as unknown as Difficulty;
+                this.ranking = addNestedObjectValue(
+                    this.ranking,
+                    [raidName, difficulty, "fastestKills"],
+                    fastestGuildRanking(raidName, difficulty, this)
+                );
+
+                const fullClear =
+                    this.ranking?.[raidName]?.[difficulty]?.fullClear;
+
+                if (!fullClear) continue;
+
+                this.ranking = addNestedObjectValue(
+                    this.ranking,
+                    [raidName, difficulty, "fullClear"],
+                    fullClearGuildRanking(fullClear, raidName)
+                );
+            }
+        }
     }
 }
 

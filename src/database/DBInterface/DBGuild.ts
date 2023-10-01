@@ -1,7 +1,9 @@
 import { ClientSession } from "mongodb";
 import { DatabaseInterface } from ".";
 import { GuildDocument, GuildList, id } from "../../helpers";
-import documentManager from "../../helpers/documents";
+import documentManager, {
+    GuildDocumentController,
+} from "../../helpers/documents";
 import { ERR_GUILD_NOT_FOUND } from "../../helpers/errors";
 import { Realm } from "../../types";
 import cache from "../Cache";
@@ -70,7 +72,7 @@ export class DBGuild {
         });
     }
 
-    async saveGuild(guildDocument: GuildDocument, session?: ClientSession) {
+    async saveGuild(guild: GuildDocumentController, session?: ClientSession) {
         return new Promise(async (resolve, reject) => {
             try {
                 const db = this.dbInterface.maintenance.getConnection();
@@ -81,13 +83,14 @@ export class DBGuild {
 
                 let oldGuild = await guildsCollection.findOne(
                     {
-                        _id: guildDocument._id,
+                        _id: guild.getDocument()._id,
                     },
                     { session }
                 );
 
                 if (!oldGuild) {
-                    await guildsCollection.insertOne(guildDocument, {
+                    guild.refreshValues();
+                    await guildsCollection.insertOne(guild.getDocument(), {
                         session,
                     });
                 } else {
@@ -95,7 +98,9 @@ export class DBGuild {
                         oldGuild,
                         log
                     );
-                    guildDocumentManager.mergeGuildDocument(guildDocument);
+                    guildDocumentManager.mergeGuildDocument(
+                        guild.getDocument()
+                    );
                     const newDocument = guildDocumentManager.getDocument();
 
                     await guildsCollection.updateOne(

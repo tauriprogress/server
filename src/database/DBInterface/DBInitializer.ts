@@ -129,9 +129,7 @@ export class DBInitializer {
 
                 console.log("Saving guilds.");
                 for (const guildId in guilds) {
-                    await this.dbInterface.guild.saveGuild(
-                        guilds[guildId].getDocument()
-                    );
+                    await this.dbInterface.guild.saveGuild(guilds[guildId]);
                 }
 
                 console.log("Saving characters.");
@@ -201,12 +199,9 @@ export class DBInitializer {
                     lastLogIds: newLastLogIds,
                     isInitalized: true,
                 });
-
-                await this.dbInterface.update.updateGuilds();
-
                 await this.dbInterface.raidboss.updateRaidBossCache();
-
                 this.dbInterface.update.isUpdating = false;
+                await this.dbInterface.update.updateGuilds();
 
                 console.log("Initalization done.");
                 resolve(true);
