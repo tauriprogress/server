@@ -231,8 +231,8 @@ export class DBCharacter {
                                         bestOfCharacter[combatMetric];
 
                                     if (
-                                        characterDocPerf &&
-                                        bestOfCharPerf &&
+                                        typeof characterDocPerf === "number" &&
+                                        typeof bestOfCharPerf === "number" &&
                                         characterDocPerf > bestOfCharPerf
                                     ) {
                                         bestOfCharacter = characterDoc;
@@ -343,7 +343,7 @@ export class DBCharacter {
                         const bestDocCombatMetric =
                             bestDoc && bestDoc[combatMetric];
 
-                        if (!docCombatMetric) {
+                        if (typeof docCombatMetric !== "number") {
                             return;
                         }
 
