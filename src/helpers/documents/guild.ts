@@ -455,6 +455,13 @@ export class GuildDocumentController {
             this.f = guild.f;
         };
 
+        const mergeMembers = () => {
+            this.members = JSON.parse(JSON.stringify(guild.members));
+        };
+        const mergeRanks = () => {
+            this.ranks = JSON.parse(JSON.stringify(guild.ranks));
+        };
+
         const mergeProgressionLatestKills = () => {
             this.progression.latestKills = guild.progression.latestKills
                 .concat(this.progression.latestKills)
@@ -641,6 +648,8 @@ export class GuildDocumentController {
         };
 
         mergeFaction();
+        mergeMembers();
+        mergeRanks();
         mergeProgressionLatestKills();
         mergeProgressionRaidBoss();
         mergeRaidDaysTotal();
