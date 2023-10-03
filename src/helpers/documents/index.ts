@@ -2,14 +2,14 @@ export * from "./character";
 export * from "./guild";
 export * from "./leaderboardCharacter";
 export * from "./raidBoss";
-export * from "./weeklyFullClear";
+export * from "./weeklyGuildFullClear";
 import { characterDocument } from "./character";
 import { GuildDocumentController } from "./guild";
 import RaidBossDocumentController from "./raidBoss";
-import WeeklyFullClearDocumentController from "./weeklyFullClear";
+import WeeklyGuildFullClearDocumentController from "./weeklyGuildFullClear";
 
 class DocumentManager {
-    weeklyFullClear = WeeklyFullClearDocumentController;
+    weeklyGuildFullClear = WeeklyGuildFullClearDocumentController;
     raidBoss = RaidBossDocumentController;
     guild = GuildDocumentController;
     character = characterDocument;

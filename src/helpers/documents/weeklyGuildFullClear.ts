@@ -19,7 +19,7 @@ export interface FullClearLog {
     bossName: string;
 }
 
-export interface WeeklyFullClearDocument extends Document {
+export interface WeeklyGuildFullClearDocument extends Document {
     _id: ObjectId;
     members: string[];
     difficulty: Difficulty;
@@ -31,7 +31,7 @@ export interface WeeklyFullClearDocument extends Document {
     time: number | false;
 }
 
-export class WeeklyFullClearDocumentController {
+export class WeeklyGuildFullClearDocumentController {
     private _id: ObjectId;
     private difficulty: Difficulty;
     private f: Faction;
@@ -43,10 +43,15 @@ export class WeeklyFullClearDocumentController {
     private time: number | false;
     private log: Log;
 
-    constructor(obj: RaidLogWithRealm | WeeklyFullClearDocument, logUtil: Log) {
+    constructor(
+        obj: RaidLogWithRealm | WeeklyGuildFullClearDocument,
+        logUtil: Log
+    ) {
         this.log = logUtil;
-        if (this.isWeeklyFullClearDocument(obj)) {
-            obj = JSON.parse(JSON.stringify(obj)) as WeeklyFullClearDocument;
+        if (this.isWeeklyGuildFullClearDocument(obj)) {
+            obj = JSON.parse(
+                JSON.stringify(obj)
+            ) as WeeklyGuildFullClearDocument;
             this._id = obj._id;
             this.difficulty = obj.difficulty;
             this.realm = obj.realm;
@@ -76,7 +81,7 @@ export class WeeklyFullClearDocumentController {
         }
     }
 
-    getDocument(): WeeklyFullClearDocument {
+    getDocument(): WeeklyGuildFullClearDocument {
         return {
             _id: this._id,
             difficulty: this.difficulty,
@@ -90,7 +95,7 @@ export class WeeklyFullClearDocumentController {
         };
     }
 
-    isSameRaidGroup(document: WeeklyFullClearDocument): boolean {
+    isSameRaidGroup(document: WeeklyGuildFullClearDocument): boolean {
         if (
             this.time ||
             this.guildName !== document.guildName ||
@@ -109,7 +114,7 @@ export class WeeklyFullClearDocumentController {
         return true;
     }
 
-    mergeDocument(document: WeeklyFullClearDocument) {
+    mergeDocument(document: WeeklyGuildFullClearDocument) {
         this.logs = this.logs
             .concat(document.logs)
             .sort((a, b) => a.date - b.date);
@@ -135,8 +140,6 @@ export class WeeklyFullClearDocumentController {
         }
 
         if (completed) {
-            this.logs = this.logs.sort((a, b) => a.date - b.date);
-
             this.time =
                 (this.logs[this.logs.length - 1].date -
                     (this.logs[0].date - this.logs[0].fightLength / 1000)) *
@@ -144,9 +147,9 @@ export class WeeklyFullClearDocumentController {
         }
     }
 
-    private isWeeklyFullClearDocument(
+    private isWeeklyGuildFullClearDocument(
         obj: any
-    ): obj is WeeklyFullClearDocument {
+    ): obj is WeeklyGuildFullClearDocument {
         if (obj && obj._id) {
             return true;
         }
@@ -155,4 +158,4 @@ export class WeeklyFullClearDocumentController {
     }
 }
 
-export default WeeklyFullClearDocumentController;
+export default WeeklyGuildFullClearDocumentController;

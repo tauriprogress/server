@@ -17,7 +17,7 @@ import { CombatMetric, LooseObject } from "./../types/global/index";
 import documentManager, {
     GuildDocumentController,
     RaidBossDocumentController,
-    WeeklyFullClearDocumentController,
+    WeeklyGuildFullClearDocumentController,
 } from "./documents";
 import { CharacterDocument } from "./documents/character";
 import { ERR_FILE_DOES_NOT_EXIST } from "./errors";
@@ -216,7 +216,8 @@ export class Log {
         let bosses: RaidBosses = {};
         let guilds: Guilds = {};
         let characterCollection: CharacterCollection = {};
-        let weeklyFullClearCollection: WeeklyFullClearDocumentController[] = [];
+        let weeklyFullClearCollection: WeeklyGuildFullClearDocumentController[] =
+            [];
 
         for (const log of logs) {
             const logId = log.log_id;
@@ -282,7 +283,7 @@ export class Log {
             }
 
             if (this.weekly.isValidLog(log)) {
-                const newDocument = new documentManager.weeklyFullClear(
+                const newDocument = new documentManager.weeklyGuildFullClear(
                     log,
                     this
                 );

@@ -18,7 +18,7 @@ const collectionNames = {
     guilds: "Guilds",
     maintenance: "Maintenance",
     raidBosses: "RaidBosses",
-    weeklyFullClearData: "WeeklyFullClearData",
+    weeklyGuildFullClear: "WeeklyGuildFullClear",
     characterLeaderboardDps: "CharacterLeaderboardDps",
     characterLeaderboardHps: "CharacterLeaderboardHps",
 } as const;
