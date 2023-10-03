@@ -35,6 +35,10 @@ class Time {
     getCurrentDateInSeconds(): Second {
         return new Date().getTime() / 1000;
     }
+
+    dateToString(date: Date): string {
+        return date.getTime().toString();
+    }
 }
 
 export const time = new Time();

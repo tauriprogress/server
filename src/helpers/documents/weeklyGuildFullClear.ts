@@ -7,10 +7,10 @@ import {
     Realm,
     Second,
 } from "../../types";
-import id, { WeekId } from "../id";
 import { Log } from "../log";
 
 import { Document, ObjectId } from "mongodb";
+import time from "../time";
 
 export interface FullClearLog {
     id: number;
@@ -27,7 +27,7 @@ export interface WeeklyGuildFullClearDocument extends Document {
     f: Faction;
     realm: Realm;
     logs: FullClearLog[];
-    latestWednesday: WeekId;
+    latestWednesday: string;
     time: number | false;
 }
 
@@ -39,7 +39,7 @@ export class WeeklyGuildFullClearDocumentController {
     private logs: FullClearLog[];
     private members: string[];
     private guildName: string;
-    private latestWednesday: WeekId;
+    private latestWednesday: string;
     private time: number | false;
     private log: Log;
 
@@ -76,7 +76,9 @@ export class WeeklyGuildFullClearDocumentController {
                     id: obj.log_id,
                 },
             ];
-            this.latestWednesday = id.weekId(new Date(obj.killtime * 1000));
+            this.latestWednesday = time.dateToString(
+                time.getLatestWednesday(new Date(obj.killtime * 1000))
+            );
             this.time = false;
         }
     }

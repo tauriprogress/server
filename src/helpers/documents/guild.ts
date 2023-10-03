@@ -1,10 +1,4 @@
-import {
-    WeekId,
-    addNestedObjectValue,
-    getNestedObjectValue,
-    id,
-    time,
-} from "..";
+import { addNestedObjectValue, getNestedObjectValue, id, time } from "..";
 import environment from "../../environment";
 import tauriApi from "../../tauriApi";
 import {
@@ -110,7 +104,7 @@ export interface GuildRankingFull {
     time: number | false;
     logs: GuildRankingLog[];
     weeks: {
-        [propName: WeekId]: GuildRankingRaidGroup[];
+        [propName: string]: GuildRankingRaidGroup[];
     };
 }
 
@@ -233,7 +227,7 @@ export class GuildDocumentController {
         const date = raidLog.killtime;
 
         const logDate = new Date(date * 1000);
-        const weekId: WeekId = id.weekId(time.getLatestWednesday(logDate));
+        const weekId = time.dateToString(time.getLatestWednesday(logDate));
 
         const updateActivity = () => {
             this.activity[difficulty] = date;

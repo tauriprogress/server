@@ -11,7 +11,6 @@ import {
 import { Filters } from "./filter";
 import { capitalize } from "./utils";
 
-export type WeekId = string;
 export type GuildId = string;
 export type RaidBossId = string;
 export type CharacterId = string;
@@ -24,10 +23,6 @@ class Id {
     constructor() {
         this.deconstruct = new DeconstructId();
         this.cache = new CacheId();
-    }
-
-    weekId(date: Date): WeekId {
-        return date.getTime().toString();
     }
 
     guildId(guildName: string, guildRealm: Realm): GuildId {
