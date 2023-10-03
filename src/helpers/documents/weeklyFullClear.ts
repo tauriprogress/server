@@ -1,3 +1,4 @@
+import environment from "../../environment";
 import {
     Difficulty,
     Faction,
@@ -27,11 +28,8 @@ export interface WeeklyFullClearDocument extends Document {
     realm: Realm;
     logs: FullClearLog[];
     latestWednesday: WeekId;
+    time: number | false;
 }
-
-export type WeeklyFullClear = {
-    [key in Difficulty]: WeeklyFullClearDocument[];
-};
 
 export class WeeklyFullClearDocumentController {
     private _id: ObjectId;
@@ -42,6 +40,7 @@ export class WeeklyFullClearDocumentController {
     private members: string[];
     private guildName: string;
     private latestWednesday: WeekId;
+    private time: number | false;
     private log: Log;
 
     constructor(obj: RaidLogWithRealm | WeeklyFullClearDocument, logUtil: Log) {
@@ -56,6 +55,7 @@ export class WeeklyFullClearDocumentController {
             this.members = obj.members;
             this.logs = obj.logs;
             this.latestWednesday = obj.latestWednesday;
+            this.time = obj.time;
         } else {
             this._id = new ObjectId();
             this.difficulty = obj.difficulty;
@@ -72,6 +72,7 @@ export class WeeklyFullClearDocumentController {
                 },
             ];
             this.latestWednesday = id.weekId(new Date(obj.killtime * 1000));
+            this.time = false;
         }
     }
 
@@ -85,11 +86,13 @@ export class WeeklyFullClearDocumentController {
             guildName: this.guildName,
             realm: this.realm,
             latestWednesday: this.latestWednesday,
+            time: this.time,
         };
     }
 
     isSameRaidGroup(document: WeeklyFullClearDocument): boolean {
         if (
+            this.time ||
             this.guildName !== document.guildName ||
             this.f !== document.f ||
             this.realm !== document.realm ||
@@ -110,6 +113,35 @@ export class WeeklyFullClearDocumentController {
         this.logs = this.logs
             .concat(document.logs)
             .sort((a, b) => a.date - b.date);
+
+        const raidInfo = environment.getRaidInfoFromId(
+            environment.getCurrentRaidId()
+        );
+
+        let completion: { [propName: string]: boolean } = {};
+        for (const bossInfo of raidInfo.bosses) {
+            completion[bossInfo.name] = false;
+        }
+
+        for (const log of this.logs) {
+            completion[log.bossName] = true;
+        }
+
+        let completed = true;
+        for (const bossName in completion) {
+            if (!completion[bossName]) {
+                completed = false;
+            }
+        }
+
+        if (completed) {
+            this.logs = this.logs.sort((a, b) => a.date - b.date);
+
+            this.time =
+                (this.logs[this.logs.length - 1].date -
+                    (this.logs[0].date - this.logs[0].fightLength / 1000)) *
+                1000;
+        }
     }
 
     private isWeeklyFullClearDocument(
