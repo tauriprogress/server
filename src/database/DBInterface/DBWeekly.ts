@@ -4,6 +4,7 @@ import {
     WeeklyGuildFullClearDocument,
     WeeklyGuildFullClearDocumentController,
     log,
+    time,
 } from "../../helpers";
 import documentManager from "../../helpers/documents";
 
@@ -62,8 +63,34 @@ export class DBWeekly {
         });
     }
 
-    getFullClearData() {
-        return this.dbInterface;
+    getGuildFullClear(): Promise<WeeklyGuildFullClearDocument[]> {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const db = this.dbInterface.maintenance.getConnection();
+
+                const collection = db.collection<WeeklyGuildFullClearDocument>(
+                    this.dbInterface.collections.weeklyGuildFullClear
+                );
+
+                const guildFullClears = await collection
+                    .find({
+                        latestWednesday: time.dateToString(
+                            time.getLatestWednesday()
+                        ),
+                        time: {
+                            $gt: 0,
+                        },
+                    })
+                    .sort({
+                        time: 1,
+                    })
+                    .toArray();
+
+                resolve(guildFullClears);
+            } catch (err) {
+                reject(err);
+            }
+        });
     }
 }
 
