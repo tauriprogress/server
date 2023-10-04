@@ -375,6 +375,7 @@ export class DBUpdate {
                 cache.clearRaidSummary();
                 cache.clearCharacterPerformance();
                 cache.clearCharacterLeaderboard();
+                cache.clearWeeklyGuildFullClear();
 
                 this.isUpdating = false;
 
