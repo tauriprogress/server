@@ -81,6 +81,8 @@ export class WeeklyGuildFullClearDocumentController {
             );
             this.time = false;
         }
+
+        this.refreshTime();
     }
 
     getDocument(): WeeklyGuildFullClearDocument {
@@ -121,6 +123,10 @@ export class WeeklyGuildFullClearDocumentController {
             .concat(document.logs)
             .sort((a, b) => a.date - b.date);
 
+        this.refreshTime();
+    }
+
+    private refreshTime() {
         const raidInfo = environment.getRaidInfoFromId(
             environment.getCurrentRaidId()
         );
