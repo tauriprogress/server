@@ -7,6 +7,7 @@ import {
     time,
 } from "../../helpers";
 import documentManager from "../../helpers/documents";
+import cache from "../Cache";
 
 export class DBWeekly {
     private dbInterface: DatabaseInterface;
@@ -68,25 +69,36 @@ export class DBWeekly {
             try {
                 const db = this.dbInterface.maintenance.getConnection();
 
-                const collection = db.collection<WeeklyGuildFullClearDocument>(
-                    this.dbInterface.collections.weeklyGuildFullClear
-                );
+                const guildFullClears = cache.getWeeklyFullClear();
 
-                const guildFullClears = await collection
-                    .find({
-                        latestWednesday: time.dateToString(
-                            time.getLatestWednesday()
-                        ),
-                        time: {
-                            $gt: 0,
-                        },
-                    })
-                    .sort({
-                        time: 1,
-                    })
-                    .toArray();
+                if (guildFullClears) {
+                    resolve(guildFullClears);
+                } else {
+                    const collection =
+                        db.collection<WeeklyGuildFullClearDocument>(
+                            this.dbInterface.collections.weeklyGuildFullClear
+                        );
 
-                resolve(guildFullClears);
+                    let guildFullClears = await collection
+                        .find({
+                            latestWednesday: time.dateToString(
+                                time.getLatestWednesday()
+                            ),
+                        })
+                        .toArray();
+                    guildFullClears = guildFullClears.filter((doc) => doc.time);
+
+                    guildFullClears.sort((a, b) => {
+                        if (a.time && b.time) {
+                            return a.time - b.time;
+                        }
+
+                        return 0;
+                    });
+
+                    cache.setWeeklyGuildFullClear(guildFullClears);
+                    resolve(guildFullClears);
+                }
             } catch (err) {
                 reject(err);
             }

@@ -1,3 +1,4 @@
+import { WeeklyGuildFullClearDocument } from "./../helpers/documents/weeklyGuildFullClear";
 import * as NodeCache from "node-cache";
 import {
     CharacterPerformance,
@@ -22,6 +23,7 @@ class Cache {
     public characterLeaderboard: NodeCache;
     public guildLeaderboard: NodeCache;
     public characterPerformance: NodeCache;
+    public weeklyGuildFullClear: NodeCache;
 
     public items: NodeCache;
     public logs: NodeCache;
@@ -29,6 +31,7 @@ class Cache {
 
     public guildListId: string;
     public guildLeaderboardId: string;
+    public weeklyGuildFullClearId: string;
 
     constructor() {
         this.guildListId = "GuildList";
@@ -83,6 +86,12 @@ class Cache {
             checkperiod: 60,
             useClones: false,
             maxKeys: 400,
+        });
+
+        this.weeklyGuildFullClearId = "WeeklyGuildFullClear";
+        this.weeklyGuildFullClear = new NodeCache({
+            stdTTL: 0,
+            useClones: false,
         });
     }
 
@@ -159,6 +168,25 @@ class Cache {
         ) as CharacterData | undefined;
     }
 
+    setWeeklyGuildFullClear(
+        documentManagerArr: WeeklyGuildFullClearDocument[]
+    ) {
+        try {
+            cache.weeklyGuildFullClear.set(
+                this.weeklyGuildFullClearId,
+                documentManagerArr
+            );
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    getWeeklyFullClear() {
+        return this.weeklyGuildFullClear.get(this.weeklyGuildFullClearId) as
+            | WeeklyGuildFullClearDocument[]
+            | undefined;
+    }
+
     clearRaidSummary() {
         this.raidSummary.del(this.raidSummary.keys());
     }
@@ -169,6 +197,10 @@ class Cache {
 
     clearCharacterLeaderboard() {
         this.characterLeaderboard.del(this.characterLeaderboard.keys());
+    }
+
+    clearWeeklyGuildFullClear() {
+        this.weeklyGuildFullClear.del(this.weeklyGuildFullClear.keys());
     }
 }
 
