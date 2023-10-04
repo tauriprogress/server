@@ -28,11 +28,29 @@ export class DBWeekly {
                     this.dbInterface.collections.weeklyGuildFullClear
                 );
 
-                let oldData = await collection.findOne(
-                    {
-                        _id: newDataManager.getDocument()._id,
+                let tempNewDoc = newDataManager.getDocument();
+
+                let documents = await collection
+                    .find(
+                        {
+                            difficulty: tempNewDoc.difficulty,
+                            f: tempNewDoc.f,
+                            realm: tempNewDoc.realm,
+                            guildName: tempNewDoc.guildName,
+                            latestWednesday: tempNewDoc.latestWednesday,
+                        },
+                        { session }
+                    )
+                    .toArray();
+
+                let oldData = documents.reduce(
+                    (acc: undefined | WeeklyGuildFullClearDocument, curr) => {
+                        if (newDataManager.isSameRaidGroup(curr)) {
+                            return curr;
+                        }
+                        return acc;
                     },
-                    { session }
+                    undefined
                 );
 
                 if (!oldData) {
