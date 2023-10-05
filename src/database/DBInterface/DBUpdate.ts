@@ -84,6 +84,7 @@ export class DBUpdate {
             bosses,
             guilds,
             characterCollection,
+            weeklyFullClearCollection,
         }: ReturnType<typeof log.processLogs>,
         {
             lastLogIds,
@@ -222,6 +223,16 @@ export class DBUpdate {
                 }
 
                 console.log("Characters saved to leaderboards.");
+
+                console.log("Saving weekly guild full clear");
+                for (let docManager of weeklyFullClearCollection) {
+                    await this.dbInterface.weekly.saveGuildFullClear(
+                        docManager,
+                        session
+                    );
+                }
+
+                console.log("Weekly guild full clear saved");
 
                 await this.dbInterface.maintenance.updateDocument(
                     {
