@@ -48,10 +48,10 @@ export type LastLogIds = {
 
 class Weekly {
     isValidLog(log: RaidLogWithRealm) {
-        const logWednesday = time.getLatestWednesday(
-            new Date(log.killtime * 1000)
-        );
-        const currentWednesday = time.getLatestWednesday();
+        const logWednesday = time
+            .getLatestWednesday(new Date(log.killtime * 1000))
+            .getTime();
+        const currentWednesday = time.getLatestWednesday().getTime();
 
         if (
             logWednesday !== currentWednesday ||
