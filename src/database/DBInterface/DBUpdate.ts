@@ -383,6 +383,8 @@ export class DBUpdate {
                 await this.dbInterface.raidboss.updateRaidBossCache();
                 await this.updateCharacterDocumentRanks();
 
+                await this.dbInterface.weekly.cleanupGuildFullClear();
+
                 cache.clearRaidSummary();
                 cache.clearCharacterPerformance();
                 cache.clearCharacterLeaderboard();
