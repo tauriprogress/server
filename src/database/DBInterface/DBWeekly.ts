@@ -119,6 +119,28 @@ export class DBWeekly {
             }
         });
     }
+
+    cleanupGuildFullClear(): Promise<void> {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const db = this.dbInterface.maintenance.getConnection();
+
+                const collection = db.collection<WeeklyGuildFullClearDocument>(
+                    this.dbInterface.collections.weeklyGuildFullClear
+                );
+
+                await collection.deleteMany({
+                    latestWednesday: {
+                        $ne: time.dateToString(time.getLatestWednesday()),
+                    },
+                });
+
+                resolve();
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
 }
 
 export default DBWeekly;
