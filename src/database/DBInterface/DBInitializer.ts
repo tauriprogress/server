@@ -114,8 +114,12 @@ export class DBInitializer {
                 }
 
                 console.log("Processing logs.");
-                const { bosses, guilds, characterCollection } =
-                    log.processLogs(logs);
+                const {
+                    bosses,
+                    guilds,
+                    characterCollection,
+                    weeklyFullClearCollection,
+                } = log.processLogs(logs);
 
                 console.log("Saving raid bosses.");
                 for (const bossId in bosses) {
@@ -189,6 +193,14 @@ export class DBInitializer {
                     }
                 }
                 console.log("Characters saved.");
+
+                console.log("Saving weekly guild full clear data");
+                for (let docManager of weeklyFullClearCollection) {
+                    await this.dbInterface.weekly.saveGuildFullClear(
+                        docManager
+                    );
+                }
+                console.log("Weekly guild full clear saved.");
 
                 console.log("Update character ranks");
                 await this.dbInterface.update.updateCharacterDocumentRanks();
