@@ -396,6 +396,20 @@ const speedLimiter = slowDown({
             });
         }
     });
+
+    app.get("/weekly/guildfullclear", async (_1, res) => {
+        try {
+            res.send({
+                success: true,
+                response: await dbInterface.weekly.getGuildFullClear(),
+            });
+        } catch (err) {
+            res.send({
+                success: false,
+                errorstring: validator.isError(err) ? err.message : err,
+            });
+        }
+    });
 })();
 
 export default app;
