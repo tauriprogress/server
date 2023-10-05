@@ -97,22 +97,19 @@ export class DBWeekly {
                             this.dbInterface.collections.weeklyGuildFullClear
                         );
 
-                    let guildFullClears = await collection
+                    const guildFullClears = await collection
                         .find({
                             latestWednesday: time.dateToString(
                                 time.getLatestWednesday()
                             ),
+                            time: {
+                                $gt: 0,
+                            },
+                        })
+                        .sort({
+                            time: 1,
                         })
                         .toArray();
-                    guildFullClears = guildFullClears.filter((doc) => doc.time);
-
-                    guildFullClears.sort((a, b) => {
-                        if (a.time && b.time) {
-                            return a.time - b.time;
-                        }
-
-                        return 0;
-                    });
 
                     cache.setWeeklyGuildFullClear(guildFullClears);
                     resolve(guildFullClears);
