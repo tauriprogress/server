@@ -11,7 +11,7 @@ import {
     createLeaderboardCharacterDocument,
     id,
 } from "../../helpers";
-import filter, { Filters } from "../../helpers/filter";
+import { filter, Filters } from "../../helpers";
 import { CombatMetric, Difficulty, RaidName } from "../../types";
 import cache from "../Cache";
 

@@ -4,7 +4,7 @@ import { DatabaseInterface } from ".";
 import { CharacterDocument, RaidBossDocument, id } from "../../helpers";
 import documentManager from "../../helpers/documents";
 import { ERR_BOSS_NOT_FOUND } from "../../helpers/errors";
-import filter, { Filters } from "../../helpers/filter";
+import { filter, Filters } from "../../helpers";
 import { CombatMetric, Difficulty, Realm, TrimmedLog } from "../../types";
 import cache from "../Cache";
 
