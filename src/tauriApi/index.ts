@@ -22,7 +22,7 @@ import {
     RaidMapsResponse,
     Realm,
 } from "../types";
-import { validator } from "./../helpers/validators";
+import validator from "./../helpers/validators";
 
 class TauriApi {
     private apikey: string;

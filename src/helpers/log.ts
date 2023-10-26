@@ -24,7 +24,7 @@ import { ERR_FILE_DOES_NOT_EXIST } from "./errors";
 import id, { CharacterId, GuildId, RaidBossId } from "./id";
 import time from "./time";
 import { ensureFile } from "./utils";
-import { validator } from "./validators";
+import validator from "./validators";
 
 export interface RaidBosses {
     [raidBossId: RaidBossId]: RaidBossDocumentController;
