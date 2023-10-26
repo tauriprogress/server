@@ -297,14 +297,14 @@ function processLogs(logs: Array<RaidLogWithRealm>) {
                 if (
                     environment.isSpecCombatMetric(character.spec, combatMetric)
                 ) {
-                    const characterDocument = documentManager.character(
+                    const characterDocument = documentManager.character({
                         character,
                         realm,
-                        log.log_id,
+                        logId: log.log_id,
                         date,
-                        log.fight_time,
-                        combatMetric
-                    );
+                        fightTime: log.fight_time,
+                        combatMetric,
+                    });
                     const currentPerformance =
                         characterDocument[combatMetric] || 0;
 

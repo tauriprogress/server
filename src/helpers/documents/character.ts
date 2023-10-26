@@ -71,14 +71,21 @@ type Trinket = {
     icon: string;
 };
 
-export function characterDocument(
-    character: ValidMember,
-    realm: Realm,
-    logId: number,
-    date: number,
-    fightTime: number,
-    combatMetric: CombatMetric
-): CharacterDocument {
+export function characterDocument({
+    character,
+    realm,
+    logId,
+    date,
+    fightTime,
+    combatMetric,
+}: {
+    character: ValidMember;
+    realm: Realm;
+    logId: number;
+    date: number;
+    fightTime: number;
+    combatMetric: CombatMetric;
+}): CharacterDocument {
     const combatMetricDoc =
         combatMetric === "dps"
             ? {
