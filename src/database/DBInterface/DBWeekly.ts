@@ -3,7 +3,6 @@ import { DatabaseInterface } from ".";
 import {
     WeeklyGuildFullClearDocument,
     WeeklyGuildFullClearDocumentController,
-    log,
     time,
 } from "../../helpers";
 import documentManager from "../../helpers/documents";
@@ -59,7 +58,7 @@ export class DBWeekly {
                     });
                 } else {
                     const oldDataManager =
-                        new documentManager.weeklyGuildFullClear(oldData, log);
+                        new documentManager.weeklyGuildFullClear(oldData);
 
                     oldDataManager.mergeDocument(newDataManager.getDocument());
                     const newDocument = oldDataManager.getDocument();

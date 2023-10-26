@@ -7,10 +7,10 @@ import {
     Realm,
     Second,
 } from "../../types";
-import { Log } from "../log";
 
 import { Document, ObjectId } from "mongodb";
 import time from "../time";
+import log from "../log";
 
 export interface FullClearLog {
     id: number;
@@ -41,13 +41,8 @@ export class WeeklyGuildFullClearDocumentController {
     private guildName: string;
     private latestWednesday: string;
     private time: number | false;
-    private log: Log;
 
-    constructor(
-        obj: RaidLogWithRealm | WeeklyGuildFullClearDocument,
-        logUtil: Log
-    ) {
-        this.log = logUtil;
+    constructor(obj: RaidLogWithRealm | WeeklyGuildFullClearDocument) {
         if (this.isWeeklyGuildFullClearDocument(obj)) {
             obj = JSON.parse(
                 JSON.stringify(obj)
@@ -66,7 +61,7 @@ export class WeeklyGuildFullClearDocumentController {
             this.difficulty = obj.difficulty;
             this.realm = obj.realm;
             this.guildName = obj.guilddata.name || "Random";
-            this.f = obj.guilddata.faction || this.log.logFaction(obj);
+            this.f = obj.guilddata.faction || log.logFaction(obj);
             this.members = obj.members.map((member) => member.name);
             this.logs = [
                 {
@@ -107,11 +102,7 @@ export class WeeklyGuildFullClearDocumentController {
             this.realm !== document.realm ||
             this.difficulty !== document.difficulty ||
             this.latestWednesday !== document.latestWednesday ||
-            !this.log.sameMembers(
-                this.members,
-                document.members,
-                this.difficulty
-            )
+            !log.sameMembers(this.members, document.members, this.difficulty)
         ) {
             return false;
         }

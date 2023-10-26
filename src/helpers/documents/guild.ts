@@ -13,8 +13,7 @@ import {
 } from "../../types";
 
 import { Document } from "mongodb";
-
-import { Log } from "../log";
+import log from "../log";
 
 export interface GuildDocument extends Document {
     _id: ReturnType<typeof id.guildId>;
@@ -155,8 +154,6 @@ export class GuildDocumentController {
     raidDays: GuildRaidDays;
     ranking: Ranking;
 
-    private log: Log;
-
     constructor(
         obj:
             | {
@@ -164,10 +161,8 @@ export class GuildDocumentController {
                   realm: Realm;
                   faction: Faction;
               }
-            | GuildDocument,
-        logUtil: Log
+            | GuildDocument
     ) {
-        this.log = logUtil;
         if (this.isGuildDocument(obj)) {
             obj = JSON.parse(JSON.stringify(obj)) as GuildDocument;
 
@@ -287,7 +282,7 @@ export class GuildDocumentController {
 
                 for (let raidGroup of guildRankingFullClear.weeks[weekId]) {
                     if (
-                        this.log.sameMembers(
+                        log.sameMembers(
                             raidGroup.members,
                             raidLog.members.map((member) => member.name),
                             difficulty
@@ -487,7 +482,7 @@ export class GuildDocumentController {
                                 ...oldBoss,
                                 killCount:
                                     oldBoss.killCount + newBoss.killCount,
-                                fastestKills: this.log
+                                fastestKills: log
                                     .uniqueLogs([
                                         ...oldBoss.fastestKills,
                                         ...newBoss.fastestKills,
@@ -496,14 +491,14 @@ export class GuildDocumentController {
                                         (a, b) => a.fightLength - b.fightLength
                                     )
                                     .slice(0, 10),
-                                firstKills: this.log
+                                firstKills: log
                                     .uniqueLogs([
                                         ...oldBoss.firstKills,
                                         ...newBoss.firstKills,
                                     ])
                                     .sort((a, b) => a.date - b.date)
                                     .slice(0, 10),
-                                latestKills: this.log
+                                latestKills: log
                                     .uniqueLogs([
                                         ...oldBoss.latestKills,
                                         ...newBoss.latestKills,
@@ -598,7 +593,7 @@ export class GuildDocumentController {
                                 for (let i = 0; i < oldRaidGroups.length; i++) {
                                     let oldGroup = oldRaidGroups[i];
                                     if (
-                                        this.log.sameMembers(
+                                        log.sameMembers(
                                             oldGroup.members,
                                             newGroup.members,
                                             difficulty

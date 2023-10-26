@@ -7,7 +7,6 @@ import documentManager, {
 import { ERR_GUILD_NOT_FOUND } from "../../helpers/errors";
 import { Realm } from "../../types";
 import cache from "../Cache";
-import log from "../../helpers/log";
 
 export class DBGuild {
     private dbInterface: DatabaseInterface;
@@ -95,8 +94,7 @@ export class DBGuild {
                     });
                 } else {
                     const guildDocumentManager = new documentManager.guild(
-                        oldGuild,
-                        log
+                        oldGuild
                     );
                     guildDocumentManager.mergeGuildDocument(
                         guild.getDocument()

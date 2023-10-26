@@ -458,14 +458,11 @@ export class DBUpdate {
                                 `Updating ${guild.name} ${current}/${total}`
                             );
 
-                            const newGuildDoc = new documentManager.guild(
-                                {
-                                    guildName: guild.name,
-                                    realm: guild.realm,
-                                    faction: guild.f,
-                                },
-                                log
-                            );
+                            const newGuildDoc = new documentManager.guild({
+                                guildName: guild.name,
+                                realm: guild.realm,
+                                faction: guild.f,
+                            });
 
                             await newGuildDoc.extendData();
 

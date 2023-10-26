@@ -46,453 +46,435 @@ export type LastLogIds = {
     [K in Realm]?: number;
 };
 
-class Weekly {
-    isValidLog(log: RaidLogWithRealm) {
-        const logWednesday = time
-            .getLatestWednesday(new Date(log.killtime * 1000))
-            .getTime();
-        const currentWednesday = time.getLatestWednesday().getTime();
+function isValidWeeklyLog(log: RaidLogWithRealm) {
+    const logWednesday = time
+        .getLatestWednesday(new Date(log.killtime * 1000))
+        .getTime();
+    const currentWednesday = time.getLatestWednesday().getTime();
 
-        if (
-            logWednesday !== currentWednesday ||
-            log.map_id !== environment.getCurrentRaidId()
-        ) {
-            return false;
-        }
-
-        return true;
+    if (
+        logWednesday !== currentWednesday ||
+        log.map_id !== environment.getCurrentRaidId()
+    ) {
+        return false;
     }
+
+    return true;
 }
 
-export class Log {
-    weekly = new Weekly();
-    fileManager = LogFileManager;
-    sameMembers(
-        members1: string[],
-        members2: string[],
-        difficulty: Difficulty
-    ): boolean {
-        const diffNum = environment.difficultyNames[
-            difficulty as keyof typeof environment.difficultyNames
-        ].includes("10")
-            ? 10
-            : 25;
+function sameMembers(
+    members1: string[],
+    members2: string[],
+    difficulty: Difficulty
+): boolean {
+    const diffNum = environment.difficultyNames[
+        difficulty as keyof typeof environment.difficultyNames
+    ].includes("10")
+        ? 10
+        : 25;
 
-        let memberContainer: { [propName: string]: boolean } = {};
-        let sameMemberCount = 0;
+    let memberContainer: { [propName: string]: boolean } = {};
+    let sameMemberCount = 0;
 
-        for (let name of members1) {
-            memberContainer[name] = true;
+    for (let name of members1) {
+        memberContainer[name] = true;
+    }
+
+    for (let name of members2) {
+        if (memberContainer[name]) {
+            sameMemberCount++;
         }
+    }
 
-        for (let name of members2) {
-            if (memberContainer[name]) {
-                sameMemberCount++;
-            }
+    return diffNum * 0.8 <= sameMemberCount;
+}
+
+function uniqueLogs<T extends { id: number }>(logs: T[]): T[] {
+    let logIds: LooseObject = {};
+    const uniqueLogs: T[] = [];
+
+    for (const log of logs) {
+        if (!logIds[log.id]) {
+            logIds[log.id] = true;
+            uniqueLogs.push(log);
         }
-
-        return diffNum * 0.8 <= sameMemberCount;
     }
+    return uniqueLogs;
+}
 
-    uniqueLogs<T extends { id: number }>(logs: T[]): T[] {
-        let logIds: LooseObject = {};
-        const uniqueLogs: T[] = [];
+function logFaction(log: RaidLogWithRealm): Faction {
+    let alliance = 0;
+    let horde = 0;
+    for (let member of log.members) {
+        const race = member.race;
 
-        for (const log of logs) {
-            if (!logIds[log.id]) {
-                logIds[log.id] = true;
-                uniqueLogs.push(log);
-            }
+        if (environment.characterRaceFaction[race] === 0) {
+            alliance++;
+        } else {
+            horde++;
         }
-        return uniqueLogs;
     }
 
-    logFaction(log: RaidLogWithRealm): Faction {
-        let alliance = 0;
-        let horde = 0;
-        for (let member of log.members) {
-            const race = member.race;
+    return horde > alliance ? 1 : 0;
+}
 
-            if (environment.characterRaceFaction[race] === 0) {
-                alliance++;
-            } else {
-                horde++;
-            }
-        }
+function trimLog({
+    logId,
+    isGuildKill,
+    guildName,
+    faction,
+    fightLength,
+    date,
+    realm,
+}: {
+    logId: number;
+    isGuildKill: boolean;
+    guildName: string | undefined;
+    faction: Faction;
+    fightLength: number;
+    date: number;
+    realm: Realm;
+}): TrimmedLog {
+    return {
+        id: logId,
+        guild: { name: isGuildKill ? guildName : "Random", f: faction },
+        fightLength: fightLength,
+        realm: realm,
+        date: date,
+    };
+}
 
-        return horde > alliance ? 1 : 0;
-    }
+async function requestRaidLogs(lastLogIds: LastLogIds): Promise<{
+    logs: RaidLogWithRealm[];
+    lastLogIds: LastLogIds;
+}> {
+    return new Promise(async (resolve, reject) => {
+        try {
+            let unfilteredLogs: Array<LastRaidLogWithRealm> = [];
+            let logs: Array<RaidLogWithRealm> = [];
+            let newLastLogIds: LastLogIds = {};
 
-    trimLog({
-        logId,
-        isGuildKill,
-        guildName,
-        faction,
-        fightLength,
-        date,
-        realm,
-    }: {
-        logId: number;
-        isGuildKill: boolean;
-        guildName: string | undefined;
-        faction: Faction;
-        fightLength: number;
-        date: number;
-        realm: Realm;
-    }): TrimmedLog {
-        return {
-            id: logId,
-            guild: { name: isGuildKill ? guildName : "Random", f: faction },
-            fightLength: fightLength,
-            realm: realm,
-            date: date,
-        };
-    }
-
-    async requestRaidLogs(lastLogIds: LastLogIds): Promise<{
-        logs: RaidLogWithRealm[];
-        lastLogIds: LastLogIds;
-    }> {
-        return new Promise(async (resolve, reject) => {
-            try {
-                let unfilteredLogs: Array<LastRaidLogWithRealm> = [];
-                let logs: Array<RaidLogWithRealm> = [];
-                let newLastLogIds: LastLogIds = {};
-
-                for (const realmName of environment.realms) {
-                    const lastLogId = lastLogIds[realmName];
-                    const data = await tauriApi.getRaidLastLogs(
-                        lastLogId || 0,
-                        realmName
-                    );
-
-                    unfilteredLogs = unfilteredLogs.concat(
-                        data.response.logs.map((log) => ({
-                            ...log,
-                            realm: realmName,
-                            encounter_data: {
-                                ...log.encounter_data,
-                                encounter_name:
-                                    log.encounter_data.encounter_name.trim(),
-                            },
-                        }))
-                    );
-                }
-
-                for (let log of unfilteredLogs.sort((a, b) =>
-                    a.killtime < b.killtime ? -1 : 1
-                )) {
-                    if (validator.validRaidLog(log)) {
-                        const logData = await tauriApi.getRaidLog(
-                            log.log_id,
-                            log.realm
-                        );
-
-                        logs.push({
-                            ...logData.response,
-                            realm: log.realm,
-                            encounter_data: {
-                                ...logData.response.encounter_data,
-                                encounter_name:
-                                    logData.response.encounter_data.encounter_name.trim(),
-                            },
-                        });
-                    }
-
-                    newLastLogIds[log.realm] = log.log_id;
-                }
-
-                resolve({
-                    logs,
-                    lastLogIds: { ...lastLogIds, ...newLastLogIds },
-                });
-            } catch (err) {
-                reject(err);
-            }
-        });
-    }
-
-    processLogs(logs: Array<RaidLogWithRealm>) {
-        let bosses: RaidBosses = {};
-        let guilds: Guilds = {};
-        let characterCollection: CharacterCollection = {};
-        let weeklyFullClearCollection: WeeklyGuildFullClearDocumentController[] =
-            [];
-
-        for (const log of logs) {
-            const logId = log.log_id;
-            const raidId = log.mapentry.id;
-            const bossName = log.encounter_data.encounter_name;
-            const difficulty = log.difficulty;
-            const bossId = id.raidBossId(
-                log.encounter_data.encounter_id,
-                difficulty
-            );
-            const realm = log.realm;
-            const fightLength = log.fight_time;
-            const date = log.killtime;
-
-            const guildName = log.guilddata.name;
-            const isGuildKill = log.guildid && guildName ? true : false;
-            const guildId =
-                isGuildKill && guildName
-                    ? id.guildId(guildName, realm)
-                    : undefined;
-            const guildFaction = log.guilddata.faction;
-
-            const faction = guildFaction || this.logFaction(log);
-
-            const trimmedLog = this.trimLog({
-                logId,
-                isGuildKill,
-                guildName,
-                faction,
-                fightLength,
-                date,
-                realm,
-            });
-
-            if (!bosses[bossId]) {
-                bosses[bossId] = new documentManager.raidBoss({
-                    raidId,
-                    bossId,
-                    bossName,
-                    difficulty,
-                });
-            }
-
-            bosses[bossId].addLog(trimmedLog, realm, faction);
-
-            if (!characterCollection[bossId]) {
-                characterCollection[bossId] = new CharactersOfRaidBoss();
-            }
-
-            if (isGuildKill && guildId && guildName) {
-                if (!guilds[guildId]) {
-                    guilds[guildId] = new documentManager.guild(
-                        {
-                            guildName,
-                            realm,
-                            faction,
-                        },
-                        this
-                    );
-                }
-
-                guilds[guildId].addLog(log);
-            }
-
-            if (this.weekly.isValidLog(log)) {
-                const newDocument = new documentManager.weeklyGuildFullClear(
-                    log,
-                    this
+            for (const realmName of environment.realms) {
+                const lastLogId = lastLogIds[realmName];
+                const data = await tauriApi.getRaidLastLogs(
+                    lastLogId || 0,
+                    realmName
                 );
 
-                let added = false;
+                unfilteredLogs = unfilteredLogs.concat(
+                    data.response.logs.map((log) => ({
+                        ...log,
+                        realm: realmName,
+                        encounter_data: {
+                            ...log.encounter_data,
+                            encounter_name:
+                                log.encounter_data.encounter_name.trim(),
+                        },
+                    }))
+                );
+            }
 
-                for (let document of weeklyFullClearCollection) {
-                    if (document.isSameRaidGroup(newDocument.getDocument())) {
-                        document.mergeDocument(newDocument.getDocument());
-                        added = true;
-                        break;
-                    }
+            for (let log of unfilteredLogs.sort((a, b) =>
+                a.killtime < b.killtime ? -1 : 1
+            )) {
+                if (validator.validRaidLog(log)) {
+                    const logData = await tauriApi.getRaidLog(
+                        log.log_id,
+                        log.realm
+                    );
+
+                    logs.push({
+                        ...logData.response,
+                        realm: log.realm,
+                        encounter_data: {
+                            ...logData.response.encounter_data,
+                            encounter_name:
+                                logData.response.encounter_data.encounter_name.trim(),
+                        },
+                    });
                 }
 
-                if (!added) {
-                    weeklyFullClearCollection.push(newDocument);
+                newLastLogIds[log.realm] = log.log_id;
+            }
+
+            resolve({
+                logs,
+                lastLogIds: { ...lastLogIds, ...newLastLogIds },
+            });
+        } catch (err) {
+            reject(err);
+        }
+    });
+}
+
+function processLogs(logs: Array<RaidLogWithRealm>) {
+    let bosses: RaidBosses = {};
+    let guilds: Guilds = {};
+    let characterCollection: CharacterCollection = {};
+    let weeklyFullClearCollection: WeeklyGuildFullClearDocumentController[] =
+        [];
+
+    for (const log of logs) {
+        const logId = log.log_id;
+        const raidId = log.mapentry.id;
+        const bossName = log.encounter_data.encounter_name;
+        const difficulty = log.difficulty;
+        const bossId = id.raidBossId(
+            log.encounter_data.encounter_id,
+            difficulty
+        );
+        const realm = log.realm;
+        const fightLength = log.fight_time;
+        const date = log.killtime;
+
+        const guildName = log.guilddata.name;
+        const isGuildKill = log.guildid && guildName ? true : false;
+        const guildId =
+            isGuildKill && guildName ? id.guildId(guildName, realm) : undefined;
+        const guildFaction = log.guilddata.faction;
+
+        const faction = guildFaction || logFaction(log);
+
+        const trimmedLog = trimLog({
+            logId,
+            isGuildKill,
+            guildName,
+            faction,
+            fightLength,
+            date,
+            realm,
+        });
+
+        if (!bosses[bossId]) {
+            bosses[bossId] = new documentManager.raidBoss({
+                raidId,
+                bossId,
+                bossName,
+                difficulty,
+            });
+        }
+
+        bosses[bossId].addLog(trimmedLog, realm, faction);
+
+        if (!characterCollection[bossId]) {
+            characterCollection[bossId] = new CharactersOfRaidBoss();
+        }
+
+        if (isGuildKill && guildId && guildName) {
+            if (!guilds[guildId]) {
+                guilds[guildId] = new documentManager.guild({
+                    guildName,
+                    realm,
+                    faction,
+                });
+            }
+
+            guilds[guildId].addLog(log);
+        }
+
+        if (isValidWeeklyLog(log)) {
+            const newDocument = new documentManager.weeklyGuildFullClear(log);
+
+            let added = false;
+
+            for (let document of weeklyFullClearCollection) {
+                if (document.isSameRaidGroup(newDocument.getDocument())) {
+                    document.mergeDocument(newDocument.getDocument());
+                    added = true;
+                    break;
                 }
             }
 
-            for (let character of log.members) {
-                if (!this.validMember(character)) continue;
-
-                for (const combatMetric of environment.combatMetrics) {
-                    if (
-                        environment.isSpecCombatMetric(
-                            character.spec,
-                            combatMetric
-                        )
-                    ) {
-                        const characterDocument = documentManager.character(
-                            character,
-                            realm,
-                            log.log_id,
-                            date,
-                            log.fight_time,
-                            combatMetric
-                        );
-                        const currentPerformance =
-                            characterDocument[combatMetric] || 0;
-
-                        const oldPerformance =
-                            characterCollection[bossId].getCharacterPerformance(
-                                characterDocument._id,
-                                combatMetric
-                            ) || 0;
-
-                        if (currentPerformance > oldPerformance) {
-                            characterCollection[bossId].addCharacterDocument(
-                                characterDocument,
-                                combatMetric
-                            );
-                        }
-
-                        bosses[bossId].addCharacterDocument(
-                            characterDocument,
-                            combatMetric,
-                            realm
-                        );
-                    }
-                }
+            if (!added) {
+                weeklyFullClearCollection.push(newDocument);
             }
         }
 
-        return {
-            guilds,
-            bosses,
-            characterCollection,
-            weeklyFullClearCollection,
-        };
+        for (let character of log.members) {
+            if (!validMember(character)) continue;
+
+            for (const combatMetric of environment.combatMetrics) {
+                if (
+                    environment.isSpecCombatMetric(character.spec, combatMetric)
+                ) {
+                    const characterDocument = documentManager.character(
+                        character,
+                        realm,
+                        log.log_id,
+                        date,
+                        log.fight_time,
+                        combatMetric
+                    );
+                    const currentPerformance =
+                        characterDocument[combatMetric] || 0;
+
+                    const oldPerformance =
+                        characterCollection[bossId].getCharacterPerformance(
+                            characterDocument._id,
+                            combatMetric
+                        ) || 0;
+
+                    if (currentPerformance > oldPerformance) {
+                        characterCollection[bossId].addCharacterDocument(
+                            characterDocument,
+                            combatMetric
+                        );
+                    }
+
+                    bosses[bossId].addCharacterDocument(
+                        characterDocument,
+                        combatMetric,
+                        realm
+                    );
+                }
+            }
+        }
     }
 
-    filterRaidLogBugs(logs: RaidLogWithRealm[]): RaidLogWithRealm[] {
-        return logs.reduce((acc, log) => {
-            let fixedLog: RaidLogWithRealm = JSON.parse(JSON.stringify(log));
+    return {
+        guilds,
+        bosses,
+        characterCollection,
+        weeklyFullClearCollection,
+    };
+}
 
-            for (const bug of environment.logBugs) {
-                switch (bug.type) {
-                    case "ignoreLogOfId":
+function filterRaidLogBugs(logs: RaidLogWithRealm[]): RaidLogWithRealm[] {
+    return logs.reduce((acc, log) => {
+        let fixedLog: RaidLogWithRealm = JSON.parse(JSON.stringify(log));
+
+        for (const bug of environment.logBugs) {
+            switch (bug.type) {
+                case "ignoreLogOfId":
+                    if (
+                        bug.id === fixedLog.log_id &&
+                        bug.realm === fixedLog.realm
+                    ) {
+                        return acc;
+                    }
+                    break;
+                case "ignoreBossOfDate":
+                    if (
+                        bug.bossId === fixedLog.encounter_data.encounter_id &&
+                        bug.date.from < fixedLog.killtime &&
+                        bug.date.to > fixedLog.killtime
+                    ) {
+                        return acc;
+                    }
+                    break;
+                case "changeSpecDmgDoneOfDate":
+                    fixedLog.members = fixedLog.members.map((member: any) => {
                         if (
-                            bug.id === fixedLog.log_id &&
+                            member.spec === bug.specId &&
+                            bug.date.from < fixedLog.killtime &&
+                            bug.date.to > fixedLog.killtime
+                        ) {
+                            return {
+                                ...member,
+                                dmg_done: bug.changeTo,
+                            };
+                        }
+                        return member;
+                    });
+
+                    break;
+                case "ignoreLogOfCharacter":
+                    for (const member of fixedLog.members) {
+                        if (
+                            bug.name === member.name &&
                             bug.realm === fixedLog.realm
                         ) {
                             return acc;
                         }
-                        break;
-                    case "ignoreBossOfDate":
-                        if (
-                            bug.bossId ===
-                                fixedLog.encounter_data.encounter_id &&
-                            bug.date.from < fixedLog.killtime &&
-                            bug.date.to > fixedLog.killtime
-                        ) {
-                            return acc;
-                        }
-                        break;
-                    case "changeSpecDmgDoneOfDate":
+                    }
+
+                    break;
+                case "overwriteSpecOfCharacter":
+                    if (
+                        bug.logId === fixedLog.log_id &&
+                        bug.realm === fixedLog.realm
+                    ) {
                         fixedLog.members = fixedLog.members.map(
                             (member: any) => {
-                                if (
-                                    member.spec === bug.specId &&
-                                    bug.date.from < fixedLog.killtime &&
-                                    bug.date.to > fixedLog.killtime
-                                ) {
+                                if (bug.characterName === member.name) {
                                     return {
                                         ...member,
-                                        dmg_done: bug.changeTo,
+                                        spec: bug.specId,
                                     };
                                 }
                                 return member;
                             }
                         );
+                    }
+                    break;
 
-                        break;
-                    case "ignoreLogOfCharacter":
-                        for (const member of fixedLog.members) {
-                            if (
-                                bug.name === member.name &&
-                                bug.realm === fixedLog.realm
-                            ) {
-                                return acc;
-                            }
-                        }
-
-                        break;
-                    case "overwriteSpecOfCharacter":
+                case "ignoreCharacter":
+                    fixedLog.members = fixedLog.members.filter((member) => {
                         if (
-                            bug.logId === fixedLog.log_id &&
+                            bug.name === member.name &&
                             bug.realm === fixedLog.realm
                         ) {
-                            fixedLog.members = fixedLog.members.map(
-                                (member: any) => {
-                                    if (bug.characterName === member.name) {
-                                        return {
-                                            ...member,
-                                            spec: bug.specId,
-                                        };
-                                    }
-                                    return member;
-                                }
-                            );
+                            return false;
                         }
-                        break;
+                        return true;
+                    });
+                    break;
+                case "changeKilltimeOfLog":
+                    if (bug.id === fixedLog.log_id) {
+                        fixedLog.killtime = bug.changeTo;
+                    }
+                    break;
 
-                    case "ignoreCharacter":
-                        fixedLog.members = fixedLog.members.filter((member) => {
-                            if (
-                                bug.name === member.name &&
-                                bug.realm === fixedLog.realm
-                            ) {
-                                return false;
-                            }
-                            return true;
-                        });
-                        break;
-                    case "changeKilltimeOfLog":
-                        if (bug.id === fixedLog.log_id) {
-                            fixedLog.killtime = bug.changeTo;
+                case "changeGuildData":
+                    if (bug.guildIds[fixedLog.guildid]) {
+                        fixedLog.guilddata = bug.changeTo;
+                        fixedLog.guildid = bug.id;
+                    }
+                    break;
+                case "removeCharacterFromLogs":
+                    fixedLog.members = fixedLog.members.map((member) => {
+                        if (
+                            bug.characterName === member.name &&
+                            bug.realm === fixedLog.realm &&
+                            bug.date.from < fixedLog.killtime &&
+                            bug.date.to > fixedLog.killtime
+                        ) {
+                            member.dmg_done = 1;
+                            member.absorb_done = 1;
+                            member.dmg_absorb = 1;
+                            member.heal_done = 1;
                         }
-                        break;
-
-                    case "changeGuildData":
-                        if (bug.guildIds[fixedLog.guildid]) {
-                            fixedLog.guilddata = bug.changeTo;
-                            fixedLog.guildid = bug.id;
-                        }
-                        break;
-                    case "removeCharacterFromLogs":
-                        fixedLog.members = fixedLog.members.map((member) => {
-                            if (
-                                bug.characterName === member.name &&
-                                bug.realm === fixedLog.realm &&
-                                bug.date.from < fixedLog.killtime &&
-                                bug.date.to > fixedLog.killtime
-                            ) {
-                                member.dmg_done = 1;
-                                member.absorb_done = 1;
-                                member.dmg_absorb = 1;
-                                member.heal_done = 1;
-                            }
-                            return member;
-                        });
-                        break;
-                }
+                        return member;
+                    });
+                    break;
             }
-
-            acc.push(fixedLog);
-
-            return acc;
-        }, [] as RaidLogWithRealm[]);
-    }
-
-    private validMember(
-        member: RaidLog["members"][number]
-    ): member is ValidMember {
-        if (member.spec) {
-            return true;
-        }
-        return false;
-    }
-
-    generateLastLogIds<T extends { log_id: number; realm: Realm }>(logs: T[]) {
-        let lastLogIds: LastLogIds = {};
-
-        for (let log of logs) {
-            lastLogIds[log.realm] = log.log_id;
         }
 
-        return lastLogIds;
+        acc.push(fixedLog);
+
+        return acc;
+    }, [] as RaidLogWithRealm[]);
+}
+
+function validMember(
+    member: RaidLog["members"][number]
+): member is ValidMember {
+    if (member.spec) {
+        return true;
     }
+    return false;
+}
+
+function generateLastLogIds<T extends { log_id: number; realm: Realm }>(
+    logs: T[]
+) {
+    let lastLogIds: LastLogIds = {};
+
+    for (let log of logs) {
+        lastLogIds[log.realm] = log.log_id;
+    }
+
+    return lastLogIds;
 }
 
 class CharactersOfRaidBoss {
@@ -602,7 +584,7 @@ class LogFileManager {
                     }
                 });
             });
-            this.updateLastLogIdsOfFile(log.generateLastLogIds([raidLog]));
+            this.updateLastLogIdsOfFile(generateLastLogIds([raidLog]));
         }
     }
 
@@ -616,6 +598,15 @@ class LogFileManager {
     }
 }
 
-export const log = new Log();
-
-export default log;
+export default {
+    sameMembers,
+    generateLastLogIds,
+    uniqueLogs,
+    logFaction,
+    trimLog,
+    requestRaidLogs,
+    processLogs,
+    validMember,
+    fileManager: LogFileManager,
+    filterRaidLogBugs,
+};
