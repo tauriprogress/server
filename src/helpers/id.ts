@@ -20,7 +20,10 @@ function guildId(guildName: string, guildRealm: Realm): GuildId {
     return `${guildName} ${guildRealm}`;
 }
 
-function raidBossId(ingameBossId: number, difficulty: Difficulty): RaidBossId {
+function raidBossId<T extends number, D extends Difficulty>(
+    ingameBossId: T,
+    difficulty: D
+): `${T} ${D}` {
     return `${ingameBossId} ${difficulty}`;
 }
 
@@ -28,11 +31,11 @@ function characterId(name: string, realm: Realm, spec: SpecId): CharacterId {
     return `${name},${environment.shortRealms[realm]},${spec}`;
 }
 
-function characterDocumentCollectionId(
-    ingameBossId: number,
-    difficulty: Difficulty,
-    combatMetric: CombatMetric
-): CharacterDocumentCollectionId {
+function characterDocumentCollectionId<
+    T extends number,
+    D extends Difficulty,
+    C extends CombatMetric
+>(ingameBossId: T, difficulty: D, combatMetric: C): `${T} ${D} ${C}` {
     return `${ingameBossId} ${difficulty} ${combatMetric}`;
 }
 
