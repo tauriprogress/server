@@ -26,11 +26,20 @@ export class DBInitializer {
                     throw ERR_DB_ALREADY_UPDATING;
 
                 console.log("Initalizing database.");
-                await db.dropDatabase();
+
+                for (let key in this.dbInterface.collections) {
+                    const collectionName =
+                        key as keyof typeof this.dbInterface.collections;
+                    const collection =
+                        this.dbInterface.collections[collectionName];
+                    if (collection.clearable) {
+                        await collection.clearCollection();
+                    }
+                }
 
                 const maintenanceCollection =
                     db.collection<MaintenanceDocument>(
-                        this.dbInterface.collections.maintenance
+                        this.dbInterface.collections.maintenance.name
                     );
 
                 maintenanceCollection.insertOne(
@@ -43,8 +52,9 @@ export class DBInitializer {
                             const diff = Number(difficulty) as Difficulty;
                             const ingameBossId =
                                 boss.bossIdOfDifficulty[
-                                    difficulty as keyof typeof boss.bossIdOfDifficulty
+                                    diff as keyof typeof boss.bossIdOfDifficulty
                                 ];
+
                             const raidBossDocumentManager =
                                 new documentManager.raidBoss({
                                     raidId: raid.id,
@@ -67,9 +77,6 @@ export class DBInitializer {
                                 const bossCollection =
                                     db.collection(collectionName);
 
-                                if (await bossCollection.findOne({}))
-                                    await bossCollection.deleteMany({});
-
                                 await bossCollection.createIndex({
                                     [combatMetric]: -1,
                                 });
@@ -83,12 +90,10 @@ export class DBInitializer {
                         db.collection<LeaderboardCharacterDocument>(
                             combatMetric === "dps"
                                 ? this.dbInterface.collections
-                                      .characterLeaderboardDps
+                                      .characterLeaderboardDps.name
                                 : this.dbInterface.collections
-                                      .characterLeaderboardHps
+                                      .characterLeaderboardHps.name
                         );
-                    if (await leaderboardCollection.findOne({}))
-                        await leaderboardCollection.deleteMany({});
 
                     await leaderboardCollection.createIndex({
                         [combatMetric]: -1,
@@ -231,7 +236,7 @@ export class DBInitializer {
 
                 const maintenance = await db
                     .collection<MaintenanceDocument>(
-                        this.dbInterface.collections.maintenance
+                        this.dbInterface.collections.maintenance.name
                     )
                     .findOne({});
 
