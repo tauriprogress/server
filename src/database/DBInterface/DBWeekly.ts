@@ -24,7 +24,7 @@ export class DBWeekly {
                 const db = this.dbInterface.maintenance.getConnection();
 
                 const collection = db.collection<WeeklyGuildFullClearDocument>(
-                    this.dbInterface.collections.weeklyGuildFullClear
+                    this.dbInterface.collections.weeklyGuildFullClear.name
                 );
 
                 let tempNewDoc = newDataManager.getDocument();
@@ -94,6 +94,7 @@ export class DBWeekly {
                     const collection =
                         db.collection<WeeklyGuildFullClearDocument>(
                             this.dbInterface.collections.weeklyGuildFullClear
+                                .name
                         );
 
                     const guildFullClears = await collection
@@ -125,7 +126,7 @@ export class DBWeekly {
                 const db = this.dbInterface.maintenance.getConnection();
 
                 const collection = db.collection<WeeklyGuildFullClearDocument>(
-                    this.dbInterface.collections.weeklyGuildFullClear
+                    this.dbInterface.collections.weeklyGuildFullClear.name
                 );
 
                 await collection.deleteMany({

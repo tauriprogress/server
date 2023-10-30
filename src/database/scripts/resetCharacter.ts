@@ -52,8 +52,8 @@ export async function resetCharacter(
     for (const combatMetric of environment.combatMetrics) {
         const collection = db.collection<LeaderboardCharacterDocument>(
             combatMetric === "dps"
-                ? dbInterface.collections.characterLeaderboardDps
-                : dbInterface.collections.characterLeaderboardHps
+                ? dbInterface.collections.characterLeaderboardDps.name
+                : dbInterface.collections.characterLeaderboardHps.name
         );
 
         await collection.deleteMany({
@@ -64,7 +64,7 @@ export async function resetCharacter(
     }
 
     const raidCollection = db.collection<RaidBossDocument>(
-        dbInterface.collections.raidBosses
+        dbInterface.collections.raidBosses.name
     );
     const raidbosses = await raidCollection.find().toArray();
 

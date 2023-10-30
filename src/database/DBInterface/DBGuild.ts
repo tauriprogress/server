@@ -26,7 +26,7 @@ export class DBGuild {
                 } else {
                     const guildList = (await db
                         .collection<GuildDocument>(
-                            this.dbInterface.collections.guilds
+                            this.dbInterface.collections.guilds.name
                         )
                         .find()
                         .project({
@@ -55,7 +55,7 @@ export class DBGuild {
 
                 const guild = await db
                     .collection<GuildDocument>(
-                        this.dbInterface.collections.guilds
+                        this.dbInterface.collections.guilds.name
                     )
                     .findOne({
                         name: guildName,
@@ -77,7 +77,7 @@ export class DBGuild {
                 const db = this.dbInterface.maintenance.getConnection();
 
                 const guildsCollection = db.collection<GuildDocument>(
-                    this.dbInterface.collections.guilds
+                    this.dbInterface.collections.guilds.name
                 );
 
                 let oldGuild = await guildsCollection.findOne(
@@ -125,7 +125,7 @@ export class DBGuild {
 
                 await db
                     .collection<GuildDocument>(
-                        this.dbInterface.collections.guilds
+                        this.dbInterface.collections.guilds.name
                     )
                     .deleteOne({
                         _id: _id,

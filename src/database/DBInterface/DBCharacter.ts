@@ -111,7 +111,7 @@ export class DBCharacter {
                     const result = (
                         await db
                             .collection(
-                                this.dbInterface.collections.maintenance
+                                this.dbInterface.collections.maintenance.name
                             )
                             .aggregate([
                                 { $limit: 1 },
@@ -333,7 +333,7 @@ export class DBCharacter {
                     resolve(characterPerformance);
 
                     function addToPerformance(
-                        categorization: string[],
+                        categorization: Array<string | number>,
                         keyName: string | number,
                         combatMetric: CombatMetric,
                         doc: CharacterDocument,

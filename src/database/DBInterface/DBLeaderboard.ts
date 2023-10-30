@@ -66,9 +66,9 @@ export class DBLeaderboard {
                         db.collection<LeaderboardCharacterDocument>(
                             combatMetric === "dps"
                                 ? this.dbInterface.collections
-                                      .characterLeaderboardDps
+                                      .characterLeaderboardDps.name
                                 : this.dbInterface.collections
-                                      .characterLeaderboardHps
+                                      .characterLeaderboardHps.name
                         );
 
                     const matchQuery = {
@@ -187,7 +187,7 @@ export class DBLeaderboard {
                 } else {
                     const guildLeaderboard = (await db
                         .collection<GuildDocument>(
-                            this.dbInterface.collections.guilds
+                            this.dbInterface.collections.guilds.name
                         )
                         .find()
                         .project({
@@ -225,7 +225,9 @@ export class DBLeaderboard {
                 const collection = db.collection<LeaderboardCharacterDocument>(
                     combatMetric === "dps"
                         ? this.dbInterface.collections.characterLeaderboardDps
+                              .name
                         : this.dbInterface.collections.characterLeaderboardHps
+                              .name
                 );
 
                 await collection.bulkWrite(

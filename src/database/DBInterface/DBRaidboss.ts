@@ -35,7 +35,7 @@ export class DBRaidboss {
                 } else {
                     const bossData = await db
                         .collection<RaidBossDocument>(
-                            this.dbInterface.collections.raidBosses
+                            this.dbInterface.collections.raidBosses.name
                         )
                         .findOne({ _id: bossId });
 
@@ -189,7 +189,7 @@ export class DBRaidboss {
                 const db = this.dbInterface.maintenance.getConnection();
 
                 const raidCollection = db.collection<RaidBossDocument>(
-                    this.dbInterface.collections.raidBosses
+                    this.dbInterface.collections.raidBosses.name
                 );
 
                 const oldBoss = await raidCollection.findOne(
@@ -241,7 +241,7 @@ export class DBRaidboss {
 
                     for (const boss of await db
                         .collection<RaidBossDocument>(
-                            this.dbInterface.collections.raidBosses
+                            this.dbInterface.collections.raidBosses.name
                         )
                         .find()
                         .toArray()) {
@@ -270,7 +270,7 @@ export class DBRaidboss {
                     for (const bossId of bossesToUpdate) {
                         const boss = await db
                             .collection<RaidBossDocument>(
-                                this.dbInterface.collections.raidBosses
+                                this.dbInterface.collections.raidBosses.name
                             )
                             .findOne({ _id: bossId });
                         if (boss) {

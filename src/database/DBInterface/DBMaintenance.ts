@@ -59,7 +59,7 @@ export class DBMaintenance {
             const connection = dbConnection.getConnection();
             const maintenanceCollection =
                 connection.collection<MaintenanceDocument>(
-                    this.dbInterface.collections.maintenance
+                    this.dbInterface.collections.maintenance.name
                 );
 
             const doc = await maintenanceCollection.findOne();
@@ -115,7 +115,7 @@ export class DBMaintenance {
                 const connection = dbConnection.getConnection();
                 const maintenanceCollection =
                     connection.collection<MaintenanceDocument>(
-                        this.dbInterface.collections.maintenance
+                        this.dbInterface.collections.maintenance.name
                     );
 
                 await maintenanceCollection.updateOne(

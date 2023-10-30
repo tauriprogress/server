@@ -1,3 +1,4 @@
+import { createCollections } from "./../DBCollections";
 import environment from "../../environment";
 import { Lock, id } from "../../helpers";
 import documentManager from "../../helpers/documents";
@@ -14,18 +15,8 @@ import DBUpdate from "./DBUpdate";
 import DBWeekly from "./DBWeekly";
 const raidSummaryLock = new Lock();
 
-const collectionNames = {
-    guilds: "Guilds",
-    maintenance: "Maintenance",
-    raidBosses: "RaidBosses",
-    weeklyGuildFullClear: "WeeklyGuildFullClear",
-    characterLeaderboardDps: "CharacterLeaderboardDps",
-    characterLeaderboardHps: "CharacterLeaderboardHps",
-} as const;
-
 class DBInterface {
-    public collections: typeof collectionNames;
-
+    public collections;
     public guild: DBGuild;
     public update: DBUpdate;
     public raidboss: DBRaidboss;
@@ -36,8 +27,6 @@ class DBInterface {
     public maintenance: DBMaintenance;
 
     constructor() {
-        this.collections = collectionNames;
-
         this.guild = new DBGuild(this);
         this.update = new DBUpdate(this);
         this.raidboss = new DBRaidboss(this);
@@ -46,6 +35,7 @@ class DBInterface {
         this.weekly = new DBWeekly(this);
         this.initializer = new DBInitializer(this);
         this.maintenance = new DBMaintenance(this, new DBTaskManager(this));
+        this.collections = createCollections(this.maintenance.getConnection());
     }
 
     async getRaidSummary(raidId: RaidId): Promise<RaidSummary> {
@@ -68,7 +58,7 @@ class DBInterface {
                                 key
                             ) as unknown as Difficulty;
                             const ref =
-                                key as keyof typeof bossInfo.bossIdOfDifficulty;
+                                difficulty as keyof typeof bossInfo.bossIdOfDifficulty;
                             const ingameBossId =
                                 bossInfo.bossIdOfDifficulty[ref];
                             const bossId = id.raidBossId(

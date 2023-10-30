@@ -1,9 +1,9 @@
 import {
     CharacterDocument,
+    RaidBossId,
     addNestedObjectValue,
     capitalize,
     getNestedObjectValue,
-    id,
 } from "..";
 import environment from "../../environment";
 import {
@@ -21,7 +21,7 @@ import {
 import { Document } from "mongodb";
 
 export interface RaidBossDocument extends Document {
-    _id: ReturnType<typeof id.raidBossId>;
+    _id: RaidBossId;
     raidId: RaidId;
     name: string;
     difficulty: Difficulty;

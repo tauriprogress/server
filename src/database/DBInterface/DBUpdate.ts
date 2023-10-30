@@ -261,7 +261,7 @@ export class DBUpdate {
 
                 console.log("db: Saving raid bosses");
                 const raidBossCollection = db.collection<RaidBossDocument>(
-                    this.dbInterface.collections.raidBosses
+                    this.dbInterface.collections.raidBosses.name
                 );
 
                 const oldBosses = (await raidBossCollection
@@ -432,7 +432,7 @@ export class DBUpdate {
 
                     const guilds = (await db
                         .collection<GuildDocument>(
-                            this.dbInterface.collections.guilds
+                            this.dbInterface.collections.guilds.name
                         )
                         .find()
                         .project({

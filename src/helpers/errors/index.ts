@@ -8,6 +8,9 @@ export const ERR_DB_ALREADY_UPDATING = new Error(
     "Database is already updating."
 );
 export const ERR_DB_TANSACTION = new Error("Database transaction error.");
+export const ERR_DB_COLLECTION_NOT_CLEARABLE = new Error(
+    "This database colleaction is not clearable."
+);
 export const ERR_GUILD_NOT_FOUND = new Error("Guild not found.");
 export const ERR_CHARACTER_NOT_FOUND = new Error("Character not found.");
 export const ERR_TAURI_API_FAILURE = new Error("Api request failed.");
