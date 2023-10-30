@@ -27,6 +27,7 @@ export class DBInitializer {
 
                 console.log("Initalizing database.");
 
+                console.log("Clearing collections.");
                 for (let key in this.dbInterface.collections) {
                     const collectionName =
                         key as keyof typeof this.dbInterface.collections;
@@ -37,6 +38,7 @@ export class DBInitializer {
                     }
                 }
 
+                console.log("Creating maintenance document.");
                 const maintenanceCollection =
                     db.collection<MaintenanceDocument>(
                         this.dbInterface.collections.maintenance.name
@@ -46,6 +48,7 @@ export class DBInitializer {
                     this.dbInterface.maintenance.getDocument()
                 );
 
+                console.log("Creating raidbosses.");
                 for (const raid of environment.currentContent.raids) {
                     for (const boss of raid.bosses) {
                         for (const difficulty in boss.bossIdOfDifficulty) {
@@ -85,6 +88,7 @@ export class DBInitializer {
                     }
                 }
 
+                console.log("Creating character leaderboards.");
                 for (const combatMetric of environment.combatMetrics) {
                     const leaderboardCollection =
                         db.collection<LeaderboardCharacterDocument>(
@@ -104,6 +108,7 @@ export class DBInitializer {
                 this.dbInterface.update.isUpdating = true;
                 const lastLogIds = {};
 
+                console.log("Collecting logs.");
                 let { logs, lastLogIds: newLastLogIds } =
                     await this.getRaidLogs(lastLogIds);
 
