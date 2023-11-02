@@ -1,14 +1,14 @@
-import { Db } from "mongodb";
-import { Collection } from ".";
+import { Collection } from "./Collection";
+import { DatabaseInterface } from "../DBInterface";
 
 export class CharacterLeaderboardHpsCollection extends Collection {
     public name: (typeof characterLeaderboardHpsCollectionMetaData)["name"];
 
     constructor(
-        dbConnection: Db,
+        dbInterface: DatabaseInterface,
         collectionMetaData: typeof characterLeaderboardHpsCollectionMetaData
     ) {
-        super(dbConnection, collectionMetaData);
+        super(dbInterface, collectionMetaData);
         this.name = collectionMetaData.name;
     }
 }

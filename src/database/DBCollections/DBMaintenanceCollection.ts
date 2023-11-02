@@ -1,14 +1,14 @@
-import { Db } from "mongodb";
-import { Collection } from ".";
+import { Collection } from "./Collection";
+import { DatabaseInterface } from "../DBInterface";
 
 export class MaintenanceCollection extends Collection {
     public name: (typeof maintenanceCollectionMetaData)["name"];
 
     constructor(
-        dbConnection: Db,
+        dbInterface: DatabaseInterface,
         collectionMetaData: typeof maintenanceCollectionMetaData
     ) {
-        super(dbConnection, collectionMetaData);
+        super(dbInterface, collectionMetaData);
         this.name = collectionMetaData.name;
     }
 }

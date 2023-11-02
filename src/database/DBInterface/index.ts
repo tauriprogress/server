@@ -35,7 +35,7 @@ class DBInterface {
         this.weekly = new DBWeekly(this);
         this.initializer = new DBInitializer(this);
         this.maintenance = new DBMaintenance(this, new DBTaskManager(this));
-        this.collections = createCollections(this.maintenance.getConnection());
+        this.collections = createCollections(this);
     }
 
     async getRaidSummary(raidId: RaidId): Promise<RaidSummary> {

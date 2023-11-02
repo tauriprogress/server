@@ -1,17 +1,17 @@
-import { Db } from "mongodb";
-import { Collection } from ".";
+import { Collection } from "./Collection";
 import environment from "../../environment";
 import { id } from "../../helpers";
 import { Difficulty } from "../../types";
+import { DatabaseInterface } from "../DBInterface";
 
 export class CharacterDocumentCollection extends Collection {
     public name: CharacterDocumentCollectionMetaDataType["name"];
 
     constructor(
-        dbConnection: Db,
+        dbInterface: DatabaseInterface,
         collectionMetaData: CharacterDocumentCollectionMetaDataType
     ) {
-        super(dbConnection, collectionMetaData);
+        super(dbInterface, collectionMetaData);
         this.name = collectionMetaData.name;
     }
 }
@@ -58,7 +58,7 @@ type CharacterDocumentCollections = {
 };
 
 export function generateCharacterDocumentCollections(
-    db: Db
+    dbInterface: DatabaseInterface
 ): CharacterDocumentCollections {
     let collections = charaterDocumentCollectionsArray();
 
@@ -66,7 +66,7 @@ export function generateCharacterDocumentCollections(
 
     for (let collectionMetaData of collections) {
         obj[collectionMetaData.name] = new collectionMetaData.classConstructor(
-            db,
+            dbInterface,
             collectionMetaData
         );
     }
