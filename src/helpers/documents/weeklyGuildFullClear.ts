@@ -9,8 +9,8 @@ import {
 } from "../../types";
 
 import { Document, ObjectId } from "mongodb";
-import time from "../time";
 import log from "../log";
+import id, { WeekId } from "../id";
 
 export interface FullClearLog {
     id: number;
@@ -27,7 +27,7 @@ export interface WeeklyGuildFullClearDocument extends Document {
     f: Faction;
     realm: Realm;
     logs: FullClearLog[];
-    latestWednesday: string;
+    latestWednesday: WeekId;
     time: number | false;
 }
 
@@ -71,8 +71,8 @@ export class WeeklyGuildFullClearDocumentController {
                     id: obj.log_id,
                 },
             ];
-            this.latestWednesday = time.dateToString(
-                time.getLatestWednesday(new Date(obj.killtime * 1000))
+            this.latestWednesday = id.weekId(
+                new Date(new Date(obj.killtime * 1000))
             );
             this.time = false;
         }

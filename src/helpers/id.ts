@@ -1,3 +1,4 @@
+import { time } from "../helpers";
 import environment from "../environment";
 import {
     ClassId,
@@ -15,6 +16,7 @@ export type GuildId = string;
 export type RaidBossId = string;
 export type CharacterId = string;
 export type CharacterDocumentCollectionId = string;
+export type WeekId = string;
 
 function guildId(guildName: string, guildRealm: Realm): GuildId {
     return `${guildName} ${guildRealm}`;
@@ -97,12 +99,17 @@ function characterApiId(characterName: string, realm: Realm) {
     return capitalize(`${characterName}${realm}`);
 }
 
+function weekId(date: Date): WeekId {
+    return time.dateToString(time.getLatestWednesday(date));
+}
+
 export default {
     guildId,
     raidBossId,
     characterId,
     characterDocumentCollectionId,
     leaderboardCharacterId,
+    weekId,
     deconstruct: {
         characterDocumentCollectionId: deconstructCharacterDocumentCollectionId,
         raidBossId: deconstructRaidBossId,

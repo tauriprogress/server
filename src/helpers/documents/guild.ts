@@ -222,7 +222,7 @@ export class GuildDocumentController {
         const date = raidLog.killtime;
 
         const logDate = new Date(date * 1000);
-        const weekId = time.dateToString(time.getLatestWednesday(logDate));
+        const weekId = id.weekId(logDate);
 
         const updateActivity = () => {
             this.activity[difficulty] = date;

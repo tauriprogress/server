@@ -3,7 +3,7 @@ import { DatabaseInterface } from ".";
 import {
     WeeklyGuildFullClearDocument,
     WeeklyGuildFullClearDocumentController,
-    time,
+    id,
 } from "../../helpers";
 import documentManager from "../../helpers/documents";
 import cache from "../Cache";
@@ -99,9 +99,7 @@ export class DBWeekly {
 
                     const guildFullClears = await collection
                         .find({
-                            latestWednesday: time.dateToString(
-                                time.getLatestWednesday()
-                            ),
+                            latestWednesday: id.weekId(new Date()),
                             time: {
                                 $gt: 0,
                             },
@@ -131,7 +129,7 @@ export class DBWeekly {
 
                 await collection.deleteMany({
                     latestWednesday: {
-                        $ne: time.dateToString(time.getLatestWednesday()),
+                        $ne: id.weekId(new Date()),
                     },
                 });
 
