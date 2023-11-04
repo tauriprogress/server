@@ -25,6 +25,7 @@ import id, { CharacterId, GuildId, RaidBossId } from "./id";
 import time from "./time";
 import { ensureFile } from "./utils";
 import validator from "./validators";
+import WeeklyChallengeDocumentController from "./documents/weeklyChallenge";
 
 export interface RaidBosses {
     [raidBossId: RaidBossId]: RaidBossDocumentController;
@@ -44,6 +45,10 @@ interface CharacterCollection {
 
 export type LastLogIds = {
     [K in Realm]?: number;
+};
+
+export type WeeklyChallengeControllers = {
+    [key in Difficulty]?: WeeklyChallengeDocumentController;
 };
 
 function isValidWeeklyLog(log: RaidLogWithRealm) {
@@ -103,6 +108,10 @@ function uniqueLogs<T extends { id: number }>(logs: T[]): T[] {
 }
 
 function logFaction(log: RaidLogWithRealm): Faction {
+    if (log.guilddata.faction) {
+        return log.guilddata.faction;
+    }
+
     let alliance = 0;
     let horde = 0;
     for (let member of log.members) {
@@ -118,29 +127,16 @@ function logFaction(log: RaidLogWithRealm): Faction {
     return horde > alliance ? 1 : 0;
 }
 
-function trimLog({
-    logId,
-    isGuildKill,
-    guildName,
-    faction,
-    fightLength,
-    date,
-    realm,
-}: {
-    logId: number;
-    isGuildKill: boolean;
-    guildName: string | undefined;
-    faction: Faction;
-    fightLength: number;
-    date: number;
-    realm: Realm;
-}): TrimmedLog {
+function trimLog(raidLog: RaidLogWithRealm): TrimmedLog {
     return {
-        id: logId,
-        guild: { name: isGuildKill ? guildName : "Random", f: faction },
-        fightLength: fightLength,
-        realm: realm,
-        date: date,
+        id: raidLog.log_id,
+        guild: {
+            name: raidLog.guilddata.name || "Random",
+            f: logFaction(raidLog),
+        },
+        fightLength: raidLog.fight_time,
+        realm: raidLog.realm,
+        date: raidLog.killtime,
     };
 }
 
@@ -207,15 +203,19 @@ async function requestRaidLogs(lastLogIds: LastLogIds): Promise<{
     });
 }
 
-function processLogs(logs: Array<RaidLogWithRealm>) {
+function processLogs(
+    logs: Array<RaidLogWithRealm>,
+    weeklyChallengeRaidBossName?: string
+) {
     let bosses: RaidBosses = {};
     let guilds: Guilds = {};
     let characterCollection: CharacterCollection = {};
     let weeklyFullClearCollection: WeeklyGuildFullClearDocumentController[] =
         [];
 
+    let weeklyChallenge: WeeklyChallengeControllers = {};
+
     for (const log of logs) {
-        const logId = log.log_id;
         const raidId = log.mapentry.id;
         const bossName = log.encounter_data.encounter_name;
         const difficulty = log.difficulty;
@@ -224,26 +224,15 @@ function processLogs(logs: Array<RaidLogWithRealm>) {
             difficulty
         );
         const realm = log.realm;
-        const fightLength = log.fight_time;
         const date = log.killtime;
 
         const guildName = log.guilddata.name;
         const isGuildKill = log.guildid && guildName ? true : false;
         const guildId =
             isGuildKill && guildName ? id.guildId(guildName, realm) : undefined;
-        const guildFaction = log.guilddata.faction;
 
-        const faction = guildFaction || logFaction(log);
-
-        const trimmedLog = trimLog({
-            logId,
-            isGuildKill,
-            guildName,
-            faction,
-            fightLength,
-            date,
-            realm,
-        });
+        const faction = logFaction(log);
+        const trimmedLog = trimLog(log);
 
         if (!bosses[bossId]) {
             bosses[bossId] = new documentManager.raidBoss({
@@ -287,6 +276,20 @@ function processLogs(logs: Array<RaidLogWithRealm>) {
 
             if (!added) {
                 weeklyFullClearCollection.push(newDocument);
+            }
+
+            if (weeklyChallengeRaidBossName === bossName) {
+                if (!weeklyChallenge[difficulty]) {
+                    weeklyChallenge[difficulty] =
+                        new documentManager.weeklyChallenge({
+                            bossName: weeklyChallengeRaidBossName,
+                            difficulty,
+                        });
+                }
+
+                if (weeklyChallenge[difficulty]?.isChallengeLog(log)) {
+                    weeklyChallenge[difficulty]?.addLog(log);
+                }
             }
         }
 
@@ -336,6 +339,7 @@ function processLogs(logs: Array<RaidLogWithRealm>) {
         bosses,
         characterCollection,
         weeklyFullClearCollection,
+        weeklyChallenge,
     };
 }
 
