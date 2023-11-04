@@ -61,7 +61,7 @@ export class WeeklyGuildFullClearDocumentController {
             this.difficulty = obj.difficulty;
             this.realm = obj.realm;
             this.guildName = obj.guilddata.name || "Random";
-            this.f = obj.guilddata.faction || log.logFaction(obj);
+            this.f = log.logFaction(obj);
             this.members = obj.members.map((member) => member.name);
             this.logs = [
                 {
