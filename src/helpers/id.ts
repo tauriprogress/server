@@ -18,6 +18,22 @@ export type CharacterId = string;
 export type CharacterDocumentCollectionId = string;
 export type WeekId = string;
 
+function weeklyChallengeRaidBossId<
+    N extends string,
+    D extends Difficulty,
+    W extends WeekId
+>({
+    bossName,
+    difficulty,
+    weekId,
+}: {
+    bossName: N;
+    difficulty: D;
+    weekId: W;
+}): `${N} ${D} ${W}` {
+    return `${bossName} ${difficulty} ${weekId}`;
+}
+
 function guildId(guildName: string, guildRealm: Realm): GuildId {
     return `${guildName} ${guildRealm}`;
 }
@@ -110,6 +126,7 @@ export default {
     characterDocumentCollectionId,
     leaderboardCharacterId,
     weekId,
+    weeklyChallengeRaidBossId,
     deconstruct: {
         characterDocumentCollectionId: deconstructCharacterDocumentCollectionId,
         raidBossId: deconstructRaidBossId,
