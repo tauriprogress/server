@@ -15,6 +15,7 @@ import {
     RaidSummary,
     Realm,
 } from "../types";
+import { WeeklyChallenge } from "./DBInterface/DBWeeklyChallenge";
 
 class Cache {
     public guildList: NodeCache;
@@ -24,6 +25,7 @@ class Cache {
     public guildLeaderboard: NodeCache;
     public characterPerformance: NodeCache;
     public weeklyGuildFullClear: NodeCache;
+    public weeklyChallenge: NodeCache;
 
     public items: NodeCache;
     public logs: NodeCache;
@@ -32,6 +34,7 @@ class Cache {
     public guildListId: string;
     public guildLeaderboardId: string;
     public weeklyGuildFullClearId: string;
+    public weeklyChallengeId: string;
 
     constructor() {
         this.guildListId = "GuildList";
@@ -90,6 +93,12 @@ class Cache {
 
         this.weeklyGuildFullClearId = "WeeklyGuildFullClear";
         this.weeklyGuildFullClear = new NodeCache({
+            stdTTL: 0,
+            useClones: false,
+        });
+
+        this.weeklyChallengeId = "WeeklyChallenge";
+        this.weeklyChallenge = new NodeCache({
             stdTTL: 0,
             useClones: false,
         });
@@ -187,6 +196,20 @@ class Cache {
             | undefined;
     }
 
+    setWeeklyChallenge(weeklyChallenge: WeeklyChallenge) {
+        try {
+            cache.weeklyChallenge.set(this.weeklyChallengeId, weeklyChallenge);
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    getWeeklyChallenge() {
+        return this.weeklyChallenge.get(this.weeklyChallengeId) as
+            | WeeklyChallenge
+            | undefined;
+    }
+
     clearRaidSummary() {
         this.raidSummary.del(this.raidSummary.keys());
     }
@@ -201,6 +224,10 @@ class Cache {
 
     clearWeeklyGuildFullClear() {
         this.weeklyGuildFullClear.del(this.weeklyGuildFullClear.keys());
+    }
+
+    clearWeeklyChallenge() {
+        this.weeklyChallenge.del(this.weeklyChallenge.keys());
     }
 }
 
