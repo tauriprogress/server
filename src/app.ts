@@ -401,7 +401,8 @@ const speedLimiter = slowDown({
         try {
             res.send({
                 success: true,
-                response: await dbInterface.weekly.getGuildFullClear(),
+                response:
+                    await dbInterface.weeklyGuildFullClear.getGuildFullClear(),
             });
         } catch (err) {
             res.send({

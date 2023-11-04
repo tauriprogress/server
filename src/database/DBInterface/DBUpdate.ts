@@ -20,7 +20,14 @@ import {
     ERR_DB_TANSACTION,
     ERR_GUILD_NOT_FOUND,
 } from "../../helpers/errors";
-import { ClassId, CombatMetric, LooseObject, Realm, SpecId } from "../../types";
+import {
+    ClassId,
+    CombatMetric,
+    Difficulty,
+    LooseObject,
+    Realm,
+    SpecId,
+} from "../../types";
 import cache from "../Cache";
 
 export class DBUpdate {
@@ -85,6 +92,7 @@ export class DBUpdate {
             guilds,
             characterCollection,
             weeklyFullClearCollection,
+            weeklyChallenge,
         }: ReturnType<typeof log.processLogs>,
         {
             lastLogIds,
@@ -226,13 +234,29 @@ export class DBUpdate {
 
                 console.log("Saving weekly guild full clear");
                 for (let docManager of weeklyFullClearCollection) {
-                    await this.dbInterface.weekly.saveGuildFullClear(
+                    await this.dbInterface.weeklyGuildFullClear.saveGuildFullClear(
                         docManager,
                         session
                     );
                 }
 
                 console.log("Weekly guild full clear saved");
+
+                console.log("Save weekly challenge");
+                for (const diffKey in weeklyChallenge) {
+                    const difficulty = Number(diffKey) as Difficulty;
+
+                    const weeklyChallengeDocumentManager =
+                        weeklyChallenge[difficulty];
+
+                    if (weeklyChallengeDocumentManager) {
+                        this.dbInterface.weeklyChallenge.saveChallenge(
+                            weeklyChallengeDocumentManager,
+                            session
+                        );
+                    }
+                }
+                console.log("Weekly challenge saved");
 
                 await this.dbInterface.maintenance.updateDocument(
                     {
@@ -347,11 +371,19 @@ export class DBUpdate {
                     await log.requestRaidLogs(lastLogIds);
 
                 logs = log.filterRaidLogBugs(logs);
+
+                const currentChallenge =
+                    await this.dbInterface.weeklyChallenge.getCurrentChallenge();
+
                 const session = client.startSession();
 
                 try {
                     console.log("Opening new transaction session");
-                    const processedData = log.processLogs(logs);
+                    const processedData = log.processLogs(
+                        logs,
+                        currentChallenge
+                    );
+
                     await session.withTransaction(
                         async () => {
                             await this.saveLogs(
@@ -383,12 +415,14 @@ export class DBUpdate {
                 await this.dbInterface.raidboss.updateRaidBossCache();
                 await this.updateCharacterDocumentRanks();
 
-                await this.dbInterface.weekly.cleanupGuildFullClear();
+                await this.dbInterface.weeklyGuildFullClear.cleanupGuildFullClear();
+                await this.dbInterface.weeklyChallenge.cleanupWeeklyChallenge();
 
                 cache.clearRaidSummary();
                 cache.clearCharacterPerformance();
                 cache.clearCharacterLeaderboard();
                 cache.clearWeeklyGuildFullClear();
+                cache.clearWeeklyChallenge();
 
                 this.isUpdating = false;
 

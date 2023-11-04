@@ -123,13 +123,16 @@ export class DBInitializer {
                     await logFileManager.writeLogs(logs);
                 }
 
+                const currentChallenge =
+                    await this.dbInterface.weeklyChallenge.getCurrentChallenge();
+
                 console.log("Processing logs.");
                 const {
                     bosses,
                     guilds,
                     characterCollection,
                     weeklyFullClearCollection,
-                } = log.processLogs(logs);
+                } = log.processLogs(logs, currentChallenge);
 
                 console.log("Saving raid bosses.");
                 for (const bossId in bosses) {
@@ -206,7 +209,7 @@ export class DBInitializer {
 
                 console.log("Saving weekly guild full clear data");
                 for (let docManager of weeklyFullClearCollection) {
-                    await this.dbInterface.weekly.saveGuildFullClear(
+                    await this.dbInterface.weeklyGuildFullClear.saveGuildFullClear(
                         docManager
                     );
                 }
