@@ -102,161 +102,207 @@ export class DBUpdate {
     ) {
         return new Promise(async (resolve, reject) => {
             try {
+                const start = new Date();
                 const db = this.dbInterface.maintenance.getConnection();
 
                 await this.bulkWriteRaidBosses(bosses, session);
                 runGC();
 
-                console.log("db: Saving guilds");
-                for (const guildId in guilds) {
-                    await this.dbInterface.guild.saveGuild(
-                        guilds[guildId],
-                        session
-                    );
-                }
-
-                console.log("Saving chars");
-                const operationsOfCharacterDocumentCollections: LooseObject =
-                    {};
-
-                for (const bossId in characterCollection) {
-                    for (const combatMetricKey in characterCollection[bossId]) {
-                        const combatMetric = combatMetricKey as CombatMetric;
-                        for (const charId in characterCollection[bossId][
-                            combatMetric
-                        ]) {
-                            const [ingameBossId, difficulty] =
-                                id.deconstruct.raidBossId(bossId);
-                            const characterDocumentCollectionId =
-                                id.characterDocumentCollectionId(
-                                    ingameBossId,
-                                    difficulty,
-                                    combatMetric
-                                );
-
-                            const char =
-                                characterCollection[bossId][combatMetric][
-                                    charId
-                                ];
-
-                            if (
-                                !operationsOfCharacterDocumentCollections[
-                                    characterDocumentCollectionId
-                                ]
-                            ) {
-                                operationsOfCharacterDocumentCollections[
-                                    characterDocumentCollectionId
-                                ] = [];
-                            }
-
-                            operationsOfCharacterDocumentCollections[
-                                characterDocumentCollectionId
-                            ].push(
-                                {
-                                    updateOne: {
-                                        filter: {
-                                            _id: char._id,
-                                        },
-                                        update: {
-                                            $setOnInsert: char,
-                                        },
-                                        upsert: true,
-                                    },
-                                },
-                                {
-                                    updateOne: {
-                                        filter: {
-                                            _id: char._id,
-                                            [combatMetric]: {
-                                                $lt: char[combatMetric],
-                                            },
-                                        },
-                                        update: { $set: char },
-                                    },
-                                }
-                            );
-                        }
-                    }
-                }
-
-                for (const characterDocumentCollectionId in operationsOfCharacterDocumentCollections) {
-                    console.log(`${characterDocumentCollectionId}`);
-
-                    const bossCollection = db.collection<CharacterDocument>(
-                        characterDocumentCollectionId
-                    );
-                    await bossCollection.bulkWrite(
-                        operationsOfCharacterDocumentCollections[
-                            characterDocumentCollectionId
-                        ],
-                        { session }
-                    );
-
-                    this.addToUpdatedCharacterDocumentCollections(
-                        characterDocumentCollectionId
-                    );
-                }
-
-                console.log("Saving chars done");
-
-                console.log("Saving characters to leaderboard.");
-                for (const bossId in characterCollection) {
-                    for (const combatMetricKey in characterCollection[bossId]) {
-                        const combatMetric = combatMetricKey as CombatMetric;
-
-                        const [ingameBossId, difficulty] =
-                            id.deconstruct.raidBossId(bossId);
-                        const raidName =
-                            environment.getRaidNameFromIngamebossId(
-                                ingameBossId
-                            );
-
-                        const bossName =
-                            environment.getRaidBossNameFromIngameBossId(
-                                ingameBossId
-                            );
-
-                        if (raidName && bossName)
-                            await this.dbInterface.leaderboard.saveCharactersToLeaderboard(
-                                Object.values(
-                                    characterCollection[bossId][combatMetric]
-                                ),
-                                raidName,
-                                difficulty,
-                                bossName,
-                                combatMetric,
+                const saveGuilds = (): Promise<void> => {
+                    return new Promise(async (resolve) => {
+                        console.log("Saving guilds");
+                        for (const guildId in guilds) {
+                            await this.dbInterface.guild.saveGuild(
+                                guilds[guildId],
                                 session
                             );
-                    }
-                }
+                        }
 
-                console.log("Characters saved to leaderboards.");
+                        console.log("Guilds saved");
+                        resolve();
+                    });
+                };
 
-                console.log("Saving weekly guild full clear");
-                for (let docManager of weeklyFullClearCollection) {
-                    await this.dbInterface.weeklyGuildFullClear.saveGuildFullClear(
-                        docManager,
-                        session
-                    );
-                }
+                const saveChars = (): Promise<void> => {
+                    return new Promise(async (resolve) => {
+                        console.log("Saving chars");
+                        const operationsOfCharacterDocumentCollections: LooseObject =
+                            {};
 
-                console.log("Weekly guild full clear saved");
+                        for (const bossId in characterCollection) {
+                            for (const combatMetricKey in characterCollection[
+                                bossId
+                            ]) {
+                                const combatMetric =
+                                    combatMetricKey as CombatMetric;
+                                for (const charId in characterCollection[
+                                    bossId
+                                ][combatMetric]) {
+                                    const [ingameBossId, difficulty] =
+                                        id.deconstruct.raidBossId(bossId);
+                                    const characterDocumentCollectionId =
+                                        id.characterDocumentCollectionId(
+                                            ingameBossId,
+                                            difficulty,
+                                            combatMetric
+                                        );
 
-                console.log("Save weekly challenge");
-                for (const diffKey in weeklyChallenge) {
-                    const difficulty = Number(diffKey) as Difficulty;
+                                    const char =
+                                        characterCollection[bossId][
+                                            combatMetric
+                                        ][charId];
 
-                    const weeklyChallengeDocumentManager =
-                        weeklyChallenge[difficulty];
+                                    if (
+                                        !operationsOfCharacterDocumentCollections[
+                                            characterDocumentCollectionId
+                                        ]
+                                    ) {
+                                        operationsOfCharacterDocumentCollections[
+                                            characterDocumentCollectionId
+                                        ] = [];
+                                    }
 
-                    if (weeklyChallengeDocumentManager) {
-                        this.dbInterface.weeklyChallenge.saveChallenge(
-                            weeklyChallengeDocumentManager,
-                            session
-                        );
-                    }
-                }
-                console.log("Weekly challenge saved");
+                                    operationsOfCharacterDocumentCollections[
+                                        characterDocumentCollectionId
+                                    ].push(
+                                        {
+                                            updateOne: {
+                                                filter: {
+                                                    _id: char._id,
+                                                },
+                                                update: {
+                                                    $setOnInsert: char,
+                                                },
+                                                upsert: true,
+                                            },
+                                        },
+                                        {
+                                            updateOne: {
+                                                filter: {
+                                                    _id: char._id,
+                                                    [combatMetric]: {
+                                                        $lt: char[combatMetric],
+                                                    },
+                                                },
+                                                update: { $set: char },
+                                            },
+                                        }
+                                    );
+                                }
+                            }
+                        }
+
+                        for (const characterDocumentCollectionId in operationsOfCharacterDocumentCollections) {
+                            console.log(`${characterDocumentCollectionId}`);
+
+                            const bossCollection =
+                                db.collection<CharacterDocument>(
+                                    characterDocumentCollectionId
+                                );
+                            await bossCollection.bulkWrite(
+                                operationsOfCharacterDocumentCollections[
+                                    characterDocumentCollectionId
+                                ],
+                                { session }
+                            );
+
+                            this.addToUpdatedCharacterDocumentCollections(
+                                characterDocumentCollectionId
+                            );
+                        }
+
+                        console.log("Saving chars done");
+
+                        resolve();
+                    });
+                };
+
+                const saveCharsToLeaderboard = (): Promise<void> => {
+                    return new Promise(async (resolve) => {
+                        console.log("Saving characters to leaderboard.");
+                        for (const bossId in characterCollection) {
+                            for (const combatMetricKey in characterCollection[
+                                bossId
+                            ]) {
+                                const combatMetric =
+                                    combatMetricKey as CombatMetric;
+
+                                const [ingameBossId, difficulty] =
+                                    id.deconstruct.raidBossId(bossId);
+                                const raidName =
+                                    environment.getRaidNameFromIngamebossId(
+                                        ingameBossId
+                                    );
+
+                                const bossName =
+                                    environment.getRaidBossNameFromIngameBossId(
+                                        ingameBossId
+                                    );
+
+                                if (raidName && bossName)
+                                    await this.dbInterface.leaderboard.saveCharactersToLeaderboard(
+                                        Object.values(
+                                            characterCollection[bossId][
+                                                combatMetric
+                                            ]
+                                        ),
+                                        raidName,
+                                        difficulty,
+                                        bossName,
+                                        combatMetric,
+                                        session
+                                    );
+                            }
+                        }
+
+                        console.log("Characters saved to leaderboards.");
+                        resolve();
+                    });
+                };
+
+                const saveWeeklyGuildFullClear = (): Promise<void> => {
+                    return new Promise(async (resolve) => {
+                        console.log("Saving weekly guild full clear");
+                        for (let docManager of weeklyFullClearCollection) {
+                            await this.dbInterface.weeklyGuildFullClear.saveGuildFullClear(
+                                docManager,
+                                session
+                            );
+                        }
+
+                        console.log("Weekly guild full clear saved");
+                        resolve();
+                    });
+                };
+
+                const saveWeeklyChallenge = (): Promise<void> => {
+                    return new Promise(async (resolve) => {
+                        console.log("Save weekly challenge");
+                        for (const diffKey in weeklyChallenge) {
+                            const difficulty = Number(diffKey) as Difficulty;
+
+                            const weeklyChallengeDocumentManager =
+                                weeklyChallenge[difficulty];
+
+                            if (weeklyChallengeDocumentManager) {
+                                this.dbInterface.weeklyChallenge.saveChallenge(
+                                    weeklyChallengeDocumentManager,
+                                    session
+                                );
+                            }
+                        }
+                        console.log("Weekly challenge saved");
+                        resolve();
+                    });
+                };
+
+                await Promise.all([
+                    saveGuilds(),
+                    saveChars(),
+                    saveCharsToLeaderboard(),
+                    saveWeeklyGuildFullClear(),
+                    saveWeeklyChallenge(),
+                ]);
 
                 await this.dbInterface.maintenance.updateDocument(
                     {
@@ -265,6 +311,12 @@ export class DBUpdate {
                         isInitalized: true,
                     },
                     session
+                );
+
+                console.log(
+                    "Saving finished in",
+                    new Date().getTime() - start.getTime(),
+                    "miliseconds"
                 );
             } catch (err) {
                 this.resetUpdatedBossIds();
