@@ -27,16 +27,34 @@ export class DBInitializer {
 
                 console.log("Initalizing database.");
 
+                const currentChallenge =
+                    await this.dbInterface.weeklyChallenge.getCurrentChallenge();
+
+                let clearingCollections = [];
+
                 console.log("Clearing collections.");
                 for (let key in this.dbInterface.collections) {
                     const collectionName =
                         key as keyof typeof this.dbInterface.collections;
                     const collection =
                         this.dbInterface.collections[collectionName];
+
                     if (collection.clearable) {
-                        await collection.clearCollection();
+                        clearingCollections.push(
+                            new Promise(async (resolve) => {
+                                console.log(
+                                    "Clearing collection:",
+                                    collection.name
+                                );
+                                await collection.clearCollection();
+                                console.log(collection.name, "cleared.");
+                                resolve(true);
+                            })
+                        );
                     }
                 }
+
+                await Promise.all(clearingCollections);
 
                 console.log("Creating maintenance document.");
                 const maintenanceCollection =
@@ -123,15 +141,13 @@ export class DBInitializer {
                     await logFileManager.writeLogs(logs);
                 }
 
-                const currentChallenge =
-                    await this.dbInterface.weeklyChallenge.getCurrentChallenge();
-
                 console.log("Processing logs.");
                 const {
                     bosses,
                     guilds,
                     characterCollection,
                     weeklyFullClearCollection,
+                    weeklyChallenge,
                 } = log.processLogs(logs, currentChallenge);
 
                 console.log("Saving raid bosses.");
@@ -214,6 +230,23 @@ export class DBInitializer {
                     );
                 }
                 console.log("Weekly guild full clear saved.");
+
+                console.log("Save weekly challenge");
+                for (const difficulty of environment.currentContent.raids[0]
+                    .difficulties) {
+                    const weeklyChallengeDocumentManager =
+                        weeklyChallenge[difficulty] ||
+                        new documentManager.weeklyChallenge({
+                            bossName: currentChallenge,
+                            difficulty,
+                        });
+
+                    this.dbInterface.weeklyChallenge.saveChallenge(
+                        weeklyChallengeDocumentManager
+                    );
+                }
+
+                console.log("Weekly challenge saved");
 
                 console.log("Update character ranks");
                 await this.dbInterface.update.updateCharacterDocumentRanks();
