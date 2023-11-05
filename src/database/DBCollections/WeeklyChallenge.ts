@@ -15,6 +15,6 @@ export class WeeklyChallengeCollection extends Collection {
 
 export const weeklyChallengeCollectionMetaData = {
     name: "WeeklyChallenge",
-    clearable: false,
+    clearable: true,
     classConstructor: WeeklyChallengeCollection,
 } as const;
