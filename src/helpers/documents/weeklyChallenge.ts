@@ -124,7 +124,7 @@ export class WeeklyChallengeDocumentController {
             return;
         }
 
-        this.killCount = this.killCount = document.killCount;
+        this.killCount = this.killCount + document.killCount;
         this.mergeFastestKills(document.fastestKills);
         for (const combatMetric of environment.combatMetrics) {
             for (const classKey in document[combatMetric]) {
