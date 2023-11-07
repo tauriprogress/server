@@ -411,6 +411,21 @@ const speedLimiter = slowDown({
             });
         }
     });
+
+    app.get("/weekly/challenge", async (_1, res) => {
+        try {
+            res.send({
+                success: true,
+                response:
+                    await dbInterface.weeklyChallenge.getChallengeDocuments(),
+            });
+        } catch (err) {
+            res.send({
+                success: false,
+                errorstring: validator.isError(err) ? err.message : err,
+            });
+        }
+    });
 })();
 
 export default app;
