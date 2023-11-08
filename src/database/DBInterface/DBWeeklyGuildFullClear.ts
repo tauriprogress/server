@@ -6,7 +6,7 @@ import {
     id,
 } from "../../helpers";
 import documentManager from "../../helpers/documents";
-import cache from "../Cache";
+import cache from "../cache";
 
 export class DBWeeklyGuildFullClear {
     private dbInterface: DatabaseInterface;

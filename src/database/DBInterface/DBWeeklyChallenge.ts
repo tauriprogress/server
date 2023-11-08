@@ -6,7 +6,7 @@ import documentManager, {
     WeeklyChallengeDocumentController,
 } from "../../helpers/documents";
 import { Difficulty } from "../../types";
-import cache from "../Cache";
+import cache from "../cache";
 
 export type WeeklyChallenge = {
     [key in Difficulty]: WeeklyChallengeDocument;

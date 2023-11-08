@@ -13,7 +13,7 @@ import {
 } from "../../helpers";
 import { filter, Filters } from "../../helpers";
 import { CombatMetric, Difficulty, RaidName } from "../../types";
-import cache from "../Cache";
+import cache from "../cache";
 
 export class DBLeaderboard {
     private dbInterface: DatabaseInterface;

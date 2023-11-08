@@ -1,3 +1,4 @@
+import { DatabaseInterface } from ".";
 import environment from "../../environment";
 import {
     CharacterDocument,
@@ -11,8 +12,7 @@ import {
 } from "../../helpers";
 import documentManager from "../../helpers/documents";
 import { ClassId, CombatMetric, RaidName, Realm, SpecId } from "../../types";
-import cache from "../Cache";
-import { DatabaseInterface } from ".";
+import cache from "../cache";
 
 export class DBCharacter {
     private dbInterface: DatabaseInterface;

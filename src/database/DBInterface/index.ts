@@ -3,7 +3,7 @@ import environment from "../../environment";
 import { Lock, id } from "../../helpers";
 import documentManager from "../../helpers/documents";
 import { Difficulty, RaidId, RaidSummary } from "../../types";
-import cache from "../Cache";
+import cache from "../cache";
 import DBTaskManager from "../DBTaskManager";
 import DBCharacter from "./DBCharacter";
 import DBGuild from "./DBGuild";

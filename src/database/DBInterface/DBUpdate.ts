@@ -28,7 +28,7 @@ import {
     Realm,
     SpecId,
 } from "../../types";
-import cache from "../Cache";
+import cache from "../cache";
 
 export class DBUpdate {
     public isUpdating: boolean;

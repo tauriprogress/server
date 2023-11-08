@@ -7,7 +7,7 @@ import dbInterface from "./database/DBInterface";
 
 import tauriApi from "./tauriApi";
 
-import cache from "./database/Cache";
+import cache from "./database/cache";
 import environment from "./environment";
 import { validator } from "./helpers";
 import { ERR_UNKNOWN } from "./helpers/errors";

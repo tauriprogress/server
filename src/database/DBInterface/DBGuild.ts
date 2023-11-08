@@ -6,7 +6,7 @@ import documentManager, {
 } from "../../helpers/documents";
 import { ERR_GUILD_NOT_FOUND } from "../../helpers/errors";
 import { Realm } from "../../types";
-import cache from "../Cache";
+import cache from "../cache";
 
 export class DBGuild {
     private dbInterface: DatabaseInterface;

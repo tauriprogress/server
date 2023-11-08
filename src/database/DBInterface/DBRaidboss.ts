@@ -6,7 +6,7 @@ import documentManager from "../../helpers/documents";
 import { ERR_BOSS_NOT_FOUND } from "../../helpers/errors";
 import { filter, Filters } from "../../helpers";
 import { CombatMetric, Difficulty, Realm, TrimmedLog } from "../../types";
-import cache from "../Cache";
+import cache from "../cache";
 
 export class DBRaidboss {
     public firstRaidbossCacheLoad: boolean | Promise<true>;
