@@ -20,7 +20,7 @@ export interface FullClearLog {
 }
 
 export interface WeeklyGuildFullClearDocument extends Document {
-    _id: ObjectId;
+    _id: string;
     members: string[];
     difficulty: Difficulty;
     guildName: string;
@@ -32,7 +32,7 @@ export interface WeeklyGuildFullClearDocument extends Document {
 }
 
 export class WeeklyGuildFullClearDocumentController {
-    private _id: ObjectId;
+    private _id: string;
     private difficulty: Difficulty;
     private f: Faction;
     private realm: Realm;
@@ -57,7 +57,7 @@ export class WeeklyGuildFullClearDocumentController {
             this.latestWednesday = obj.latestWednesday;
             this.time = obj.time;
         } else {
-            this._id = new ObjectId();
+            this._id = new ObjectId().toString();
             this.difficulty = obj.difficulty;
             this.realm = obj.realm;
             this.guildName = obj.guilddata.name || "Random";
