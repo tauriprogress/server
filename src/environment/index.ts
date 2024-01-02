@@ -30,6 +30,7 @@ class Environment {
     readonly MONGODB_ADDRESS: string;
     readonly PORT: number;
     readonly CORS_ORIGIN: string;
+    readonly ENCRYPTION_KEY: string;
 
     readonly apiUrl;
     readonly defaultRealm;
@@ -135,6 +136,15 @@ class Environment {
                 : (this.PORT = defaultPort);
         } else {
             this.PORT = defaultPort;
+        }
+
+        if (typeof process.env.ENCRYPTION_KEY === "string") {
+            this.ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
+        } else {
+            console.error(
+                `Environment variable ENCRYPTION_KEY=${process.env.ENCRYPTION_KEY} is invalid.`
+            );
+            process.exit(0);
         }
 
         const realmGroupEnv = constants[this.REALM_GROUP];
