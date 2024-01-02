@@ -191,7 +191,7 @@ export class WeeklyChallengeDocumentController {
         const newValue = (prevChars || [])
             .concat(characters)
             .sort((a, b) => {
-                return (a[combatMetric] || 0) - (b[combatMetric] || 0);
+                return (b[combatMetric] || 0) - (a[combatMetric] || 0);
             })
             .slice(0, 10);
 
