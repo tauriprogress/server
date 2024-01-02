@@ -31,6 +31,8 @@ class Environment {
     readonly PORT: number;
     readonly CORS_ORIGIN: string;
     readonly ENCRYPTION_KEY: string;
+    readonly PATREON_CLIENT: string;
+    readonly PATREON_SECRET: string;
 
     readonly apiUrl;
     readonly defaultRealm;
@@ -143,6 +145,24 @@ class Environment {
         } else {
             console.error(
                 `Environment variable ENCRYPTION_KEY=${process.env.ENCRYPTION_KEY} is invalid.`
+            );
+            process.exit(0);
+        }
+
+        if (typeof process.env.PATREON_CLIENT === "string") {
+            this.PATREON_CLIENT = process.env.PATREON_CLIENT;
+        } else {
+            console.error(
+                `Environment variable PATREON_CLIENT=${process.env.PATREON_CLIENT} is invalid.`
+            );
+            process.exit(0);
+        }
+
+        if (typeof process.env.PATREON_SECRET === "string") {
+            this.PATREON_SECRET = process.env.PATREON_SECRET;
+        } else {
+            console.error(
+                `Environment variable PATREON_SECRET=${process.env.PATREON_SECRET} is invalid.`
             );
             process.exit(0);
         }
