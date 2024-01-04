@@ -362,27 +362,35 @@ export class DBUpdate {
                     const oldBoss = oldBosses.find(
                         (boss) => boss._id === bossId
                     );
-                    if (!oldBoss) continue;
 
-                    const raidBossDocumentManager =
-                        new documentManager.raidBoss(oldBoss);
-
-                    raidBossDocumentManager.mergeRaidBossDocument(
-                        currentBoss.getDocument()
-                    );
-
-                    const newDocument = raidBossDocumentManager.getDocument();
-
-                    operations.push({
-                        updateOne: {
-                            filter: {
-                                _id: oldBoss._id,
+                    if (!oldBoss) {
+                        operations.push({
+                            insertOne: {
+                                document: currentBoss.getDocument(),
                             },
-                            update: {
-                                $set: newDocument,
+                        });
+                    } else {
+                        const raidBossDocumentManager =
+                            new documentManager.raidBoss(oldBoss);
+
+                        raidBossDocumentManager.mergeRaidBossDocument(
+                            currentBoss.getDocument()
+                        );
+
+                        const newDocument =
+                            raidBossDocumentManager.getDocument();
+
+                        operations.push({
+                            updateOne: {
+                                filter: {
+                                    _id: oldBoss._id,
+                                },
+                                update: {
+                                    $set: newDocument,
+                                },
                             },
-                        },
-                    });
+                        });
+                    }
                 }
 
                 if (operations.length) {
@@ -391,9 +399,15 @@ export class DBUpdate {
                     });
 
                     for (const operation of operations) {
-                        this.addToUpdatedRaidbosses(
-                            operation.updateOne.filter._id
-                        );
+                        if (operation.updateOne) {
+                            this.addToUpdatedRaidbosses(
+                                operation.updateOne.filter._id
+                            );
+                        } else {
+                            this.addToUpdatedRaidbosses(
+                                operation.insertOne.document._id
+                            );
+                        }
                     }
                 }
 
