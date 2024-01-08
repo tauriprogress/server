@@ -1,4 +1,4 @@
-export interface GetAuthTokenResponse {
+export interface PatreonAuthResponse {
     access_token: string;
     expires_in: number;
     token_type: "Bearer";
