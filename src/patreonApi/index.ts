@@ -3,7 +3,7 @@ import { GetAuthTokenResponse, GetUserInfoResponse } from "../types";
 
 class PatreonApi {
     private baseUrl = "https://www.patreon.com/api/oauth2";
-    getAuthToken(code: string) {
+    getAuthToken(code: string): Promise<GetAuthTokenResponse> {
         return new Promise(async (resolve, reject) => {
             try {
                 const response: GetAuthTokenResponse = await fetch(
@@ -20,7 +20,7 @@ class PatreonApi {
         });
     }
 
-    getUserInfo(authToken: string) {
+    getUserInfo(authToken: string): Promise<GetUserInfoResponse> {
         return new Promise(async (resolve, reject) => {
             try {
                 const response: GetUserInfoResponse = await fetch(
