@@ -2,6 +2,8 @@ import * as bodyParser from "body-parser";
 import * as cors from "cors";
 import * as express from "express";
 import * as slowDown from "express-slow-down";
+import * as cookie from "cookie";
+import * as jwt from "jsonwebtoken";
 
 import dbInterface from "./database/DBInterface";
 
@@ -9,11 +11,15 @@ import tauriApi from "./tauriApi";
 
 import cache from "./database/cache";
 import environment from "./environment";
-import { validator } from "./helpers";
+import { patreonUser, validator } from "./helpers";
 import { ERR_UNKNOWN } from "./helpers/errors";
 import { LooseObject } from "./types";
 
 import { middlewares } from "./middlewares";
+
+import PatreonApi from "./patreonApi";
+
+const patreon = new PatreonApi();
 
 const app = express();
 
@@ -31,6 +37,7 @@ const speedLimiter = slowDown({
         cors({
             origin: environment.CORS_ORIGIN,
             optionsSuccessStatus: 200,
+            credentials: true,
         })
     );
 
@@ -418,6 +425,28 @@ const speedLimiter = slowDown({
                 success: true,
                 response:
                     await dbInterface.weeklyChallenge.getChallengeDocuments(),
+            });
+        } catch (err) {
+            res.send({
+                success: false,
+                errorstring: validator.isError(err) ? err.message : err,
+            });
+        }
+    });
+
+    app.post("/login", middlewares.verifyLogin, async (req, res) => {
+        try {
+            const authInfo = await patreon.getAuthToken(req.body.code);
+            const userInfo = await patreon.getUserInfo(authInfo.access_token);
+
+            const user = patreonUser.getUserData(authInfo, userInfo);
+            const token = jwt.sign(user, environment.ENCRYPTION_KEY);
+
+            res.setHeader("Set-Cookie", cookie.serialize("user", token));
+
+            res.send({
+                success: true,
+                response: token,
             });
         } catch (err) {
             res.send({

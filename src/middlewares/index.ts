@@ -8,6 +8,7 @@ import {
     ERR_INVALID_BOSS_ID,
     ERR_INVALID_CHARACTER_CLASS,
     ERR_INVALID_CHARACTER_NAME,
+    ERR_INVALID_CODE,
     ERR_INVALID_COMBAT_METRIC,
     ERR_INVALID_DIFFICULTY,
     ERR_INVALID_FILTERS,
@@ -306,6 +307,21 @@ class Middlewares {
                 throw ERR_INVALID_ITEM_IDS;
 
             req.body.isEntry = !!req.body.isEntry;
+            next();
+        } catch (err) {
+            res.send({
+                success: false,
+                errorstring: validator.isError(err) ? err.message : err,
+            });
+        }
+    }
+
+    verifyLogin(req: Request, res: Response, next: NextFunction) {
+        try {
+            if (!req.body.code || typeof req.body.code !== "string") {
+                throw ERR_INVALID_CODE;
+            }
+
             next();
         } catch (err) {
             res.send({
