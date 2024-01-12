@@ -455,6 +455,23 @@ const speedLimiter = slowDown({
             });
         }
     });
+
+    app.post("/logout", async (_1, res) => {
+        try {
+            res.setHeader(
+                "Set-Cookie",
+                cookie.serialize("user", "", {
+                    maxAge: 0,
+                })
+            );
+            res.end();
+        } catch (err) {
+            res.send({
+                success: false,
+                errorstring: validator.isError(err) ? err.message : err,
+            });
+        }
+    });
 })();
 
 export default app;
