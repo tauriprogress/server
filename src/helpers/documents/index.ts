@@ -9,10 +9,12 @@ import { GuildDocumentController } from "./guild";
 import RaidBossDocumentController from "./raidBoss";
 import WeeklyGuildFullClearDocumentController from "./weeklyGuildFullClear";
 import WeeklyChallengeDocumentController from "./weeklyChallenge";
+import WeeklyChallengeVoteDocumentController from "./weeklyChallengeVote";
 
 class DocumentManager {
     weeklyGuildFullClear = WeeklyGuildFullClearDocumentController;
     weeklyChallenge = WeeklyChallengeDocumentController;
+    weeklyChallengeVote = WeeklyChallengeVoteDocumentController;
     raidBoss = RaidBossDocumentController;
     guild = GuildDocumentController;
     character = characterDocument;

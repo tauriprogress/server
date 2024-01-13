@@ -4,6 +4,7 @@ import {
     ClassId,
     CombatMetric,
     Difficulty,
+    PatreonUserId,
     RaidId,
     RaidName,
     Realm,
@@ -119,6 +120,10 @@ function weekId(date: Date): WeekId {
     return time.dateToString(time.getLatestWednesday(date));
 }
 
+function weeklyChallengeVoteId(userId: PatreonUserId, weekId: WeekId) {
+    return `${userId}${weekId}`;
+}
+
 export default {
     guildId,
     raidBossId,
@@ -126,6 +131,7 @@ export default {
     characterDocumentCollectionId,
     leaderboardCharacterId,
     weekId,
+    weeklyChallengeVoteId,
     weeklyChallengeRaidBossId,
     deconstruct: {
         characterDocumentCollectionId: deconstructCharacterDocumentCollectionId,

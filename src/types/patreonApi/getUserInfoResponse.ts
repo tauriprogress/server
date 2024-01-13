@@ -1,7 +1,9 @@
+export type PatreonUserId = string;
+
 export interface GetUserInfoResponse {
     data: {
         attributes: Object;
-        id: string;
+        id: PatreonUserId;
         relationships: {
             memberships: { data: any[] };
         };
