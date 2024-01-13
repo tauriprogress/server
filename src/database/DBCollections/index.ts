@@ -7,6 +7,7 @@ import { maintenanceCollectionMetaData } from "./DBMaintenanceCollection";
 import { raidBossesCollectionMetaData } from "./DBRaidBossesCollection";
 import { weeklyGuildFullClearCollectionMetaData } from "./DBWeeklyGuildFullClearCollection";
 import { weeklyChallengeCollectionMetaData } from "./WeeklyChallenge";
+import { weeklyChallengeVotesCollectionMetaData } from "./WeeklyChallengeVotes";
 
 export function createCollections(db: DatabaseInterface) {
     return {
@@ -31,6 +32,11 @@ export function createCollections(db: DatabaseInterface) {
             db,
             weeklyChallengeCollectionMetaData
         ),
+        weeklyChallengeVotes:
+            new weeklyChallengeVotesCollectionMetaData.classConstructor(
+                db,
+                weeklyChallengeVotesCollectionMetaData
+            ),
         characterLeaderboardDps:
             new characterLeaderboardDpsCollectionMetaData.classConstructor(
                 db,
