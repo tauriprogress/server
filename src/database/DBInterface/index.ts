@@ -14,6 +14,7 @@ import DBRaidboss from "./DBRaidboss";
 import DBUpdate from "./DBUpdate";
 import DBWeeklyGuildFullClear from "./DBWeeklyGuildFullClear";
 import DBWeeklyChallenge from "./DBWeeklyChallenge";
+import DBWeeklyChallengeVote from "./DBWeeklyChallengeVote";
 const raidSummaryLock = new Lock();
 
 class DBInterface {
@@ -25,6 +26,7 @@ class DBInterface {
     public character: DBCharacter;
     public weeklyGuildFullClear: DBWeeklyGuildFullClear;
     public weeklyChallenge: DBWeeklyChallenge;
+    public weeklyChallengeVote: DBWeeklyChallengeVote;
     public initializer: DBInitializer;
     public maintenance: DBMaintenance;
 
@@ -36,6 +38,7 @@ class DBInterface {
         this.character = new DBCharacter(this);
         this.weeklyGuildFullClear = new DBWeeklyGuildFullClear(this);
         this.weeklyChallenge = new DBWeeklyChallenge(this);
+        this.weeklyChallengeVote = new DBWeeklyChallengeVote(this);
         this.initializer = new DBInitializer(this);
         this.maintenance = new DBMaintenance(this, new DBTaskManager(this));
         this.collections = createCollections(this);

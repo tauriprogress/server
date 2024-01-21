@@ -4,6 +4,7 @@ export * from "./leaderboardCharacter";
 export * from "./raidBoss";
 export * from "./weeklyGuildFullClear";
 export * from "./weeklyChallenge";
+export * from "./weeklyChallengeVote";
 import { characterDocument } from "./character";
 import { GuildDocumentController } from "./guild";
 import RaidBossDocumentController from "./raidBoss";

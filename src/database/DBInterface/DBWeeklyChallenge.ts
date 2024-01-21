@@ -12,7 +12,7 @@ export type WeeklyChallenge = {
     [key in Difficulty]: WeeklyChallengeDocument;
 };
 
-type RaffleItem = {
+export type RaffleItem = {
     name: string;
     weight: number;
 };
@@ -129,13 +129,9 @@ export class DBWeeklyChallenge {
     selectNewChallenge(): Promise<string> {
         return new Promise(async (resolve, reject) => {
             try {
-                const raffleItems =
-                    environment.currentContent.raids[0].bosses.map((boss) => ({
-                        name: boss.name,
-                        weight: 100,
-                    }));
-
-                const selectedChallenge = raffle(raffleItems);
+                const selectedChallenge = raffle(
+                    environment.getDefaultRaffleItems()
+                );
 
                 const documentManagers =
                     environment.currentContent.completionDifficulties.map(

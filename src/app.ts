@@ -434,6 +434,21 @@ const speedLimiter = slowDown({
         }
     });
 
+    app.get("/weekly/challenge/votes", async (_1, res) => {
+        try {
+            res.send({
+                success: true,
+                response:
+                    await dbInterface.weeklyChallengeVote.getCurrentWeekVotes(),
+            });
+        } catch (err) {
+            res.send({
+                success: false,
+                errorstring: validator.isError(err) ? err.message : err,
+            });
+        }
+    });
+
     app.post("/login", middlewares.verifyLogin, async (req, res) => {
         try {
             const authInfo = await patreon.getAuthToken(req.body.code);
@@ -465,6 +480,20 @@ const speedLimiter = slowDown({
                 })
             );
             res.end();
+        } catch (err) {
+            res.send({
+                success: false,
+                errorstring: validator.isError(err) ? err.message : err,
+            });
+        }
+    });
+
+    app.post("/vote", middlewares.verifyVote, async (req, res) => {
+        try {
+            res.send({
+                success: true,
+                response: req.headers.cookie,
+            });
         } catch (err) {
             res.send({
                 success: false,

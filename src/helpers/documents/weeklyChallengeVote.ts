@@ -38,11 +38,6 @@ export class WeeklyChallengeVoteDocumentController {
             timestamp: new Date().getTime(),
         };
     }
-
-    changeVote(bossName: string, weight: number) {
-        this.bossName = bossName;
-        this.weight = weight;
-    }
 }
 
 export default WeeklyChallengeVoteDocumentController;

@@ -3,6 +3,7 @@ import constants, { realmGroups } from "tauriprogress-constants";
 import * as dotenv from "dotenv";
 import { ERR_INVALID_RAID_ID, ERR_INVALID_RAID_NAME } from "../helpers/errors";
 import { ClassId, CombatMetric, RaidId, RaidName, SpecId } from "../types";
+import { RaffleItem } from "../database/DBInterface/DBWeeklyChallenge";
 dotenv.config();
 
 const defaultPort = 3001;
@@ -308,6 +309,13 @@ class Environment {
         }
 
         return this.currentContent.raids[0].id;
+    }
+
+    getDefaultRaffleItems(): RaffleItem[] {
+        return this.currentContent.raids[0].bosses.map((boss) => ({
+            name: boss.name,
+            weight: 100,
+        }));
     }
 }
 
