@@ -67,13 +67,6 @@ export class DBWeeklyChallengeVote {
                     })
                     .toArray();
 
-                const defaultVotes = environment.getDefaultRaffleItems();
-
-                defaultVotes.map((vote) => {
-                    console.log(vote.name);
-                    console.log(vote.weight);
-                });
-
                 resolve(this.getRaffleItemsFromVotes(votes));
             } catch (e) {
                 reject(e);
@@ -121,7 +114,7 @@ export class DBWeeklyChallengeVote {
         return environment.getDefaultRaffleItems().map((vote) => {
             return {
                 name: vote.name,
-                weight: vote.weight + obj[vote.name] || 0,
+                weight: vote.weight + (obj[vote.name] || 0),
             };
         });
     }
