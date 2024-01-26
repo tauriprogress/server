@@ -20,6 +20,7 @@ import {
     ERR_INVALID_PAGESIZE,
     ERR_INVALID_RAID_ID,
     ERR_INVALID_RAID_NAME,
+    ERR_NOT_LOGGED_IN,
 } from "../helpers/errors";
 import { RaidName } from "../types";
 
@@ -320,6 +321,22 @@ class Middlewares {
         try {
             if (!req.body.code || typeof req.body.code !== "string") {
                 throw ERR_INVALID_CODE;
+            }
+
+            next();
+        } catch (err) {
+            res.send({
+                success: false,
+                errorstring: validator.isError(err) ? err.message : err,
+            });
+        }
+    }
+
+    verifyVote(req: Request, res: Response, next: NextFunction) {
+        try {
+            // check for cookie and confirm user
+            if (!req.headers.cookie) {
+                throw ERR_NOT_LOGGED_IN;
             }
 
             next();
