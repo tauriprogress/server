@@ -434,20 +434,24 @@ const speedLimiter = slowDown({
         }
     });
 
-    app.get("/weekly/challenge/votes", async (_1, res) => {
-        try {
-            res.send({
-                success: true,
-                response:
-                    await dbInterface.weeklyChallengeVote.getCurrentWeekVotes(),
-            });
-        } catch (err) {
-            res.send({
-                success: false,
-                errorstring: validator.isError(err) ? err.message : err,
-            });
+    app.get(
+        "/weekly/challenge/votes",
+        middlewares.verifyUser,
+        async (_1, res) => {
+            try {
+                res.send({
+                    success: true,
+                    response:
+                        await dbInterface.weeklyChallengeVote.getCurrentWeekVotes(),
+                });
+            } catch (err) {
+                res.send({
+                    success: false,
+                    errorstring: validator.isError(err) ? err.message : err,
+                });
+            }
         }
-    });
+    );
 
     app.post("/login", middlewares.verifyLogin, async (req, res) => {
         try {

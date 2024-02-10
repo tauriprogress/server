@@ -1,6 +1,6 @@
 export type PatreonUserId = string;
 
-export interface GetUserInfoResponse {
+export interface GetPatreonUserInfoResponse {
     data: {
         attributes: Object;
         id: PatreonUserId;

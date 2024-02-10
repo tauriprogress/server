@@ -23,6 +23,8 @@ import {
     ERR_NOT_LOGGED_IN,
 } from "../helpers/errors";
 import { RaidName } from "../types";
+import * as cookie from "cookie";
+import * as jwt from "jsonwebtoken";
 
 class Middlewares {
     async waitDbCache(_1: Request, res: Response, next: NextFunction) {
@@ -337,6 +339,27 @@ class Middlewares {
             // check for cookie and confirm user
             if (!req.headers.cookie) {
                 throw ERR_NOT_LOGGED_IN;
+            }
+
+            next();
+        } catch (err) {
+            res.send({
+                success: false,
+                errorstring: validator.isError(err) ? err.message : err,
+            });
+        }
+    }
+
+    verifyUser(req: Request, res: Response, next: NextFunction) {
+        try {
+            if (req.headers.cookie) {
+                const userToken: string | undefined = cookie.parse(
+                    req.headers.cookie
+                ).user;
+                if (userToken) {
+                    const decoded = jwt.decode(userToken);
+                    console.log(decoded);
+                }
             }
 
             next();

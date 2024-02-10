@@ -1,6 +1,6 @@
 import environment from "../environment";
 import {
-    GetUserInfoResponse,
+    GetPatreonUserInfoResponse,
     PatreonAuthResponse,
     PatreonError,
 } from "../types";
@@ -51,10 +51,10 @@ class PatreonApi {
         });
     }
 
-    getUserInfo(authToken: string): Promise<GetUserInfoResponse> {
+    getUserInfo(authToken: string): Promise<GetPatreonUserInfoResponse> {
         return new Promise(async (resolve, reject) => {
             try {
-                const response: GetUserInfoResponse | PatreonError =
+                const response: GetPatreonUserInfoResponse | PatreonError =
                     await fetch(
                         encodeURI(
                             `${this.baseUrl}/v2/identity?include=memberships`
