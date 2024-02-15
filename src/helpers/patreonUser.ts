@@ -46,10 +46,7 @@ function decodeUser(req: Request): PatreonUserInfo | undefined {
     return undefined;
 }
 
-async function verifyUser(user: PatreonUserInfo): Promise<> {}
-
 export default {
     getUserData,
     decodeUser,
-    verifyUser,
 };

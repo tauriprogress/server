@@ -2,12 +2,8 @@ import { PatreonUserInfo } from "../patreonApi";
 
 export type ExpressRequestPatreonUser = undefined | ValidUser | InvalidUser;
 
-interface ValidUser extends PatreonUserInfo {
-    invalid: false;
-}
+type ValidUser = PatreonUserInfo;
 
 type InvalidUser = {
-    invalid: Invalidity;
+    invalid: "invalid";
 };
-
-type Invalidity = "expired" | "bad token";

@@ -3,7 +3,7 @@ import environment from "../environment";
 
 import { raidNameId } from "tauriprogress-constants";
 import dbInterface from "../database/DBInterface";
-import { capitalize, validator } from "../helpers";
+import { capitalize, patreonUser, validator } from "../helpers";
 import {
     ERR_INVALID_BOSS_ID,
     ERR_INVALID_CHARACTER_CLASS,
@@ -23,8 +23,6 @@ import {
     ERR_NOT_LOGGED_IN,
 } from "../helpers/errors";
 import { RaidName } from "../types";
-import * as cookie from "cookie";
-import * as jwt from "jsonwebtoken";
 
 class Middlewares {
     async waitDbCache(_1: Request, res: Response, next: NextFunction) {
@@ -334,11 +332,16 @@ class Middlewares {
         }
     }
 
-    verifyVote(req: Request, res: Response, next: NextFunction) {
+    verifyUser(req: Request, res: Response, next: NextFunction) {
         try {
-            // check for cookie and confirm user
-            if (!req.headers.cookie) {
-                throw ERR_NOT_LOGGED_IN;
+            const user = patreonUser.decodeUser(req);
+
+            if (user) {
+                req.user = user;
+            } else {
+                req.user = {
+                    invalid: "invalid",
+                };
             }
 
             next();
@@ -350,16 +353,10 @@ class Middlewares {
         }
     }
 
-    verifyUser(req: Request, res: Response, next: NextFunction) {
+    verifyVote(req: Request, res: Response, next: NextFunction) {
         try {
-            if (req.headers.cookie) {
-                const userToken: string | undefined = cookie.parse(
-                    req.headers.cookie
-                ).user;
-                if (userToken) {
-                    const decoded = jwt.decode(userToken);
-                    console.log(decoded);
-                }
+            if (!req.headers.cookie) {
+                throw ERR_NOT_LOGGED_IN;
             }
 
             next();
