@@ -23,6 +23,10 @@ import {
     ERR_NOT_LOGGED_IN,
 } from "../helpers/errors";
 import { RaidName } from "../types";
+import PatreonApi from "../patreonApi";
+import cipher from "../helpers/cipher";
+import * as jwt from "jsonwebtoken";
+import * as cookie from "cookie";
 
 class Middlewares {
     async waitDbCache(_1: Request, res: Response, next: NextFunction) {
@@ -332,7 +336,7 @@ class Middlewares {
         }
     }
 
-    verifyUser(req: Request, res: Response, next: NextFunction) {
+    attachUser(req: Request, res: Response, next: NextFunction) {
         try {
             const user = patreonUser.decodeUser(req);
 
@@ -353,10 +357,51 @@ class Middlewares {
         }
     }
 
-    verifyVote(req: Request, res: Response, next: NextFunction) {
+    async verifyUser(req: Request, res: Response, next: NextFunction) {
         try {
-            if (!req.headers.cookie) {
+            if (!req.user || (req.user && "invalid" in req.user)) {
                 throw ERR_NOT_LOGGED_IN;
+            }
+
+            const api = new PatreonApi();
+
+            if (patreonUser.isExpired(req.user)) {
+                try {
+                    const authResponse = await api.refreshToken(
+                        cipher.decrypt(req.user.encryptedRefreshToken)
+                    );
+                    const userInfoResponse = await api.getUserInfo(
+                        authResponse.access_token
+                    );
+                    const newUserInfo = patreonUser.getUserData(
+                        authResponse,
+                        userInfoResponse
+                    );
+
+                    const token = jwt.sign(
+                        newUserInfo,
+                        environment.ENCRYPTION_KEY
+                    );
+
+                    res.setHeader(
+                        "Set-Cookie",
+                        cookie.serialize("user", token)
+                    );
+                    next();
+                } catch (e) {
+                    throw ERR_NOT_LOGGED_IN;
+                }
+            }
+
+            const newUserInfo = await api.getUserInfo(
+                cipher.decrypt(req.user.encryptedToken)
+            );
+            if (!patreonUser.isSameUser(req.user, newUserInfo)) {
+                throw ERR_NOT_LOGGED_IN;
+            }
+
+            if (req.user.isMember !== patreonUser.isMember(newUserInfo)) {
+                req.user.isMember === patreonUser.isMember(newUserInfo);
             }
 
             next();

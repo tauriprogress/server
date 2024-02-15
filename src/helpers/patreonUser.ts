@@ -46,7 +46,28 @@ function decodeUser(req: Request): PatreonUserInfo | undefined {
     return undefined;
 }
 
+function isExpired(user: PatreonUserInfo): boolean {
+    if (user.expiresAt < new Date().getTime()) {
+        return true;
+    }
+    return false;
+}
+
+function isSameUser(
+    user: PatreonUserInfo,
+    userInfoResponse: GetPatreonUserInfoResponse
+): boolean {
+    return user.id === userInfoResponse.data.id;
+}
+
+function isMember(userInfoResponse: GetPatreonUserInfoResponse): boolean {
+    return !!userInfoResponse.data.relationships.memberships.data.length;
+}
+
 export default {
     getUserData,
     decodeUser,
+    isExpired,
+    isSameUser,
+    isMember,
 };

@@ -436,7 +436,7 @@ const speedLimiter = slowDown({
 
     app.get(
         "/weekly/challenge/votes",
-        middlewares.verifyUser,
+        middlewares.attachUser,
         async (_1, res) => {
             try {
                 res.send({
@@ -492,19 +492,24 @@ const speedLimiter = slowDown({
         }
     });
 
-    app.post("/vote", middlewares.verifyVote, async (req, res) => {
-        try {
-            res.send({
-                success: true,
-                response: req.headers.cookie,
-            });
-        } catch (err) {
-            res.send({
-                success: false,
-                errorstring: validator.isError(err) ? err.message : err,
-            });
+    app.post(
+        "/vote",
+        middlewares.attachUser,
+        middlewares.verifyUser,
+        async (req, res) => {
+            try {
+                res.send({
+                    success: true,
+                    response: req.headers.cookie,
+                });
+            } catch (err) {
+                res.send({
+                    success: false,
+                    errorstring: validator.isError(err) ? err.message : err,
+                });
+            }
         }
-    });
+    );
 })();
 
 export default app;
