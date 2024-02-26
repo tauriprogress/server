@@ -5,6 +5,7 @@ import { raidNameId } from "tauriprogress-constants";
 import dbInterface from "../database/DBInterface";
 import { capitalize, patreonUser, validator } from "../helpers";
 import {
+    ERR_BOSS_NOT_FOUND,
     ERR_INVALID_BOSS_ID,
     ERR_INVALID_CHARACTER_CLASS,
     ERR_INVALID_CHARACTER_NAME,
@@ -402,6 +403,21 @@ class Middlewares {
 
             if (req.user.isMember !== patreonUser.isMember(newUserInfo)) {
                 req.user.isMember === patreonUser.isMember(newUserInfo);
+            }
+
+            next();
+        } catch (err) {
+            res.send({
+                success: false,
+                errorstring: validator.isError(err) ? err.message : err,
+            });
+        }
+    }
+
+    verifyVote(req: Request, res: Response, next: NextFunction) {
+        try {
+            if (!validator.isBossName(req.body.bossName)) {
+                throw ERR_BOSS_NOT_FOUND;
             }
 
             next();

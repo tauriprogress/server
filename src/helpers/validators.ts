@@ -153,6 +153,20 @@ function validBossName(raidId: any, bossName: any) {
     return false;
 }
 
+function isBossName(bossName: any) {
+    if (typeof bossName === "string") {
+        for (const raid of environment.currentContent.raids) {
+            for (const boss of raid.bosses) {
+                if (boss.name === bossName) {
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
 function validIngameBossId(
     ingameBossId: number,
     difficulty: Difficulty
@@ -260,5 +274,6 @@ export default {
     validRaidLogId,
     validLimit,
     validItems,
+    isBossName,
     isError,
 };

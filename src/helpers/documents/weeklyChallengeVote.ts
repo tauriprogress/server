@@ -20,12 +20,29 @@ export class WeeklyChallengeVoteDocumentController {
     private bossName: string;
     private weight: number;
 
-    constructor(obj: WeeklyChallengeVoteDocument) {
-        this._id = obj._id;
-        this.userId = obj.userId;
-        this.weekId = obj.weekId;
-        this.bossName = obj.bossName;
-        this.weight = obj.weight;
+    constructor(
+        obj:
+            | { userId: string; isMember: boolean; bossName: string }
+            | WeeklyChallengeVoteDocument
+    ) {
+        if (this.isVoteDocument(obj)) {
+            obj = JSON.parse(
+                JSON.stringify(obj)
+            ) as WeeklyChallengeVoteDocument;
+
+            this._id = obj._id;
+            this.userId = obj.userId;
+            this.weekId = obj.weekId;
+            this.bossName = obj.bossName;
+            this.weight = obj.weight;
+        } else {
+            const weekId = id.weekId(new Date());
+            this._id = id.weeklyChallengeVoteId(obj.userId, weekId);
+            this.userId = obj.userId;
+            this.weekId = weekId;
+            this.bossName = obj.bossName;
+            this.weight = obj.isMember ? 100 : 20;
+        }
     }
 
     getDocument(): WeeklyChallengeVoteDocument {
@@ -37,6 +54,13 @@ export class WeeklyChallengeVoteDocumentController {
             weight: this.weight,
             timestamp: new Date().getTime(),
         };
+    }
+
+    isVoteDocument(obj: any): obj is WeeklyChallengeVoteDocument {
+        if (obj && obj._id) {
+            return true;
+        }
+        return false;
     }
 }
 
