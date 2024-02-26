@@ -4,6 +4,7 @@ import {
     PatreonAuthResponse,
     PatreonError,
 } from "../types";
+import patreonCache from "./cache";
 
 class PatreonApi {
     private baseUrl = "https://www.patreon.com/api/oauth2";
@@ -54,21 +55,29 @@ class PatreonApi {
     getUserInfo(authToken: string): Promise<GetPatreonUserInfoResponse> {
         return new Promise(async (resolve, reject) => {
             try {
-                const response: GetPatreonUserInfoResponse | PatreonError =
-                    await fetch(
-                        encodeURI(
-                            `${this.baseUrl}/v2/identity?include=memberships`
-                        ),
-                        {
-                            method: "GET",
-                            headers: {
-                                Authorization: `Bearer ${authToken}`,
-                            },
-                        }
-                    ).then((res) => res.json());
+                let response = patreonCache.getUserInfo(authToken);
 
-                if ("error" in response) {
-                    throw new Error(response.error);
+                if (!response) {
+                    let apiResponse: GetPatreonUserInfoResponse | PatreonError =
+                        await fetch(
+                            encodeURI(
+                                `${this.baseUrl}/v2/identity?include=memberships`
+                            ),
+                            {
+                                method: "GET",
+                                headers: {
+                                    Authorization: `Bearer ${authToken}`,
+                                },
+                            }
+                        ).then((res) => res.json());
+
+                    if ("error" in apiResponse) {
+                        throw new Error(apiResponse.error);
+                    }
+
+                    patreonCache.setUserInfo(authToken, apiResponse);
+
+                    response = apiResponse;
                 }
 
                 resolve(response);
