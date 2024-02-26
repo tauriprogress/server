@@ -6,6 +6,7 @@ import {
     id,
     time,
 } from "../../helpers";
+import { PatreonUserInfo } from "../../types";
 import { RaffleItem } from "./DBWeeklyChallenge";
 
 export class DBWeeklyChallengeVote {
@@ -52,7 +53,10 @@ export class DBWeeklyChallengeVote {
         });
     }
 
-    getCurrentWeekVotes(): Promise<RaffleItem[]> {
+    getCurrentWeekVotes(user?: PatreonUserInfo): Promise<{
+        votes: RaffleItem[];
+        currentVote: undefined | WeeklyChallengeVoteDocument;
+    }> {
         return new Promise(async (resolve, reject) => {
             try {
                 const db = this.dbInterface.maintenance.getConnection();
@@ -67,7 +71,14 @@ export class DBWeeklyChallengeVote {
                     })
                     .toArray();
 
-                resolve(this.getRaffleItemsFromVotes(votes));
+                const result = {
+                    votes: this.getRaffleItemsFromVotes(votes),
+                    currentVote: votes.find((vote) => {
+                        return vote.userId === (user && user.id);
+                    }),
+                };
+
+                resolve(result);
             } catch (e) {
                 reject(e);
             }
