@@ -130,7 +130,7 @@ export class DBWeeklyChallenge {
         return new Promise(async (resolve, reject) => {
             try {
                 const selectedChallenge = raffle(
-                    environment.getDefaultRaffleItems()
+                    await this.dbInterface.weeklyChallengeVote.getLastWeekVotes()
                 );
 
                 const documentManagers =
