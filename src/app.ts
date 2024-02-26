@@ -12,12 +12,13 @@ import tauriApi from "./tauriApi";
 import cache from "./database/cache";
 import environment from "./environment";
 import { patreonUser, validator } from "./helpers";
-import { ERR_UNKNOWN } from "./helpers/errors";
+import { ERR_NOT_LOGGED_IN, ERR_UNKNOWN } from "./helpers/errors";
 import { LooseObject } from "./types";
 
 import { middlewares } from "./middlewares";
 
 import PatreonApi from "./patreonApi";
+import documentManager from "./helpers/documents";
 
 const patreon = new PatreonApi();
 
@@ -437,12 +438,18 @@ const speedLimiter = slowDown({
     app.get(
         "/weekly/challenge/votes",
         middlewares.attachUser,
-        async (_1, res) => {
+        async (req, res) => {
+            const user =
+                req.user && "invalid" in req.user === false
+                    ? req.user
+                    : undefined;
             try {
                 res.send({
                     success: true,
                     response:
-                        await dbInterface.weeklyChallengeVote.getCurrentWeekVotes(),
+                        await dbInterface.weeklyChallengeVote.getCurrentWeekVotes(
+                            user
+                        ),
                 });
             } catch (err) {
                 res.send({
@@ -496,11 +503,32 @@ const speedLimiter = slowDown({
         "/vote",
         middlewares.attachUser,
         middlewares.verifyUser,
+        middlewares.verifyVote,
         async (req, res) => {
+            const user =
+                req.user && "invalid" in req.user === false
+                    ? req.user
+                    : undefined;
+
+            if (!user) {
+                throw ERR_NOT_LOGGED_IN;
+            }
+
+            await dbInterface.weeklyChallengeVote.saveVote(
+                new documentManager.weeklyChallengeVote({
+                    userId: user.id,
+                    isMember: user.isMember,
+                    bossName: req.body.bossName,
+                })
+            );
+
             try {
                 res.send({
                     success: true,
-                    response: req.headers.cookie,
+                    response:
+                        await dbInterface.weeklyChallengeVote.getCurrentWeekVotes(
+                            user
+                        ),
                 });
             } catch (err) {
                 res.send({
