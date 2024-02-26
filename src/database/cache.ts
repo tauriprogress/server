@@ -5,6 +5,7 @@ import {
     GuildLeaderboard,
     GuildList,
     RaidBossDocument,
+    WeeklyChallengeVoteDocument,
     id,
 } from "../helpers";
 import { LeaderboardCharacterScoredDocument } from "../helpers/documents/leaderboardCharacter";
@@ -26,6 +27,7 @@ class Cache {
     public characterPerformance: NodeCache;
     public weeklyGuildFullClear: NodeCache;
     public weeklyChallenge: NodeCache;
+    public weeklyChallengeCurrentVotes: NodeCache;
 
     public items: NodeCache;
     public logs: NodeCache;
@@ -35,6 +37,7 @@ class Cache {
     public guildLeaderboardId: string;
     public weeklyGuildFullClearId: string;
     public weeklyChallengeId: string;
+    public weeklyChallengeCurrentVotesId: string;
 
     constructor() {
         this.guildListId = "GuildList";
@@ -100,6 +103,13 @@ class Cache {
         this.weeklyChallengeId = "WeeklyChallenge";
         this.weeklyChallenge = new NodeCache({
             stdTTL: 0,
+            useClones: false,
+        });
+
+        this.weeklyChallengeCurrentVotesId = "WeeklyChallengeVotesId";
+        this.weeklyChallengeCurrentVotes = new NodeCache({
+            stdTTL: 20 * 60,
+            checkperiod: 60,
             useClones: false,
         });
     }
@@ -210,6 +220,23 @@ class Cache {
             | undefined;
     }
 
+    getWeeklyChallengeCurrentVotes() {
+        return this.weeklyChallengeCurrentVotes.get(
+            this.weeklyChallengeCurrentVotesId
+        ) as WeeklyChallengeVoteDocument[] | undefined;
+    }
+
+    setWeeklyChallengeCurrentVotes(votes: WeeklyChallengeVoteDocument[]) {
+        try {
+            this.weeklyChallengeCurrentVotes.set(
+                this.weeklyChallengeCurrentVotesId,
+                votes
+            );
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
     clearRaidSummary() {
         this.raidSummary.del(this.raidSummary.keys());
     }
@@ -228,6 +255,12 @@ class Cache {
 
     clearWeeklyChallenge() {
         this.weeklyChallenge.del(this.weeklyChallenge.keys());
+    }
+
+    clearWeeklyCurrentVotes() {
+        this.weeklyChallengeCurrentVotes.del(
+            this.weeklyChallengeCurrentVotes.keys()
+        );
     }
 }
 

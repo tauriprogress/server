@@ -7,6 +7,7 @@ import {
     time,
 } from "../../helpers";
 import { PatreonUserInfo } from "../../types";
+import cache from "../cache";
 import { RaffleItem } from "./DBWeeklyChallenge";
 
 export class DBWeeklyChallengeVote {
@@ -46,6 +47,8 @@ export class DBWeeklyChallengeVote {
                     await collection.insertOne(newDoc);
                 }
 
+                cache.clearWeeklyCurrentVotes();
+
                 resolve();
             } catch (e) {
                 reject(e);
@@ -65,11 +68,18 @@ export class DBWeeklyChallengeVote {
                     this.dbInterface.collections.weeklyChallengeVotes.name
                 );
                 const weekId = id.weekId(new Date());
-                const votes = await collection
-                    .find({
-                        weekId: weekId,
-                    })
-                    .toArray();
+
+                let votes = cache.getWeeklyChallengeCurrentVotes();
+
+                if (!votes) {
+                    votes = await collection
+                        .find({
+                            weekId: weekId,
+                        })
+                        .toArray();
+
+                    cache.setWeeklyChallengeCurrentVotes(votes);
+                }
 
                 const result = {
                     votes: this.getRaffleItemsFromVotes(votes),
