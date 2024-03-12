@@ -532,6 +532,23 @@ const speedLimiter = slowDown({
             }
         }
     );
+
+    app.get("/authenticate", middlewares.attachUser, async (req, res) => {
+        const user =
+            req.user && "invalid" in req.user === false ? req.user : undefined;
+
+        try {
+            res.send({
+                success: true,
+                response: !!user,
+            });
+        } catch (err) {
+            res.send({
+                success: false,
+                errorstring: validator.isError(err) ? err.message : err,
+            });
+        }
+    });
 })();
 
 export default app;
