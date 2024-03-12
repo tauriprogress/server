@@ -3,7 +3,7 @@ import environment from "../environment";
 
 import { raidNameId } from "tauriprogress-constants";
 import dbInterface from "../database/DBInterface";
-import { capitalize, patreonUser, validator } from "../helpers";
+import { capitalize, cookies, patreonUser, validator } from "../helpers";
 import {
     ERR_BOSS_NOT_FOUND,
     ERR_INVALID_BOSS_ID,
@@ -27,7 +27,6 @@ import { RaidName } from "../types";
 import PatreonApi from "../patreonApi";
 import cipher from "../helpers/cipher";
 import * as jwt from "jsonwebtoken";
-import * as cookie from "cookie";
 
 class Middlewares {
     async waitDbCache(_1: Request, res: Response, next: NextFunction) {
@@ -384,10 +383,7 @@ class Middlewares {
                         environment.ENCRYPTION_KEY
                     );
 
-                    res.setHeader(
-                        "Set-Cookie",
-                        cookie.serialize("user", token)
-                    );
+                    cookies.setUserCookie(res, token);
                     next();
                 } catch (e) {
                     throw ERR_NOT_LOGGED_IN;

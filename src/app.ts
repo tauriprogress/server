@@ -2,7 +2,6 @@ import * as bodyParser from "body-parser";
 import * as cors from "cors";
 import * as express from "express";
 import * as slowDown from "express-slow-down";
-import * as cookie from "cookie";
 import * as jwt from "jsonwebtoken";
 
 import dbInterface from "./database/DBInterface";
@@ -11,7 +10,7 @@ import tauriApi from "./tauriApi";
 
 import cache from "./database/cache";
 import environment from "./environment";
-import { patreonUser, validator } from "./helpers";
+import { cookies, patreonUser, validator } from "./helpers";
 import { ERR_NOT_LOGGED_IN, ERR_UNKNOWN } from "./helpers/errors";
 import { LooseObject } from "./types";
 
@@ -468,7 +467,7 @@ const speedLimiter = slowDown({
             const user = patreonUser.getUserData(authInfo, userInfo);
             const token = jwt.sign(user, environment.ENCRYPTION_KEY);
 
-            res.setHeader("Set-Cookie", cookie.serialize("user", token));
+            cookies.setUserCookie(res, token);
 
             res.send({
                 success: true,
@@ -484,12 +483,7 @@ const speedLimiter = slowDown({
 
     app.post("/logout", async (_1, res) => {
         try {
-            res.setHeader(
-                "Set-Cookie",
-                cookie.serialize("user", "", {
-                    maxAge: 0,
-                })
-            );
+            cookies.removeUserCookie(res);
             res.end();
         } catch (err) {
             res.send({
