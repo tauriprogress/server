@@ -28,7 +28,7 @@
     },
     "scripts": {
         "start": "node --expose-gc ./build/start.js",
-        "compile": "tsc --project tsconfig.json",
+        "build": "tsc --project tsconfig.json",
         "dev": "tsc --watch --sourceMap",
         "test": "npx madge --ts-config ./tsconfig.json --extensions js,ts --circular ./src"
     },
