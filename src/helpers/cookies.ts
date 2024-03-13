@@ -1,5 +1,6 @@
 import * as cookie from "cookie";
 import { Response } from "express";
+import environment from "../environment";
 
 function setUserCookie(res: Response, token: string) {
     res.setHeader(
@@ -8,6 +9,8 @@ function setUserCookie(res: Response, token: string) {
             httpOnly: true,
             sameSite: "none",
             secure: true,
+            domain: environment.CORS_ORIGIN,
+            partitioned: true,
         })
     );
 }
