@@ -10,4 +10,3 @@ export { default as filter } from "./filter";
 export { default as time } from "./time";
 export { default as validator } from "./validators";
 export { default as patreonUser } from "./patreonUser";
-export { default as cookies } from "./cookies";
