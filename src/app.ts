@@ -435,32 +435,27 @@ const speedLimiter = slowDown({
         }
     });
 
-    app.get(
-        "/weekly/challenge/votes",
-        middlewares.verifyUser,
-        async (req, res) => {
-            const user = patreonUser.decodeUser(req.body.user);
+    app.get("/weekly/challenge/votes", async (req, res) => {
+        const user =
+            req.body.user && typeof req.body.user === "string"
+                ? patreonUser.decodeUser(req.body.user)
+                : undefined;
 
-            if (!user) {
-                throw ERR_USER_NOT_LOGGED_IN;
-            }
-
-            try {
-                res.send({
-                    success: true,
-                    response:
-                        await dbInterface.weeklyChallengeVote.getCurrentWeekVotes(
-                            user
-                        ),
-                });
-            } catch (err) {
-                res.send({
-                    success: false,
-                    errorstring: validator.isError(err) ? err.message : err,
-                });
-            }
+        try {
+            res.send({
+                success: true,
+                response:
+                    await dbInterface.weeklyChallengeVote.getCurrentWeekVotes(
+                        user
+                    ),
+            });
+        } catch (err) {
+            res.send({
+                success: false,
+                errorstring: validator.isError(err) ? err.message : err,
+            });
         }
-    );
+    });
 
     app.post("/user/login", middlewares.verifyLogin, async (req, res) => {
         try {
