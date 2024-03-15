@@ -38,4 +38,5 @@ export const ERR_INVALID_LEADERBOARD_ID = new Error("Invalid leaderboard ID");
 export const ERR_INVALID_ITEM_IDS = new Error("Invalid item ids.");
 export const ERR_INVALID_CODE = new Error("Invalid code.");
 export const ERR_FILE_DOES_NOT_EXIST = new Error("File doesn't exist.");
-export const ERR_NOT_LOGGED_IN = new Error("You are not logged in.");
+export const ERR_USER_NOT_LOGGED_IN = new Error("You are not logged in.");
+export const ERR_USER_TOKEN_EXPIRED = new Error("User token expired.");

@@ -3,7 +3,7 @@ import environment from "../environment";
 
 import { raidNameId } from "tauriprogress-constants";
 import dbInterface from "../database/DBInterface";
-import { capitalize, cookies, patreonUser, validator } from "../helpers";
+import { capitalize, patreonUser, validator } from "../helpers";
 import {
     ERR_BOSS_NOT_FOUND,
     ERR_INVALID_BOSS_ID,
@@ -21,12 +21,10 @@ import {
     ERR_INVALID_PAGESIZE,
     ERR_INVALID_RAID_ID,
     ERR_INVALID_RAID_NAME,
-    ERR_NOT_LOGGED_IN,
+    ERR_USER_NOT_LOGGED_IN,
+    ERR_USER_TOKEN_EXPIRED,
 } from "../helpers/errors";
 import { RaidName } from "../types";
-import PatreonApi from "../patreonApi";
-import cipher from "../helpers/cipher";
-import * as jwt from "jsonwebtoken";
 
 class Middlewares {
     async waitDbCache(_1: Request, res: Response, next: NextFunction) {
@@ -357,48 +355,33 @@ class Middlewares {
         }
     }
 
-    async verifyUser(req: Request, res: Response, next: NextFunction) {
+    async verifyUserLoggedIn(req: Request, res: Response, next: NextFunction) {
         try {
             if (!req.user || (req.user && "invalid" in req.user)) {
-                throw ERR_NOT_LOGGED_IN;
+                throw ERR_USER_NOT_LOGGED_IN;
             }
 
-            const api = new PatreonApi();
+            next();
+        } catch (err) {
+            res.send({
+                success: false,
+                errorstring: validator.isError(err) ? err.message : err,
+            });
+        }
+    }
+
+    async verifyUserNotExpired(
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) {
+        try {
+            if (!req.user || (req.user && "invalid" in req.user)) {
+                throw ERR_USER_NOT_LOGGED_IN;
+            }
 
             if (patreonUser.isExpired(req.user)) {
-                try {
-                    const authResponse = await api.refreshToken(
-                        cipher.decrypt(req.user.encryptedRefreshToken)
-                    );
-                    const userInfoResponse = await api.getUserInfo(
-                        authResponse.access_token
-                    );
-                    const newUserInfo = patreonUser.getUserData(
-                        authResponse,
-                        userInfoResponse
-                    );
-
-                    const token = jwt.sign(
-                        newUserInfo,
-                        environment.ENCRYPTION_KEY
-                    );
-
-                    cookies.setUserCookie(res, token);
-                    next();
-                } catch (e) {
-                    throw ERR_NOT_LOGGED_IN;
-                }
-            }
-
-            const newUserInfo = await api.getUserInfo(
-                cipher.decrypt(req.user.encryptedToken)
-            );
-            if (!patreonUser.isSameUser(req.user, newUserInfo)) {
-                throw ERR_NOT_LOGGED_IN;
-            }
-
-            if (req.user.isMember !== patreonUser.isMember(newUserInfo)) {
-                req.user.isMember === patreonUser.isMember(newUserInfo);
+                throw ERR_USER_TOKEN_EXPIRED;
             }
 
             next();

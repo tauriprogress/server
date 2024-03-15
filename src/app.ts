@@ -10,14 +10,15 @@ import tauriApi from "./tauriApi";
 
 import cache from "./database/cache";
 import environment from "./environment";
-import { cookies, patreonUser, validator } from "./helpers";
-import { ERR_NOT_LOGGED_IN, ERR_UNKNOWN } from "./helpers/errors";
+import { patreonUser, validator } from "./helpers";
+import { ERR_USER_NOT_LOGGED_IN, ERR_UNKNOWN } from "./helpers/errors";
 import { LooseObject } from "./types";
 
 import { middlewares } from "./middlewares";
 
 import PatreonApi from "./patreonApi";
 import documentManager from "./helpers/documents";
+import cipher from "./helpers/cipher";
 
 const patreon = new PatreonApi();
 
@@ -459,15 +460,13 @@ const speedLimiter = slowDown({
         }
     );
 
-    app.post("/login", middlewares.verifyLogin, async (req, res) => {
+    app.post("/user/login", middlewares.verifyLogin, async (req, res) => {
         try {
             const authInfo = await patreon.getAuthToken(req.body.code);
             const userInfo = await patreon.getUserInfo(authInfo.access_token);
 
             const user = patreonUser.getUserData(authInfo, userInfo);
             const token = jwt.sign(user, environment.ENCRYPTION_KEY);
-
-            cookies.setUserCookie(res, token);
 
             res.send({
                 success: true,
@@ -481,22 +480,49 @@ const speedLimiter = slowDown({
         }
     });
 
-    app.post("/logout", async (_1, res) => {
-        try {
-            cookies.removeUserCookie(res);
-            res.end();
-        } catch (err) {
-            res.send({
-                success: false,
-                errorstring: validator.isError(err) ? err.message : err,
-            });
+    app.get(
+        "/user/refresh",
+        middlewares.attachUser,
+        middlewares.verifyUserLoggedIn,
+        async (req, res) => {
+            try {
+                if (!req.user || (req.user && "invalid" in req.user)) {
+                    throw ERR_USER_NOT_LOGGED_IN;
+                }
+
+                const api = new PatreonApi();
+
+                const authResponse = await api.refreshToken(
+                    cipher.decrypt(req.user.encryptedRefreshToken)
+                );
+                const userInfoResponse = await api.getUserInfo(
+                    authResponse.access_token
+                );
+                const newUserInfo = patreonUser.getUserData(
+                    authResponse,
+                    userInfoResponse
+                );
+
+                const token = jwt.sign(newUserInfo, environment.ENCRYPTION_KEY);
+
+                res.send({
+                    success: true,
+                    response: token,
+                });
+            } catch (err) {
+                res.send({
+                    success: false,
+                    errorstring: validator.isError(err) ? err.message : err,
+                });
+            }
         }
-    });
+    );
 
     app.post(
         "/vote",
         middlewares.attachUser,
-        middlewares.verifyUser,
+        middlewares.verifyUserLoggedIn,
+        middlewares.verifyUserNotExpired,
         middlewares.verifyVote,
         async (req, res) => {
             const user =
@@ -505,7 +531,7 @@ const speedLimiter = slowDown({
                     : undefined;
 
             if (!user) {
-                throw ERR_NOT_LOGGED_IN;
+                throw ERR_USER_NOT_LOGGED_IN;
             }
 
             await dbInterface.weeklyChallengeVote.saveVote(
@@ -532,23 +558,6 @@ const speedLimiter = slowDown({
             }
         }
     );
-
-    app.get("/authenticate", middlewares.attachUser, async (req, res) => {
-        const user =
-            req.user && "invalid" in req.user === false ? req.user : undefined;
-
-        try {
-            res.send({
-                success: true,
-                response: !!user,
-            });
-        } catch (err) {
-            res.send({
-                success: false,
-                errorstring: validator.isError(err) ? err.message : err,
-            });
-        }
-    });
 })();
 
 export default app;
