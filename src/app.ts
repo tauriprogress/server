@@ -437,12 +437,14 @@ const speedLimiter = slowDown({
 
     app.get(
         "/weekly/challenge/votes",
-        middlewares.attachUser,
+        middlewares.verifyUser,
         async (req, res) => {
-            const user =
-                req.user && "invalid" in req.user === false
-                    ? req.user
-                    : undefined;
+            const user = patreonUser.decodeUser(req.body.user);
+
+            if (!user) {
+                throw ERR_USER_NOT_LOGGED_IN;
+            }
+
             try {
                 res.send({
                     success: true,
@@ -480,55 +482,48 @@ const speedLimiter = slowDown({
         }
     });
 
-    app.get(
-        "/user/refresh",
-        middlewares.attachUser,
-        middlewares.verifyUserLoggedIn,
-        async (req, res) => {
-            try {
-                if (!req.user || (req.user && "invalid" in req.user)) {
-                    throw ERR_USER_NOT_LOGGED_IN;
-                }
+    app.post("/user/refresh", middlewares.verifyUser, async (req, res) => {
+        try {
+            const user = patreonUser.decodeUser(req.body.user);
 
-                const api = new PatreonApi();
-
-                const authResponse = await api.refreshToken(
-                    cipher.decrypt(req.user.encryptedRefreshToken)
-                );
-                const userInfoResponse = await api.getUserInfo(
-                    authResponse.access_token
-                );
-                const newUserInfo = patreonUser.getUserData(
-                    authResponse,
-                    userInfoResponse
-                );
-
-                const token = jwt.sign(newUserInfo, environment.ENCRYPTION_KEY);
-
-                res.send({
-                    success: true,
-                    response: token,
-                });
-            } catch (err) {
-                res.send({
-                    success: false,
-                    errorstring: validator.isError(err) ? err.message : err,
-                });
+            if (!user) {
+                throw ERR_USER_NOT_LOGGED_IN;
             }
+
+            const api = new PatreonApi();
+
+            const authResponse = await api.refreshToken(
+                cipher.decrypt(user.encryptedRefreshToken)
+            );
+            const userInfoResponse = await api.getUserInfo(
+                authResponse.access_token
+            );
+            const newUserInfo = patreonUser.getUserData(
+                authResponse,
+                userInfoResponse
+            );
+
+            const token = jwt.sign(newUserInfo, environment.ENCRYPTION_KEY);
+
+            res.send({
+                success: true,
+                response: token,
+            });
+        } catch (err) {
+            res.send({
+                success: false,
+                errorstring: validator.isError(err) ? err.message : err,
+            });
         }
-    );
+    });
 
     app.post(
         "/vote",
-        middlewares.attachUser,
-        middlewares.verifyUserLoggedIn,
+        middlewares.verifyUser,
         middlewares.verifyUserNotExpired,
         middlewares.verifyVote,
         async (req, res) => {
-            const user =
-                req.user && "invalid" in req.user === false
-                    ? req.user
-                    : undefined;
+            const user = patreonUser.decodeUser(req.body.user);
 
             if (!user) {
                 throw ERR_USER_NOT_LOGGED_IN;

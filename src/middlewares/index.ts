@@ -334,30 +334,15 @@ class Middlewares {
         }
     }
 
-    attachUser(req: Request, res: Response, next: NextFunction) {
+    verifyUser(req: Request, res: Response, next: NextFunction) {
         try {
-            const user = patreonUser.decodeUser(req);
-
-            if (user) {
-                req.user = user;
-            } else {
-                req.user = {
-                    invalid: "invalid",
-                };
+            if (!req.body.user || typeof req.body.user !== "string") {
+                throw ERR_USER_NOT_LOGGED_IN;
             }
 
-            next();
-        } catch (err) {
-            res.send({
-                success: false,
-                errorstring: validator.isError(err) ? err.message : err,
-            });
-        }
-    }
+            const user = patreonUser.decodeUser(req.body.user);
 
-    async verifyUserLoggedIn(req: Request, res: Response, next: NextFunction) {
-        try {
-            if (!req.user || (req.user && "invalid" in req.user)) {
+            if (!user) {
                 throw ERR_USER_NOT_LOGGED_IN;
             }
 
@@ -376,11 +361,17 @@ class Middlewares {
         next: NextFunction
     ) {
         try {
-            if (!req.user || (req.user && "invalid" in req.user)) {
+            if (!req.body.user || typeof req.body.user !== "string") {
                 throw ERR_USER_NOT_LOGGED_IN;
             }
 
-            if (patreonUser.isExpired(req.user)) {
+            const user = patreonUser.decodeUser(req.body.user);
+
+            if (!user) {
+                throw ERR_USER_NOT_LOGGED_IN;
+            }
+
+            if (patreonUser.isExpired(user)) {
                 throw ERR_USER_TOKEN_EXPIRED;
             }
 

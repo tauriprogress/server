@@ -1,4 +1,3 @@
-import { Request } from "express";
 import {
     PatreonAuthResponse,
     GetPatreonUserInfoResponse,
@@ -6,7 +5,6 @@ import {
     isPatreonUserInfo,
 } from "../types";
 import cipher from "./cipher";
-import * as cookie from "cookie";
 import * as jwt from "jsonwebtoken";
 
 function getUserData(
@@ -25,24 +23,17 @@ function getUserData(
     };
 }
 
-function decodeUser(req: Request): PatreonUserInfo | undefined {
-    if (req.headers.cookie) {
-        const userToken: string | undefined = cookie.parse(
-            req.headers.cookie
-        ).user;
+function decodeUser(userToken: string): PatreonUserInfo | undefined {
+    let decoded = jwt.decode(userToken);
 
-        if (userToken) {
-            let decoded = jwt.decode(userToken);
-
-            if (
-                typeof decoded !== "string" &&
-                decoded !== null &&
-                isPatreonUserInfo(decoded)
-            ) {
-                return decoded;
-            }
-        }
+    if (
+        typeof decoded !== "string" &&
+        decoded !== null &&
+        isPatreonUserInfo(decoded)
+    ) {
+        return decoded;
     }
+
     return undefined;
 }
 
