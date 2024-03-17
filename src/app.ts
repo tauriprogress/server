@@ -435,7 +435,7 @@ const speedLimiter = slowDown({
         }
     });
 
-    app.get("/weekly/challenge/votes", async (req, res) => {
+    app.post("/weekly/challenge/votes", async (req, res) => {
         const user =
             req.body.user && typeof req.body.user === "string"
                 ? patreonUser.decodeUser(req.body.user)
