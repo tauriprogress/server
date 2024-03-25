@@ -87,8 +87,13 @@ function deconstructRaidBossId(bossId: ReturnType<typeof raidBossId>) {
 function raidSummaryCacheId(raidId: RaidId) {
     return `${raidId}`;
 }
+
 function raidBossCacheId(raidId: number, bossName: string) {
     return `${raidId}${bossName}`;
+}
+
+function itemCacheId(itemId: number, realm: Realm) {
+    return `${itemId}${realm}`;
 }
 
 function characterPerformanceCacheId(
@@ -144,5 +149,6 @@ export default {
         characterLeaderboardCacheId,
         extendedLogId,
         characterApiId,
+        itemCacheId,
     },
 };

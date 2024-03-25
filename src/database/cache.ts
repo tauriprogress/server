@@ -9,13 +9,7 @@ import {
     id,
 } from "../helpers";
 import { LeaderboardCharacterScoredDocument } from "../helpers/documents/leaderboardCharacter";
-import {
-    CharacterData,
-    ItemWithGuid,
-    RaidLog,
-    RaidSummary,
-    Realm,
-} from "../types";
+import { RaidSummary } from "../types";
 import { WeeklyChallenge } from "./DBInterface/DBWeeklyChallenge";
 
 class Cache {
@@ -28,10 +22,6 @@ class Cache {
     public weeklyGuildFullClear: NodeCache;
     public weeklyChallenge: NodeCache;
     public weeklyChallengeCurrentVotes: NodeCache;
-
-    public items: NodeCache;
-    public logs: NodeCache;
-    public characters: NodeCache;
 
     public guildListId: string;
     public guildLeaderboardId: string;
@@ -73,25 +63,6 @@ class Cache {
             stdTTL: 20 * 60,
             checkperiod: 60,
             useClones: false,
-        });
-
-        this.items = new NodeCache({
-            stdTTL: 5 * 60,
-            checkperiod: 60,
-            useClones: false,
-            maxKeys: 1500,
-        });
-        this.logs = new NodeCache({
-            stdTTL: 5 * 60,
-            checkperiod: 60,
-            useClones: false,
-            maxKeys: 400,
-        });
-        this.characters = new NodeCache({
-            stdTTL: 5 * 60,
-            checkperiod: 60,
-            useClones: false,
-            maxKeys: 400,
         });
 
         this.weeklyGuildFullClearId = "WeeklyGuildFullClear";
@@ -142,49 +113,6 @@ class Cache {
         return this.guildLeaderboard.get(this.guildLeaderboardId) as
             | GuildLeaderboard
             | undefined;
-    }
-
-    setItem(itemId: number, item: ItemWithGuid) {
-        try {
-            cache.items.set(itemId, item);
-        } catch (e) {
-            console.error(e);
-        }
-    }
-
-    getItem(itemId: number) {
-        return this.items.get(itemId) as ItemWithGuid | undefined;
-    }
-
-    setLog(log: RaidLog, realm: Realm) {
-        try {
-            cache.logs.set(id.cache.extendedLogId(log.log_id, realm), log);
-        } catch (e) {
-            console.error(e);
-        }
-    }
-
-    getLog(logId: number, realm: Realm) {
-        return this.logs.get(id.cache.extendedLogId(logId, realm)) as
-            | RaidLog
-            | undefined;
-    }
-
-    setCharacter(character: CharacterData, realm: Realm) {
-        try {
-            cache.characters.set(
-                id.cache.characterApiId(character.name, realm),
-                character
-            );
-        } catch (e) {
-            console.error(e);
-        }
-    }
-
-    getCharacter(characterName: string, realm: Realm) {
-        return this.characters.get(
-            id.cache.characterApiId(characterName, realm)
-        ) as CharacterData | undefined;
     }
 
     setWeeklyGuildFullClear(

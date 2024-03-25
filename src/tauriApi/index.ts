@@ -23,6 +23,7 @@ import {
     Realm,
 } from "../types";
 import validator from "./../helpers/validators";
+import tauriApiCache from "./cache";
 
 class TauriApi {
     private apikey: string;
@@ -100,8 +101,14 @@ class TauriApi {
         });
     }
 
-    getCharacterData(name: string, realm: Realm) {
-        return this.request<CharacterDataResponse>({
+    async getCharacterData(name: string, realm: Realm) {
+        const cachedData = tauriApiCache.getCharacter(name, realm);
+
+        if (cachedData) {
+            return cachedData;
+        }
+
+        const response = await this.request<CharacterDataResponse>({
             method: "POST",
             body: encodeURIComponent(
                 JSON.stringify({
@@ -114,6 +121,12 @@ class TauriApi {
                 })
             ),
         });
+
+        try {
+            tauriApiCache.setCharacter(response, realm);
+        } catch (e) {}
+
+        return response;
     }
 
     getCharacterAchievements(name: string, realm: Realm) {
@@ -186,8 +199,14 @@ class TauriApi {
         });
     }
 
-    getRaidLog(id: number, realm: Realm) {
-        return this.request<RaidLogResponse>({
+    async getRaidLog(id: number, realm: Realm) {
+        const cachedData = tauriApiCache.getLog(id, realm);
+
+        if (cachedData) {
+            return cachedData;
+        }
+
+        const response = await this.request<RaidLogResponse>({
             method: "POST",
             body: encodeURIComponent(
                 JSON.stringify({
@@ -200,6 +219,12 @@ class TauriApi {
                 })
             ),
         });
+
+        try {
+            tauriApiCache.setLog(response, realm);
+        } catch (e) {}
+
+        return response;
     }
 
     getRaidLastLogs(lastLogId: number = 0, realm: Realm, limit: number = 0) {
@@ -326,8 +351,14 @@ class TauriApi {
         });
     }
 
-    getItemByGuid(guid: number, realm: Realm, pcs?: string) {
-        return this.request<ItemResponse>({
+    async getItemByGuid(guid: number, realm: Realm, pcs?: string) {
+        const cachedData = tauriApiCache.getItem(guid, realm);
+
+        if (cachedData) {
+            return cachedData;
+        }
+
+        const response = await this.request<ItemResponse>({
             method: "POST",
             body: encodeURIComponent(
                 JSON.stringify({
@@ -341,6 +372,12 @@ class TauriApi {
                 })
             ),
         });
+
+        try {
+            tauriApiCache.setItem(guid, realm, response);
+        } catch (e) {}
+
+        return response;
     }
 }
 const tauriApi = new TauriApi();

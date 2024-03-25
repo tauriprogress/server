@@ -8,7 +8,6 @@ import dbInterface from "./database/DBInterface";
 
 import tauriApi from "./tauriApi";
 
-import cache from "./database/cache";
 import environment from "./environment";
 import { patreonUser, validator } from "./helpers";
 import { ERR_USER_NOT_LOGGED_IN, ERR_UNKNOWN } from "./helpers/errors";
@@ -86,21 +85,12 @@ const speedLimiter = slowDown({
         middlewares.verifyGetCharacter,
         async (req, res) => {
             try {
-                let characterData = cache.getCharacter(
-                    req.body.characterName,
-                    req.body.realm
-                );
-
-                if (!characterData) {
-                    characterData = (
-                        await tauriApi.getCharacterData(
-                            req.body.characterName,
-                            req.body.realm
-                        )
-                    ).response;
-
-                    cache.setCharacter(characterData, req.body.realm);
-                }
+                let characterData = (
+                    await tauriApi.getCharacterData(
+                        req.body.characterName,
+                        req.body.realm
+                    )
+                ).response;
 
                 res.send({
                     success: true,
@@ -264,18 +254,9 @@ const speedLimiter = slowDown({
         middlewares.verifyGetLog,
         async (req, res) => {
             try {
-                let log = cache.getLog(req.body.logId, req.body.realm);
-
-                if (!log) {
-                    log = (
-                        await tauriApi.getRaidLog(
-                            req.body.logId,
-                            req.body.realm
-                        )
-                    ).response;
-
-                    cache.setLog(log, req.body.realm);
-                }
+                let log = (
+                    await tauriApi.getRaidLog(req.body.logId, req.body.realm)
+                ).response;
 
                 res.send({
                     success: true,
@@ -297,27 +278,19 @@ const speedLimiter = slowDown({
             try {
                 let items: LooseObject = {};
                 for (let itemMeta of req.body.items) {
-                    let item = cache.getItem(itemMeta.id);
+                    let item;
+                    const data = req.body.isEntry
+                        ? await tauriApi.getItem(itemMeta.id, req.body.realm)
+                        : await tauriApi.getItemByGuid(
+                              itemMeta.id,
+                              req.body.realm,
+                              itemMeta.pcs
+                          );
 
-                    if (!item) {
-                        const data = req.body.isEntry
-                            ? await tauriApi.getItem(
-                                  itemMeta.id,
-                                  req.body.realm
-                              )
-                            : await tauriApi.getItemByGuid(
-                                  itemMeta.id,
-                                  req.body.realm,
-                                  itemMeta.pcs
-                              );
-
-                        if (data.success) {
-                            item = { ...data.response, guid: itemMeta };
-
-                            cache.setItem(itemMeta.id, item);
-                        } else {
-                            continue;
-                        }
+                    if (data.success) {
+                        item = { ...data.response, guid: itemMeta };
+                    } else {
+                        continue;
                     }
 
                     if (item) {
