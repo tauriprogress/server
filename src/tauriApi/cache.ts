@@ -1,6 +1,7 @@
 import * as NodeCache from "node-cache";
 import {
     CharacterDataResponse,
+    CharacterLastRaidLogsResponse,
     ItemResponse,
     RaidLogResponse,
     Realm,
@@ -8,9 +9,10 @@ import {
 import { id } from "../helpers";
 
 class TauriAPICache {
-    public items: NodeCache;
-    public logs: NodeCache;
-    public characters: NodeCache;
+    private items: NodeCache;
+    private logs: NodeCache;
+    private characters: NodeCache;
+    private characterRecentKills: NodeCache;
 
     constructor() {
         this.items = new NodeCache({
@@ -28,6 +30,13 @@ class TauriAPICache {
         });
 
         this.characters = new NodeCache({
+            stdTTL: 5 * 60,
+            checkperiod: 60,
+            useClones: false,
+            maxKeys: 400,
+        });
+
+        this.characterRecentKills = new NodeCache({
             stdTTL: 5 * 60,
             checkperiod: 60,
             useClones: false,
@@ -81,6 +90,27 @@ class TauriAPICache {
         return this.characters.get(
             id.cache.characterApiId(characterName, realm)
         ) as CharacterDataResponse | undefined;
+    }
+
+    setCharacterRecentKills(
+        name: string,
+        realm: Realm,
+        response: CharacterLastRaidLogsResponse
+    ) {
+        try {
+            this.characterRecentKills.set(
+                id.cache.characterRecentKillsCacheId(name, realm),
+                response
+            );
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    getCharacterRecentKills(name: string, realm: Realm) {
+        return this.characterRecentKills.get(
+            id.cache.characterRecentKillsCacheId(name, realm)
+        ) as CharacterLastRaidLogsResponse | undefined;
     }
 }
 

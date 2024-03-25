@@ -50,6 +50,10 @@ function characterId(name: string, realm: Realm, spec: SpecId): CharacterId {
     return `${name},${environment.shortRealms[realm]},${spec}`;
 }
 
+function characterRecentKillsCacheId(name: string, realm: Realm): CharacterId {
+    return `${name}${realm}`;
+}
+
 function characterDocumentCollectionId<
     T extends number,
     D extends Difficulty,
@@ -150,5 +154,6 @@ export default {
         extendedLogId,
         characterApiId,
         itemCacheId,
+        characterRecentKillsCacheId,
     },
 };

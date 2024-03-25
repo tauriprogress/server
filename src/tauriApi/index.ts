@@ -145,13 +145,22 @@ class TauriApi {
         });
     }
 
-    getCharacterRaidLogs(
+    async getCharacterRaidLogs(
         characterName: string,
         realm: Realm,
         logId: number = 0,
         limit: number = 0
     ) {
-        return this.request<CharacterLastRaidLogsResponse>({
+        const cachedData = tauriApiCache.getCharacterRecentKills(
+            characterName,
+            realm
+        );
+
+        if (cachedData) {
+            return cachedData;
+        }
+
+        const response = await this.request<CharacterLastRaidLogsResponse>({
             method: "POST",
             body: encodeURIComponent(
                 JSON.stringify({
@@ -166,6 +175,16 @@ class TauriApi {
                 })
             ),
         });
+
+        try {
+            tauriApiCache.setCharacterRecentKills(
+                characterName,
+                realm,
+                response
+            );
+        } catch (e) {}
+
+        return response;
     }
 
     getCharacterTalents(name: string, realm: Realm) {
