@@ -22,7 +22,7 @@
         "node-cache": "^5.1.2",
         "node-fetch": "^2.5.8",
         "prompt-sync": "^4.2.0",
-        "tauriprogress-constants": "^6.8.0",
+        "tauriprogress-constants": "^6.9.0",
         "typescript": "^5.2.2"
     },
     "scripts": {
