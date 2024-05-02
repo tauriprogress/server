@@ -25,14 +25,6 @@ export class DBTaskManager {
                     dbInterface.update
                 ),
             },
-            {
-                name: "Update guilds",
-                interval: 1000 * 60 * 60 * 36,
-                minDelay: 1000 * 60 * 60 * 30,
-                perform: dbInterface.update.updateGuilds.bind(
-                    dbInterface.update
-                ),
-            },
         ];
 
         for (const task of this.tasks) {
