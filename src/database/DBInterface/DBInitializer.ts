@@ -259,7 +259,6 @@ export class DBInitializer {
                 });
                 await this.dbInterface.raidboss.updateRaidBossCache();
                 this.dbInterface.update.isUpdating = false;
-                await this.dbInterface.update.updateGuilds();
 
                 console.log("Initalization done.");
                 resolve(true);

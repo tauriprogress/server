@@ -11,7 +11,6 @@ const prompt = require("prompt-sync")();
 export interface MaintenanceDocument {
     _id: ObjectId;
     lastUpdated: number;
-    lastGuildsUpdate: number;
     lastLogIds: {
         [key in Realm]?: number;
     };
@@ -67,7 +66,6 @@ export class DBMaintenance {
             if (!doc) throw ERR_DB_DOC_DOES_NOT_EXIST;
             this._id = doc._id;
             this.lastUpdated = doc.lastUpdated;
-            this.lastGuildsUpdate = doc.lastGuildsUpdate;
             this.isInitalized = doc.isInitalized;
             this.lastLogIds = doc.lastLogIds;
         } catch (err) {
@@ -97,7 +95,6 @@ export class DBMaintenance {
 
                 this._id = updatedDocument._id;
                 this.lastUpdated = updatedDocument.lastUpdated;
-                this.lastGuildsUpdate = updatedDocument.lastGuildsUpdate;
                 this.isInitalized = updatedDocument.isInitalized;
                 this.lastLogIds = updatedDocument.lastLogIds;
 
@@ -146,7 +143,6 @@ export class DBMaintenance {
         return {
             _id: this._id,
             lastUpdated: this.lastUpdated,
-            lastGuildsUpdate: this.lastGuildsUpdate,
             lastLogIds: this.lastLogIds,
             isInitalized: this.isInitalized,
         };

@@ -1,10 +1,8 @@
 import { ClientSession, ReadConcern } from "mongodb";
-import { Faction } from "tauriprogress-constants/build/globalTypes";
 import { DatabaseInterface } from ".";
 import environment from "../../environment";
 import {
     CharacterDocument,
-    GuildDocument,
     LastLogIds,
     RaidBossDocument,
     RaidBosses,
@@ -18,14 +16,12 @@ import documentManager from "../../helpers/documents";
 import {
     ERR_DB_ALREADY_UPDATING,
     ERR_DB_TANSACTION,
-    ERR_GUILD_NOT_FOUND,
 } from "../../helpers/errors";
 import {
     ClassId,
     CombatMetric,
     Difficulty,
     LooseObject,
-    Realm,
     SpecId,
 } from "../../types";
 import cache from "../cache";
@@ -500,104 +496,6 @@ export class DBUpdate {
                     err.message !== ERR_DB_ALREADY_UPDATING.message
                 ) {
                     console.log(`Database update error`);
-                    this.isUpdating = false;
-                }
-
-                reject(err);
-            }
-        });
-    }
-
-    updateGuilds(): Promise<void> {
-        return new Promise(async (resolve, reject) => {
-            try {
-                const db = this.dbInterface.maintenance.getConnection();
-                if (this.isUpdating) throw ERR_DB_ALREADY_UPDATING;
-
-                const maintenanceDocument =
-                    this.dbInterface.maintenance.getDocument();
-
-                if (
-                    time.minutesAgo(maintenanceDocument.lastGuildsUpdate) >
-                    60 * 36
-                ) {
-                    const updateStarted = new Date().getTime() / 1000;
-
-                    console.log("Updating guilds");
-                    this.isUpdating = true;
-
-                    await this.dbInterface.maintenance.updateDocument({
-                        lastGuildsUpdate: updateStarted,
-                    });
-
-                    const guilds = (await db
-                        .collection<GuildDocument>(
-                            this.dbInterface.collections.guilds.name
-                        )
-                        .find()
-                        .project({
-                            _id: 1,
-                            name: 1,
-                            realm: 1,
-                            f: 1,
-                        })
-                        .toArray()) as {
-                        _id: ReturnType<typeof id.guildId>;
-                        name: string;
-                        realm: Realm;
-                        f: Faction;
-                    }[];
-
-                    let total = guilds.length;
-                    let current = 0;
-
-                    for (let guild of guilds) {
-                        try {
-                            current++;
-                            console.log(
-                                `Updating ${guild.name} ${current}/${total}`
-                            );
-
-                            const newGuildDoc = new documentManager.guild({
-                                guildName: guild.name,
-                                realm: guild.realm,
-                                faction: guild.f,
-                            });
-
-                            await newGuildDoc.extendData();
-
-                            await this.dbInterface.guild.saveGuild(newGuildDoc);
-                        } catch (err) {
-                            if (
-                                validator.isError(err) &&
-                                err.message &&
-                                err.message.includes(
-                                    ERR_GUILD_NOT_FOUND.message
-                                )
-                            ) {
-                                this.dbInterface.guild.removeGuild(guild._id);
-                            } else {
-                                console.log(
-                                    `Error while updating ${guild.name}:`
-                                );
-                                console.error(err);
-                            }
-                        }
-                    }
-
-                    this.isUpdating = false;
-
-                    console.log("Guilds updated.");
-                } else {
-                    console.log("Guild update is not due yet.");
-                }
-
-                resolve();
-            } catch (err) {
-                if (
-                    !validator.isError(err) ||
-                    !err.message.includes(ERR_DB_ALREADY_UPDATING.message)
-                ) {
                     this.isUpdating = false;
                 }
 
