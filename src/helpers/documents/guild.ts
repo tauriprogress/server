@@ -26,6 +26,7 @@ export interface GuildDocument extends Document {
     progression: GuildProgression;
     raidDays: GuildRaidDays;
     ranking: Ranking;
+    lastUpdated: number;
 }
 
 export interface GuildMember {
@@ -153,6 +154,7 @@ export class GuildDocumentController {
     progression: GuildProgression;
     raidDays: GuildRaidDays;
     ranking: Ranking;
+    lastUpdated: number;
 
     constructor(
         obj:
@@ -176,6 +178,7 @@ export class GuildDocumentController {
             this.progression = obj.progression;
             this.raidDays = obj.raidDays;
             this.ranking = obj.ranking;
+            this.lastUpdated = obj.lastUpdated;
         } else {
             this._id = id.guildId(obj.guildName, obj.realm);
             this.f = obj.faction;
@@ -195,6 +198,7 @@ export class GuildDocumentController {
             };
             this.raidDays = this.createGuildRaidDays();
             this.ranking = {};
+            this.lastUpdated = 0;
         }
     }
 
@@ -210,6 +214,7 @@ export class GuildDocumentController {
             progression: this.progression,
             raidDays: this.raidDays,
             ranking: this.ranking,
+            lastUpdated: this.lastUpdated,
         };
     }
 
@@ -426,6 +431,8 @@ export class GuildDocumentController {
                         this.f = guild.faction;
                     }
                 }
+
+                this.lastUpdated = new Date().getTime();
                 resolve();
             } catch (err) {
                 reject(err);
