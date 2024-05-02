@@ -50,12 +50,40 @@ const speedLimiter = slowDown({
         middlewares.verifyGetGuild,
         async (req, res) => {
             try {
-                res.send({
-                    success: true,
-                    response: await dbInterface.guild.getGuild(
+                const guildDocumentController =
+                    await dbInterface.guild.getGuild(
                         req.body.realm,
                         req.body.guildName
-                    ),
+                    );
+
+                try {
+                    if (
+                        new Date().getTime() -
+                            (guildDocumentController.lastUpdated || 0) >
+                        1000 * 60 * 60 * 24 * 2
+                    ) {
+                        console.log(
+                            "Updating guild: ",
+                            guildDocumentController.name
+                        );
+                        await guildDocumentController.extendData();
+                        await dbInterface.guild.saveGuild(
+                            guildDocumentController
+                        );
+
+                        console.log(
+                            "Guild",
+                            guildDocumentController.name,
+                            "has been updated."
+                        );
+                    }
+                } catch (e) {
+                    console.error("Guild update failed:", e);
+                }
+
+                res.send({
+                    success: true,
+                    response: guildDocumentController.getDocument(),
                 });
             } catch (err) {
                 res.send({

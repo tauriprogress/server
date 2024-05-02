@@ -48,7 +48,10 @@ export class DBGuild {
         });
     }
 
-    async getGuild(realm: Realm, guildName: string) {
+    async getGuild(
+        realm: Realm,
+        guildName: string
+    ): Promise<GuildDocumentController> {
         return new Promise(async (resolve, reject) => {
             try {
                 const db = this.dbInterface.maintenance.getConnection();
@@ -64,7 +67,7 @@ export class DBGuild {
 
                 if (!guild) throw ERR_GUILD_NOT_FOUND;
 
-                resolve(guild);
+                resolve(new documentManager.guild(guild));
             } catch (err) {
                 reject(err);
             }

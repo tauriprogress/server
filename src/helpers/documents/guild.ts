@@ -407,6 +407,7 @@ export class GuildDocumentController {
                 );
                 const guildData = response.response;
 
+                this.members = [];
                 for (const memberId in guildData.guildList) {
                     this.members.push({
                         name: guildData.guildList[memberId].name,
@@ -417,6 +418,7 @@ export class GuildDocumentController {
                     });
                 }
 
+                this.ranks = [];
                 for (const rankId in guildData.gRanks) {
                     this.ranks.push(guildData.gRanks[rankId].rname);
                 }
@@ -447,6 +449,10 @@ export class GuildDocumentController {
     }
 
     mergeGuildDocument(guild: GuildDocument): void {
+        const mergeLastUpdated = () => {
+            this.lastUpdated = guild.lastUpdated;
+        };
+
         const mergeFaction = () => {
             this.f = guild.f;
         };
@@ -651,6 +657,7 @@ export class GuildDocumentController {
         mergeRaidDaysTotal();
         mergeActivity();
         mergeRanking();
+        mergeLastUpdated();
 
         this.refreshValues();
     }
