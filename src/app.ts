@@ -10,7 +10,11 @@ import tauriApi from "./tauriApi";
 
 import environment from "./environment";
 import { patreonUser, validator } from "./helpers";
-import { ERR_USER_NOT_LOGGED_IN, ERR_UNKNOWN } from "./helpers/errors";
+import {
+    ERR_USER_NOT_LOGGED_IN,
+    ERR_UNKNOWN,
+    ERR_GUILD_NOT_FOUND,
+} from "./helpers/errors";
 import { LooseObject } from "./types";
 
 import { middlewares } from "./middlewares";
@@ -77,8 +81,18 @@ const speedLimiter = slowDown({
                             "has been updated."
                         );
                     }
-                } catch (e) {
-                    console.error("Guild update failed:", e);
+                } catch (err) {
+                    if (
+                        validator.isError(err) &&
+                        err.message &&
+                        err.message.includes(ERR_GUILD_NOT_FOUND.message)
+                    ) {
+                        dbInterface.guild.removeGuild(
+                            guildDocumentController._id
+                        );
+                    } else {
+                        console.error("Guild update failed:", err);
+                    }
                 }
 
                 res.send({
