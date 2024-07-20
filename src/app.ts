@@ -85,7 +85,9 @@ const speedLimiter = slowDown({
                     if (
                         validator.isError(err) &&
                         err.message &&
-                        err.message.includes(ERR_GUILD_NOT_FOUND.message)
+                        err.message.includes(ERR_GUILD_NOT_FOUND.message) &&
+                        guildDocumentController &&
+                        guildDocumentController._id
                     ) {
                         dbInterface.guild.removeGuild(
                             guildDocumentController._id
