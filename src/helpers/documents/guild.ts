@@ -614,10 +614,10 @@ export class GuildDocumentController {
                                     ) {
                                         oldRaidGroups[i] = {
                                             ...oldGroup,
-                                            logs: [
+                                            logs: log.uniqueLogs([
                                                 ...oldGroup.logs,
                                                 ...newGroup.logs,
-                                            ],
+                                            ]),
                                         };
 
                                         this.ranking = addNestedObjectValue(
