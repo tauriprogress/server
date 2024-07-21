@@ -1,3 +1,4 @@
+import environment from "../environment";
 import { DatabaseInterface } from "./DBInterface/index";
 
 interface Task {
@@ -16,16 +17,18 @@ export class DBTaskManager {
     constructor(dbInterface: DatabaseInterface) {
         this.started = false;
         this.queue = [];
-        this.tasks = [
-            {
+        this.tasks = [];
+
+        if (environment.UPDATE) {
+            this.tasks.push({
                 name: "Update database",
                 interval: 1000 * 60 * 30,
                 minDelay: 1000 * 60 * 15,
                 perform: dbInterface.update.updateDatabase.bind(
                     dbInterface.update
                 ),
-            },
-        ];
+            });
+        }
 
         for (const task of this.tasks) {
             this.addTask(task);

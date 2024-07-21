@@ -34,6 +34,7 @@ class Environment {
     readonly ENCRYPTION_KEY: string;
     readonly PATREON_CLIENT: string;
     readonly PATREON_SECRET: string;
+    readonly UPDATE: boolean;
 
     readonly apiUrl;
     readonly defaultRealm;
@@ -166,6 +167,15 @@ class Environment {
                 `Environment variable PATREON_SECRET=${process.env.PATREON_SECRET} is invalid.`
             );
             process.exit(0);
+        }
+
+        if (
+            typeof process.env.UPDATE === "string" &&
+            process.env.UPDATE === "false"
+        ) {
+            this.UPDATE = false;
+        } else {
+            this.UPDATE = true;
         }
 
         const realmGroupEnv = constants[this.REALM_GROUP];
