@@ -54,6 +54,7 @@ export interface CharacterDocument {
     spec: SpecId;
     ilvl: number;
     date: number;
+    fightLength: number;
     logId: number;
     f: Faction;
     race: string;
@@ -127,6 +128,7 @@ export function characterDocument({
         race: `${character.race},${character.gender}`,
         logId: logId,
         date: date,
+        fightLength: fightTime,
         rank: 0,
         cRank: 0,
         sRank: 0,
