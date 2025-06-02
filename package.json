@@ -22,7 +22,7 @@
         "node-cache": "^5.1.2",
         "node-fetch": "^2.5.8",
         "prompt-sync": "^4.2.0",
-        "tauriprogress-constants": "^6.13.0",
+        "tauriprogress-constants": "^6.14.0",
         "typescript": "^5.2.2"
     },
     "scripts": {
@@ -30,9 +30,6 @@
         "build": "tsc --project tsconfig.json",
         "dev": "tsc --watch --sourceMap",
         "test": "npx madge --ts-config ./tsconfig.json --extensions js,ts --circular ./src"
-    },
-    "engines": {
-        "node": "16.x"
     },
     "devDependencies": {
         "@types/prompt-sync": "^4.2.1"
