@@ -61,8 +61,9 @@ function validRaidLogDate(date: Date) {
 
     if (currentSeason) {
         const time = date.getTime();
-
+        // @ts-ignore
         const start = new Date(currentSeason.start).getTime();
+        // @ts-ignore
         const finish = new Date(currentSeason.finish).getTime();
 
         if (time > start && time < finish) {

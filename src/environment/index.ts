@@ -236,7 +236,9 @@ class Environment {
 
         if (this.seasonal) {
             for (const season of this.seasons) {
+                // @ts-ignore
                 const start = new Date(season.start).getTime();
+                // @ts-ignore
                 const finish = new Date(season.finish).getTime();
                 if (currentDate > start && currentDate < finish) {
                     return season;
