@@ -138,7 +138,7 @@ interface GuildOfGuildList {
     realm: Realm;
     name: string;
     activity: GuildActivity;
-    progression: Omit<GuildProgression, "recentKills" | "raids">;
+    progression: Omit<GuildProgression, "latestKills" | "raids">;
 }
 
 export type GuildList = GuildOfGuildList[];
@@ -464,8 +464,8 @@ export class GuildDocumentController {
         };
 
         const mergeProgressionLatestKills = () => {
-            this.progression.latestKills = guild.progression.latestKills
-                .concat(this.progression.latestKills)
+            this.progression.latestKills = log.uniqueLogs(guild.progression.latestKills
+                .concat(this.progression.latestKills))
                 .slice(0, 50);
         };
 
