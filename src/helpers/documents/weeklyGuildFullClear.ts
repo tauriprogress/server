@@ -102,7 +102,7 @@ export class WeeklyGuildFullClearDocumentController {
             this.realm !== document.realm ||
             this.difficulty !== document.difficulty ||
             this.latestWednesday !== document.latestWednesday ||
-            !log.sameMembers(this.members, document.members, this.difficulty)
+            !log.sameMembers(this.members, document.members)
         ) {
             return false;
         }

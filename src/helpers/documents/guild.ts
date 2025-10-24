@@ -290,7 +290,6 @@ export class GuildDocumentController {
                         log.sameMembers(
                             raidGroup.members,
                             raidLog.members.map((member) => member.name),
-                            difficulty
                         )
                     ) {
                         logAddedToRanking = true;
@@ -609,7 +608,6 @@ export class GuildDocumentController {
                                         log.sameMembers(
                                             oldGroup.members,
                                             newGroup.members,
-                                            difficulty
                                         )
                                     ) {
                                         oldRaidGroups[i] = {
