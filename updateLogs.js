@@ -10,9 +10,9 @@ const pathToLogs = "./logs/logs.txt";
 const pathToLastLogIds = "./logs/lastLogIds.json";
 
 const constantLogIds = {
-    "[HU] Tauri WoW Server": 340181,
-    "[HU] Warriors of Darkness": 109584,
-    "[EN] Evermoon": 187600,
+    "[HU] Tauri WoW Server": 1,
+    "[HU] Warriors of Darkness": 1,
+    "[EN] Evermoon": 1,
 };
 
 let logsOfRealms = {};
