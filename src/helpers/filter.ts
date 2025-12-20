@@ -1,4 +1,4 @@
-import { Role } from "tauriprogress-constants/build/globalTypes";
+import { Role } from "tauriprogress-env/build/globalTypes";
 import environment from "../environment";
 import { ClassId, Difficulty, Faction, Realm, SpecId } from "../types";
 import { CharacterDocumentAggregationMatch } from "./documents";

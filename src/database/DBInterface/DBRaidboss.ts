@@ -1,5 +1,5 @@
 import { ClientSession } from "mongodb";
-import { Faction } from "tauriprogress-constants/build/globalTypes";
+import { Faction } from "tauriprogress-env/build/globalTypes";
 import { DatabaseInterface } from ".";
 import { CharacterDocument, RaidBossDocument, id } from "../../helpers";
 import documentManager from "../../helpers/documents";
