@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import environment from "../environment";
 
-import { raidNameId } from "tauriprogress-constants";
+import { raidNameId } from "tauriprogress-env";
 import dbInterface from "../database/DBInterface";
 import { capitalize, patreonUser, validator } from "../helpers";
 import {

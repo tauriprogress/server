@@ -1,4 +1,4 @@
-import constants, { realmGroups } from "tauriprogress-constants";
+import constants, { realmGroups } from "tauriprogress-env";
 
 import * as dotenv from "dotenv";
 import { ERR_INVALID_RAID_ID, ERR_INVALID_RAID_NAME } from "../helpers/errors";
