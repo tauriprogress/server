@@ -19,3 +19,4 @@ package-lock.json
 /build
 /logs
 migrate*
+/extra
